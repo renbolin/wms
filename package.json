@@ -1,0 +1,50 @@
+{
+  "name": "react-admin",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:fast": "vite build",
+    "build:prod": "npm run lint && npm run build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "preview": "vite preview",
+    "deploy:vercel": "npm run build:fast && vercel --prod",
+    "deploy:netlify": "npm run build:fast && netlify deploy --prod --dir=dist",
+    "clean": "rm -rf dist node_modules/.vite",
+    "reinstall": "npm run clean && npm install"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.0.0",
+    "@ant-design/plots": "^2.6.4",
+    "antd": "^5.26.7",
+    "autoprefixer": "^10.4.21",
+    "clsx": "^2.1.1",
+    "echarts": "^5.5.1",
+    "lucide-react": "^0.511.0",
+    "postcss": "^8.5.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.7.1",
+    "sonner": "^2.0.2",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss": "^3.4.17",
+    "vite-tsconfig-paths": "^5.1.4",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.33.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.39.1",
+    "vite": "^7.1.2"
+  }
+}

@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  react-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    container_name: react-admin-app
+
+  # 可选：添加反向代理
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./proxy.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - react-admin
+    restart: unless-stopped
+    container_name: react-admin-proxy
+    profiles:
+      - proxy

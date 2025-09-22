@@ -1,0 +1,1498 @@
+import React, { useState, useEffect } from 'react';
+import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, InputNumber, Row, Col, Divider } from 'antd';
+import { PlusOutlined, EyeOutlined, CheckOutlined, CloseOutlined, FileTextOutlined, DeleteOutlined, MinusCircleOutlined, SendOutlined } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
+import { useInquiry } from '@/contexts/InquiryContext';
+
+const { Option } = Select;
+const { TextArea } = Input;
+const { RangePicker } = DatePicker;
+
+// 筛选条件组件
+const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
+  const [form] = Form.useForm();
+
+  const onFinish = (values: any) => {
+    onFilter(values);
+  };
+
+  const onReset = () => {
+    form.resetFields();
+    onFilter({});
+  };
+
+  return (
+    <Form form={form} onFinish={onFinish} layout="inline" style={{ marginBottom: 16 }}>
+      <Row gutter={[16, 16]} style={{ width: '100%' }}>
+        <Col span={6}>
+          <Form.Item name="requestNo" label="询价单号">
+            <Input placeholder="请输入询价单号" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="title" label="询价标题">
+            <Input placeholder="请输入询价标题" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="department" label="申请部门">
+            <Input placeholder="请输入申请部门" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="requestDate" label="申请日期">
+            <RangePicker placeholder={['开始日期', '结束日期']} />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="status" label="询价状态">
+            <Select placeholder="请选择状态" allowClear>
+              <Option value="not_quoted">未报价</Option>
+              <Option value="quoted">已报价</Option>
+              <Option value="comparing">比价中</Option>
+              <Option value="confirmed">已确认</Option>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="deadline" label="截止日期">
+            <RangePicker placeholder={['开始日期', '结束日期']} />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="supplier" label="供应商">
+            <Select placeholder="请选择供应商" allowClear>
+              <Option value="北京科技有限公司">北京科技有限公司</Option>
+              <Option value="上海设备制造厂">上海设备制造厂</Option>
+              <Option value="广州电子科技">广州电子科技</Option>
+              <Option value="深圳智能设备">深圳智能设备</Option>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">
+                查询
+              </Button>
+              <Button onClick={onReset}>
+                重置
+              </Button>
+            </Space>
+          </Form.Item>
+        </Col>
+      </Row>
+    </Form>
+  );
+};
+
+// 询价单接口
+interface QuotationRequest {
+  id: string;
+  requestNo: string;
+  title: string;
+  department: string;
+  requestDate: string;
+  deadline: string;
+  status: 'not_quoted' | 'quoted' | 'comparing' | 'confirmed';
+  statusText: string;
+  description: string;
+  items: QuotationItem[];
+  suppliers: string[];
+  quotations: Quotation[];
+}
+
+// 询价项目接口
+interface QuotationItem {
+  id: string;
+  name: string;
+  specification: string;
+  unit: string;
+  quantity: number;
+  estimatedPrice: number;
+}
+
+// 报价接口
+interface Quotation {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  quotationDate: string;
+  validUntil: string;
+  totalAmount: number;
+  status: 'pending' | 'submitted' | 'selected' | 'rejected';
+  items: QuotationItemPrice[];
+  remarks: string;
+}
+
+// 报价项目价格接口
+interface QuotationItemPrice {
+  itemId: string;
+  unitPrice: number;
+  totalPrice: number;
+  deliveryTime: string;
+  remarks: string;
+}
+
+// 供应商接口
+interface Supplier {
+  id: string;
+  name: string;
+  contact: string;
+  phone: string;
+  email: string;
+}
+
+const QuotationComparison: React.FC = () => {
+  // 使用全局状态管理
+  const { quotationRequests, updateQuotationRequest, procurementRequisitions } = useInquiry();
+  
+  const [filteredData, setFilteredData] = useState<QuotationRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isComparisonModalVisible, setIsComparisonModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<QuotationRequest | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<QuotationRequest | null>(null);
+  const [selectedProcurementRequisition, setSelectedProcurementRequisition] = useState<any>(null);
+  const [form] = Form.useForm();
+
+  // 模拟供应商数据
+  const suppliers: Supplier[] = [
+    { id: '1', name: '北京科技有限公司', contact: '张经理', phone: '010-12345678', email: 'zhang@bjtech.com' },
+    { id: '2', name: '上海设备制造厂', contact: '李经理', phone: '021-87654321', email: 'li@shequip.com' },
+    { id: '3', name: '广州电子科技', contact: '王经理', phone: '020-11223344', email: 'wang@gztech.com' },
+    { id: '4', name: '深圳智能设备', contact: '刘经理', phone: '0755-99887766', email: 'liu@szai.com' },
+  ];
+
+  // 模拟数据
+  const mockData: QuotationRequest[] = [
+    {
+      id: '1',
+      requestNo: 'RFQ202401001',
+      title: '办公设备采购询价',
+      department: '行政部',
+      requestDate: '2024-01-15',
+      deadline: '2024-01-25',
+      status: 'comparing',
+      statusText: '比价中',
+      description: '办公室电脑、打印机等设备采购',
+      items: [
+        { id: '1', name: '台式电脑', specification: 'Intel i5, 8GB内存, 256GB SSD', unit: '台', quantity: 10, estimatedPrice: 4000 },
+        { id: '2', name: '激光打印机', specification: 'A4黑白激光打印机', unit: '台', quantity: 2, estimatedPrice: 1500 },
+      ],
+      suppliers: ['1', '2', '3'],
+      quotations: [
+        {
+          id: '1',
+          supplierId: '1',
+          supplierName: '北京科技有限公司',
+          quotationDate: '2024-01-18',
+          validUntil: '2024-02-18',
+          totalAmount: 43000,
+          status: 'submitted',
+          items: [
+            { itemId: '1', unitPrice: 3800, totalPrice: 38000, deliveryTime: '7个工作日', remarks: '含三年质保' },
+            { itemId: '2', unitPrice: 2500, totalPrice: 5000, deliveryTime: '3个工作日', remarks: '含安装调试' },
+          ],
+          remarks: '价格优惠，质量可靠'
+        },
+        {
+          id: '2',
+          supplierId: '2',
+          supplierName: '上海设备制造厂',
+          quotationDate: '2024-01-19',
+          validUntil: '2024-02-19',
+          totalAmount: 41000,
+          status: 'selected',
+          items: [
+            { itemId: '1', unitPrice: 3600, totalPrice: 36000, deliveryTime: '5个工作日', remarks: '含两年质保' },
+            { itemId: '2', unitPrice: 2500, totalPrice: 5000, deliveryTime: '2个工作日', remarks: '免费送货上门' },
+          ],
+          remarks: '性价比最高'
+        },
+      ],
+      procurementRequisition: {
+        id: 1,
+        requisitionNumber: 'PR2024001',
+        applicant: '张三',
+        department: '行政部',
+        applicationDate: '2024-01-15',
+        description: '办公用品紧急采购'
+      }
+    },
+    {
+      id: '2',
+      requestNo: 'RFQ202401002',
+      title: '生产设备询价',
+      department: '生产部',
+      requestDate: '2024-01-20',
+      deadline: '2024-01-30',
+      status: 'quoted',
+      statusText: '已报价',
+      description: '生产线设备更新采购',
+      items: [
+        { id: '3', name: '数控机床', specification: 'CNC加工中心', unit: '台', quantity: 1, estimatedPrice: 500000 },
+      ],
+      suppliers: ['2', '4'],
+      quotations: [
+        {
+          id: '3',
+          supplierId: '2',
+          supplierName: '上海设备制造厂',
+          quotationDate: '2024-01-22',
+          validUntil: '2024-02-22',
+          totalAmount: 480000,
+          status: 'submitted',
+          items: [
+            { itemId: '3', unitPrice: 480000, totalPrice: 480000, deliveryTime: '30个工作日', remarks: '含培训服务' },
+          ],
+          remarks: '专业制造商，技术成熟'
+        },
+      ],
+      procurementRequisition: {
+        id: 3,
+        requisitionNumber: 'PR2024003',
+        applicant: '王五',
+        department: '生产部',
+        applicationDate: '2024-01-17',
+        description: '生产原材料采购'
+      }
+    },
+    {
+      id: '3',
+      requestNo: 'RFQ202401003',
+      title: '办公用品采购询价',
+      department: '采购部',
+      requestDate: '2024-01-25',
+      deadline: '2024-02-05',
+      status: 'not_quoted',
+      statusText: '未报价',
+      description: '办公用品批量采购',
+      items: [
+        { id: '4', name: '办公桌', specification: '1.2m*0.6m 钢木结构', unit: '张', quantity: 20, estimatedPrice: 800 },
+        { id: '5', name: '办公椅', specification: '人体工学设计 可调节高度', unit: '把', quantity: 20, estimatedPrice: 600 },
+      ],
+      suppliers: ['1', '3', '4'],
+      quotations: []
+    },
+    {
+      id: '4',
+      requestNo: 'RFQ202401004',
+      title: '服务器设备询价',
+      department: 'IT部',
+      requestDate: '2024-01-16',
+      deadline: '2024-01-26',
+      status: 'not_quoted',
+      statusText: '未报价',
+      description: '数据中心服务器设备采购',
+      items: [
+        { id: '6', name: '服务器', specification: 'Dell PowerEdge R740', unit: '台', quantity: 5, estimatedPrice: 25000 },
+        { id: '7', name: '交换机', specification: '48口千兆交换机', unit: '台', quantity: 2, estimatedPrice: 8000 },
+      ],
+      suppliers: ['1', '2', '4'],
+      quotations: [],
+      procurementRequisition: {
+        id: 2,
+        requisitionNumber: 'PR2024002',
+        applicant: '李四',
+        department: 'IT部',
+        applicationDate: '2024-01-16',
+        description: '服务器设备采购'
+      }
+    },
+    {
+      id: '5',
+      requestNo: 'RFQ202401005',
+      title: '营销物料询价',
+      department: '市场部',
+      requestDate: '2024-01-18',
+      deadline: '2024-01-28',
+      status: 'comparing',
+      statusText: '比价中',
+      description: '品牌推广物料制作',
+      items: [
+        { id: '8', name: '宣传册', specification: 'A4彩印 200g铜版纸', unit: '本', quantity: 1000, estimatedPrice: 15 },
+        { id: '9', name: '展示架', specification: '铝合金易拉宝 80*200cm', unit: '个', quantity: 20, estimatedPrice: 120 },
+      ],
+      suppliers: ['1', '3'],
+      quotations: [
+        {
+          id: '4',
+          supplierId: '1',
+          supplierName: '北京科技有限公司',
+          quotationDate: '2024-01-20',
+          validUntil: '2024-02-20',
+          totalAmount: 17400,
+          status: 'selected',
+          items: [
+            { itemId: '8', unitPrice: 12, totalPrice: 12000, deliveryTime: '5个工作日', remarks: '包装精美' },
+            { itemId: '9', unitPrice: 100, totalPrice: 2000, deliveryTime: '3个工作日', remarks: '含设计费' },
+          ],
+          remarks: '设计能力强，交期快'
+        },
+        {
+          id: '5',
+          supplierId: '3',
+          supplierName: '广州电子科技',
+          quotationDate: '2024-01-21',
+          validUntil: '2024-02-21',
+          totalAmount: 18500,
+          status: 'submitted',
+          items: [
+            { itemId: '8', unitPrice: 14, totalPrice: 14000, deliveryTime: '7个工作日', remarks: '质量保证' },
+            { itemId: '9', unitPrice: 110, totalPrice: 2200, deliveryTime: '5个工作日', remarks: '免费送货' },
+          ],
+          remarks: '质量可靠，服务周到'
+        },
+      ],
+      procurementRequisition: {
+        id: 4,
+        requisitionNumber: 'PR2024004',
+        applicant: '赵六',
+        department: '市场部',
+        applicationDate: '2024-01-18',
+        description: '营销物料采购'
+      }
+    },
+    {
+      id: '6',
+      requestNo: 'RFQ202401006',
+      title: '实验设备询价',
+      department: '研发部',
+      requestDate: '2024-01-19',
+      deadline: '2024-01-29',
+      status: 'confirmed',
+      statusText: '已确认',
+      description: '实验室精密仪器采购',
+      items: [
+        { id: '10', name: '显微镜', specification: '光学显微镜 1000倍', unit: '台', quantity: 3, estimatedPrice: 15000 },
+        { id: '11', name: '天平', specification: '精密电子天平 0.1mg', unit: '台', quantity: 2, estimatedPrice: 8000 },
+      ],
+      suppliers: ['2', '4'],
+      quotations: [
+        {
+          id: '6',
+          supplierId: '4',
+          supplierName: '深圳智能设备',
+          quotationDate: '2024-01-22',
+          validUntil: '2024-02-22',
+          totalAmount: 61000,
+          status: 'selected',
+          items: [
+            { itemId: '10', unitPrice: 14000, totalPrice: 42000, deliveryTime: '10个工作日', remarks: '德国进口镜头' },
+            { itemId: '11', unitPrice: 7500, totalPrice: 15000, deliveryTime: '7个工作日', remarks: '含校准证书' },
+          ],
+          remarks: '专业实验设备供应商'
+        },
+      ],
+      procurementRequisition: {
+        id: 5,
+        requisitionNumber: 'PR2024005',
+        applicant: '孙七',
+        department: '研发部',
+        applicationDate: '2024-01-19',
+        description: '实验设备采购'
+      }
+    },
+    {
+      id: '7',
+      requestNo: 'RFQ202401007',
+      title: '清洁用品询价',
+      department: '后勤部',
+      requestDate: '2024-01-22',
+      deadline: '2024-02-01',
+      status: 'draft',
+      statusText: '草稿',
+      description: '办公区域清洁用品采购',
+      items: [
+        { id: '12', name: '洗手液', specification: '500ml 抗菌型', unit: '瓶', quantity: 50, estimatedPrice: 25 },
+        { id: '13', name: '垃圾袋', specification: '45L 加厚型', unit: '卷', quantity: 20, estimatedPrice: 15 },
+      ],
+      suppliers: ['1', '2'],
+      quotations: []
+    },
+    {
+      id: '8',
+      requestNo: 'RFQ202401008',
+      title: '安防设备询价',
+      department: '安保部',
+      requestDate: '2024-01-23',
+      deadline: '2024-02-02',
+      status: 'sent',
+      statusText: '已发送',
+      description: '园区安防监控设备升级',
+      items: [
+        { id: '14', name: '监控摄像头', specification: '4K高清 夜视功能', unit: '个', quantity: 12, estimatedPrice: 1200 },
+        { id: '15', name: '硬盘录像机', specification: '16路 4TB存储', unit: '台', quantity: 2, estimatedPrice: 3500 },
+      ],
+      suppliers: ['3', '4'],
+      quotations: [],
+      procurementRequisition: {
+        id: 6,
+        requisitionNumber: 'PR2024006',
+        applicant: '周八',
+        department: '安保部',
+        applicationDate: '2024-01-23',
+        description: '安防设备升级采购'
+      }
+    },
+    {
+      id: '9',
+      requestNo: 'RFQ202401009',
+      title: '培训设备询价',
+      department: '人事部',
+      requestDate: '2024-01-24',
+      deadline: '2024-02-03',
+      status: 'quoted',
+      statusText: '已报价',
+      description: '员工培训室设备采购',
+      items: [
+        { id: '16', name: '投影仪', specification: '4K分辨率 激光光源', unit: '台', quantity: 2, estimatedPrice: 8000 },
+        { id: '17', name: '音响系统', specification: '无线麦克风 功放音箱', unit: '套', quantity: 1, estimatedPrice: 5000 },
+      ],
+      suppliers: ['1', '3', '4'],
+      quotations: [
+        {
+          id: '7',
+          supplierId: '1',
+          supplierName: '北京科技有限公司',
+          quotationDate: '2024-01-26',
+          validUntil: '2024-02-26',
+          totalAmount: 20500,
+          status: 'submitted',
+          items: [
+            { itemId: '16', unitPrice: 7800, totalPrice: 15600, deliveryTime: '7个工作日', remarks: '含安装调试' },
+            { itemId: '17', unitPrice: 4900, totalPrice: 4900, deliveryTime: '5个工作日', remarks: '一年保修' },
+          ],
+          remarks: '专业AV设备供应商'
+        },
+        {
+          id: '8',
+          supplierId: '3',
+          supplierName: '广州电子科技',
+          quotationDate: '2024-01-27',
+          validUntil: '2024-02-27',
+          totalAmount: 21200,
+          status: 'pending',
+          items: [
+            { itemId: '16', unitPrice: 8100, totalPrice: 16200, deliveryTime: '10个工作日', remarks: '进口品牌' },
+            { itemId: '17', unitPrice: 5000, totalPrice: 5000, deliveryTime: '7个工作日', remarks: '免费培训' },
+          ],
+          remarks: '高端设备，质量保证'
+        },
+      ]
+    },
+    {
+      id: '10',
+      requestNo: 'RFQ202401010',
+      title: '车辆维修询价',
+      department: '车队',
+      requestDate: '2024-01-25',
+      deadline: '2024-02-04',
+      status: 'compared',
+      statusText: '已比价',
+      description: '公务车辆定期保养维修',
+      items: [
+        { id: '18', name: '机油更换', specification: '全合成机油 5W-30', unit: '次', quantity: 5, estimatedPrice: 300 },
+        { id: '19', name: '轮胎更换', specification: '205/55R16 品牌轮胎', unit: '条', quantity: 8, estimatedPrice: 600 },
+      ],
+      suppliers: ['2', '4'],
+      quotations: [
+        {
+          id: '9',
+          supplierId: '2',
+          supplierName: '上海设备制造厂',
+          quotationDate: '2024-01-27',
+          validUntil: '2024-02-27',
+          totalAmount: 6300,
+          status: 'submitted',
+          items: [
+            { itemId: '18', unitPrice: 280, totalPrice: 1400, deliveryTime: '当天完成', remarks: '含工时费' },
+            { itemId: '19', unitPrice: 580, totalPrice: 4640, deliveryTime: '2个工作日', remarks: '品牌保证' },
+          ],
+          remarks: '专业汽修服务'
+        },
+        {
+          id: '10',
+          supplierId: '4',
+          supplierName: '深圳智能设备',
+          quotationDate: '2024-01-28',
+          validUntil: '2024-02-28',
+          totalAmount: 6800,
+          status: 'submitted',
+          items: [
+            { itemId: '18', unitPrice: 320, totalPrice: 1600, deliveryTime: '当天完成', remarks: '原厂机油' },
+            { itemId: '19', unitPrice: 650, totalPrice: 5200, deliveryTime: '1个工作日', remarks: '进口轮胎' },
+          ],
+          remarks: '高端服务，质量优先'
+        },
+      ]
+    },
+    {
+      id: '11',
+      requestNo: 'RFQ202401011',
+      title: '食堂设备询价',
+      department: '餐饮部',
+      requestDate: '2024-01-26',
+      deadline: '2024-02-05',
+      status: 'selected',
+      statusText: '已选定',
+      description: '员工食堂厨房设备更新',
+      items: [
+        { id: '20', name: '商用冰箱', specification: '双门冷藏冷冻 600L', unit: '台', quantity: 2, estimatedPrice: 8000 },
+        { id: '21', name: '蒸饭柜', specification: '24盘电蒸箱 不锈钢', unit: '台', quantity: 1, estimatedPrice: 12000 },
+      ],
+      suppliers: ['1', '2', '3'],
+      quotations: [
+        {
+          id: '11',
+          supplierId: '2',
+          supplierName: '上海设备制造厂',
+          quotationDate: '2024-01-28',
+          validUntil: '2024-02-28',
+          totalAmount: 26500,
+          status: 'selected',
+          items: [
+            { itemId: '20', unitPrice: 7500, totalPrice: 15000, deliveryTime: '5个工作日', remarks: '节能环保' },
+            { itemId: '21', unitPrice: 11500, totalPrice: 11500, deliveryTime: '7个工作日', remarks: '含安装' },
+          ],
+          remarks: '专业厨房设备制造商'
+        },
+        {
+          id: '12',
+          supplierId: '1',
+          supplierName: '北京科技有限公司',
+          quotationDate: '2024-01-29',
+          validUntil: '2024-02-29',
+          totalAmount: 28000,
+          status: 'rejected',
+          items: [
+            { itemId: '20', unitPrice: 8000, totalPrice: 16000, deliveryTime: '7个工作日', remarks: '进口压缩机' },
+            { itemId: '21', unitPrice: 12000, totalPrice: 12000, deliveryTime: '10个工作日', remarks: '智能控制' },
+          ],
+          remarks: '高端产品，价格偏高'
+        },
+      ],
+      procurementRequisition: {
+        id: 7,
+        requisitionNumber: 'PR2024007',
+        applicant: '吴九',
+        department: '餐饮部',
+        applicationDate: '2024-01-26',
+        description: '食堂设备更新采购'
+      }
+    },
+    {
+      id: '12',
+      requestNo: 'RFQ202401012',
+      title: '绿化用品询价',
+      department: '园林部',
+      requestDate: '2024-01-27',
+      deadline: '2024-02-06',
+      status: 'confirmed',
+      statusText: '已确认',
+      description: '园区绿化养护用品采购',
+      items: [
+        { id: '22', name: '有机肥料', specification: '复合有机肥 25kg装', unit: '袋', quantity: 100, estimatedPrice: 45 },
+        { id: '23', name: '园艺工具', specification: '修枝剪 浇水壶套装', unit: '套', quantity: 10, estimatedPrice: 120 },
+      ],
+      suppliers: ['3', '4'],
+      quotations: [
+        {
+          id: '13',
+          supplierId: '3',
+          supplierName: '广州电子科技',
+          quotationDate: '2024-01-29',
+          validUntil: '2024-02-29',
+          totalAmount: 5700,
+          status: 'selected',
+          items: [
+            { itemId: '22', unitPrice: 42, totalPrice: 4200, deliveryTime: '3个工作日', remarks: '有机认证' },
+            { itemId: '23', unitPrice: 110, totalPrice: 1100, deliveryTime: '2个工作日', remarks: '进口工具' },
+          ],
+          remarks: '专业园艺用品供应商'
+        },
+      ]
+    },
+  ];
+
+  useEffect(() => {
+    // 使用全局状态中的询价单数据
+    setFilteredData(quotationRequests);
+  }, [quotationRequests]);
+
+  const handleView = (record: QuotationRequest) => {
+    setSelectedRecord(record);
+    setIsDetailModalVisible(true);
+  };
+
+  const handleCompare = (record: QuotationRequest) => {
+    setSelectedRecord(record);
+    setIsComparisonModalVisible(true);
+  };
+
+  const handleSelectQuotation = (quotationId: string) => {
+    if (!selectedRecord) return;
+    
+    const updatedRecord = {
+      ...selectedRecord,
+      quotations: selectedRecord.quotations.map(q => ({
+        ...q,
+        status: q.id === quotationId ? 'selected' as const : 'rejected' as const
+      })),
+      status: 'selected' as const,
+      statusText: '已选定'
+    };
+    
+    updateQuotationRequest(updatedRecord);
+    setSelectedRecord(updatedRecord);
+    message.success('报价选定成功');
+  };
+
+  const handleConfirmSupplier = (record: QuotationRequest) => {
+    const selectedQuotation = record.quotations.find(q => q.status === 'selected');
+    if (!selectedQuotation) {
+      message.error('请先选定一个报价');
+      return;
+    }
+
+    Modal.confirm({
+      title: '确认供应商',
+      content: `确定选择"${selectedQuotation.supplierName}"作为最终供应商吗？确认后将生成采购合同。`,
+      onOk: () => {
+        const updatedRecord = {
+          ...record,
+          status: 'confirmed' as const,
+          statusText: '已确认'
+        };
+        
+        updateQuotationRequest(updatedRecord);
+        message.success(`供应商确定成功，已选择"${selectedQuotation.supplierName}"，可进入合同签订流程`);
+      }
+    });
+  };
+
+  const handleAdd = () => {
+    setEditingRecord(null);
+    setSelectedProcurementRequisition(null);
+    form.resetFields();
+    // 设置默认的询价项目
+    form.setFieldsValue({
+      items: [{
+        id: Date.now().toString(),
+        name: '',
+        specification: '',
+        unit: '',
+        quantity: 1,
+        estimatedPrice: 0
+      }]
+    });
+    setIsModalVisible(true);
+  };
+
+  const handleProcurementRequisitionChange = (value: number) => {
+    const requisition = procurementRequisitions.find(req => req.id === value);
+    if (requisition) {
+      setSelectedProcurementRequisition(requisition);
+      form.setFieldsValue({
+        title: `${requisition.description} - 询价`,
+        department: requisition.department,
+        description: requisition.description,
+        items: requisition.items?.map((item: any) => ({
+          id: Date.now().toString() + Math.random(),
+          name: item.name,
+          specification: item.specification,
+          unit: item.unit,
+          quantity: item.quantity,
+          estimatedPrice: item.estimatedPrice || 0
+        })) || [{
+          id: Date.now().toString(),
+          name: '',
+          specification: '',
+          unit: '',
+          quantity: 1,
+          estimatedPrice: 0
+        }]
+      });
+    }
+  };
+
+  const handleEdit = (record: QuotationRequest) => {
+    setEditingRecord(record);
+    form.setFieldsValue({
+      ...record,
+      requestDate: record.requestDate ? dayjs(record.requestDate) : null,
+      deadline: record.deadline ? dayjs(record.deadline) : null,
+      items: record.items || [],
+    });
+    setIsModalVisible(true);
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      
+      // 检查采购申请是否已被使用（仅在新建模式下）
+      if (!editingRecord && values.procurementRequisition) {
+        const existingQuotation = quotationRequests.find(qr => 
+          qr.procurementRequisition?.id === values.procurementRequisition
+        );
+        
+        if (existingQuotation) {
+          message.warning(`该采购申请已关联询价单：${existingQuotation.requestNo}，请选择其他采购申请`);
+          return;
+        }
+      }
+      
+      const newRecord: QuotationRequest = {
+        id: editingRecord?.id || Date.now().toString(),
+        requestNo: editingRecord?.requestNo || `RFQ${Date.now().toString().slice(-6)}`,
+        title: values.title,
+        department: values.department,
+        requestDate: values.requestDate ? values.requestDate.format('YYYY-MM-DD') : '',
+        deadline: values.deadline ? values.deadline.format('YYYY-MM-DD') : '',
+        status: editingRecord?.status || 'draft',
+        statusText: editingRecord?.statusText || '草稿',
+        description: values.description,
+        items: values.items || [],
+        suppliers: values.suppliers,
+        quotations: editingRecord?.quotations || [],
+        procurementRequisition: selectedProcurementRequisition || editingRecord?.procurementRequisition,
+      };
+
+      if (editingRecord) {
+        updateQuotationRequest(newRecord);
+        message.success('询价单更新成功');
+      } else {
+        updateQuotationRequest(newRecord);
+        message.success('询价单创建成功');
+      }
+
+      setIsModalVisible(false);
+      setEditingRecord(null);
+      form.resetFields();
+    } catch (error) {
+      console.error('表单验证失败:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setSelectedProcurementRequisition(null);
+    form.resetFields();
+  };
+
+  const handlePublish = (record: QuotationRequest) => {
+    Modal.confirm({
+      title: '确认发布询价单',
+      content: `确定要发布询价单"${record.title}"吗？发布后将向选定的供应商发送询价邀请。`,
+      onOk: () => {
+        const updatedRecord = {
+          ...record,
+          status: 'sent' as const,
+          statusText: '已发送'
+        };
+        
+        updateQuotationRequest(updatedRecord);
+        message.success('询价单发布成功，已向供应商发送询价邀请');
+      }
+    });
+  };
+
+  const handleSimulateQuotation = (record: QuotationRequest) => {
+    Modal.confirm({
+      title: '模拟供应商报价',
+      content: `模拟供应商对询价单"${record.title}"进行报价，这将生成示例报价数据。`,
+      onOk: () => {
+        // 生成模拟报价数据
+        const mockQuotations = record.suppliers.map((supplierId, index) => {
+          const supplier = suppliers.find(s => s.id === supplierId);
+          return {
+            id: `quote_${Date.now()}_${index}`,
+            supplierId,
+            supplierName: supplier?.name || `供应商${index + 1}`,
+            quotationDate: dayjs().format('YYYY-MM-DD'),
+            validUntil: dayjs().add(30, 'day').format('YYYY-MM-DD'),
+            totalAmount: Math.floor(Math.random() * 100000) + 50000,
+            status: 'submitted' as const,
+            items: record.items.map(item => ({
+              itemId: item.id,
+              unitPrice: Math.floor(Math.random() * 1000) + 100,
+              totalPrice: (Math.floor(Math.random() * 1000) + 100) * item.quantity,
+              deliveryTime: `${Math.floor(Math.random() * 20) + 10}个工作日`,
+              remarks: `${supplier?.name || '供应商'}报价`
+            })),
+            remarks: `${supplier?.name || '供应商'}提供的报价`
+          };
+        });
+
+        const updatedRecord = {
+          ...record,
+          status: 'quoted' as const,
+          statusText: '已报价',
+          quotations: mockQuotations
+        };
+        
+        updateQuotationRequest(updatedRecord);
+        message.success('模拟报价生成成功，供应商已提交报价');
+      }
+    });
+  };
+
+  // 筛选处理
+  const handleFilter = (values: any) => {
+    let filtered = quotationRequests;
+
+    // 询价单号筛选
+    if (values.requestNo) {
+      filtered = filtered.filter(item =>
+        item.requestNo.toLowerCase().includes(values.requestNo.toLowerCase())
+      );
+    }
+
+    // 询价标题筛选
+    if (values.title) {
+      filtered = filtered.filter(item =>
+        item.title.toLowerCase().includes(values.title.toLowerCase())
+      );
+    }
+
+    // 申请部门筛选
+    if (values.department) {
+      filtered = filtered.filter(item =>
+        item.department.toLowerCase().includes(values.department.toLowerCase())
+      );
+    }
+
+    // 状态筛选
+    if (values.status) {
+      filtered = filtered.filter(item => item.status === values.status);
+    }
+
+    // 申请日期筛选
+    if (values.requestDate && values.requestDate.length === 2) {
+      const [startDate, endDate] = values.requestDate;
+      filtered = filtered.filter(item => {
+        const itemDate = dayjs(item.requestDate);
+        return itemDate.isAfter(startDate.startOf('day')) && itemDate.isBefore(endDate.endOf('day'));
+      });
+    }
+
+    // 截止日期筛选
+    if (values.deadline && values.deadline.length === 2) {
+      const [startDate, endDate] = values.deadline;
+      filtered = filtered.filter(item => {
+        const itemDate = dayjs(item.deadline);
+        return itemDate.isAfter(startDate.startOf('day')) && itemDate.isBefore(endDate.endOf('day'));
+      });
+    }
+
+    // 供应商筛选
+    if (values.supplier) {
+      filtered = filtered.filter(item =>
+        item.suppliers.includes(values.supplier)
+      );
+    }
+
+    setFilteredData(filtered);
+  };
+
+  // 状态快速筛选
+  const handleQuickFilter = (status: string) => {
+    if (status === 'all') {
+      setFilteredData(quotationRequests);
+    } else {
+      setFilteredData(quotationRequests.filter(item => item.status === status));
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      draft: 'default',
+      sent: 'processing',
+      quoted: 'warning',
+      compared: 'success',
+      selected: 'success',
+      confirmed: 'purple',
+    };
+    return colors[status as keyof typeof colors] || 'default';
+  };
+
+  const columns: ColumnsType<QuotationRequest> = [
+    {
+      title: '序号',
+      key: 'index',
+      width: 60,
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: '询价单号',
+      dataIndex: 'requestNo',
+      key: 'requestNo',
+      width: 120,
+    },
+    {
+      title: '询价标题',
+      dataIndex: 'title',
+      key: 'title',
+      width: 200,
+    },
+    {
+      title: '申请部门',
+      dataIndex: 'department',
+      key: 'department',
+      width: 100,
+    },
+    {
+      title: '关联采购申请',
+      key: 'relatedRequisition',
+      width: 150,
+      render: (_, record) => {
+        // 根据询价单查找关联的采购申请
+        const relatedRequisition = procurementRequisitions.find(req => 
+          record.procurementRequisition?.id === req.id
+        );
+        return relatedRequisition ? (
+          <div>
+            <div className="text-sm font-medium">{relatedRequisition.requisitionNumber}</div>
+            <div className="text-xs text-gray-500">{relatedRequisition.title}</div>
+          </div>
+        ) : (
+          <span className="text-gray-400">无关联</span>
+        );
+      },
+    },
+    {
+      title: '询价日期',
+      dataIndex: 'requestDate',
+      key: 'requestDate',
+      width: 100,
+    },
+    {
+      title: '截止日期',
+      dataIndex: 'deadline',
+      key: 'deadline',
+      width: 100,
+    },
+    {
+      title: '状态',
+      dataIndex: 'statusText',
+      key: 'status',
+      width: 80,
+      render: (text, record) => (
+        <Tag color={getStatusColor(record.status)}>{text}</Tag>
+      ),
+    },
+    {
+      title: '报价数量',
+      key: 'quotationCount',
+      width: 80,
+      render: (_, record) => record.quotations.length,
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 200,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleView(record)}
+          >
+            详情
+          </Button>
+          {record.quotations.length > 1 && record.status === 'quoted' && (
+            <Button
+              type="link"
+              size="small"
+              icon={<FileTextOutlined />}
+              onClick={() => handleCompare(record)}
+            >
+              比价
+            </Button>
+          )}
+          {record.status === 'not_quoted' && (
+            <>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => handleEdit(record)}
+              >
+                编辑
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                icon={<SendOutlined />}
+                onClick={() => handlePublish(record)}
+              >
+                发布
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => handleSimulateQuotation(record)}
+              >
+                模拟报价
+              </Button>
+            </>
+          )}
+          {record.status === 'comparing' && (
+            <Button
+              type="link"
+              size="small"
+              icon={<CheckOutlined />}
+              onClick={() => handleConfirmSupplier(record)}
+            >
+              确定供应商
+            </Button>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <div className="p-6">
+        <Card>
+          <FilterBar onFilter={handleFilter} />
+          
+          <div className="mb-4 flex justify-between items-center">
+            <div className="flex gap-2">
+              <Button onClick={() => handleQuickFilter('all')}>全部</Button>
+              <Button onClick={() => handleQuickFilter('not_quoted')}>未报价</Button>
+              <Button onClick={() => handleQuickFilter('quoted')}>已报价</Button>
+              <Button onClick={() => handleQuickFilter('comparing')}>比价中</Button>
+              <Button onClick={() => handleQuickFilter('confirmed')}>已确认</Button>
+            </div>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              新建询价
+            </Button>
+          </div>
+
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            rowKey="id"
+            loading={loading}
+            scroll={{ x: 1200 }}
+            pagination={{
+              total: filteredData.length,
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条记录`,
+            }}
+          />
+        </Card>
+      </div>
+
+      {/* 新建/编辑询价单模态框 */}
+      <Modal
+        title={editingRecord ? '编辑询价单' : '新建询价单'}
+        open={isModalVisible}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        width={1000}
+        destroyOnClose
+        okText={editingRecord ? '保存' : '创建询价单'}
+        cancelText="取消"
+      >
+        <Form form={form} layout="vertical">
+          {/* 采购申请选择区域 */}
+          {!editingRecord && (
+            <>
+              <Form.Item
+                name="procurementRequisition"
+                label="关联采购申请"
+                rules={[{ required: true, message: '请选择关联的采购申请' }]}
+              >
+                <Select
+                  placeholder="请选择采购申请"
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={procurementRequisitions
+                    .filter(req => req.approvalStatus === '审批通过')
+                    .map(req => ({
+                      label: `${req.requisitionNumber} - ${req.description}`,
+                      value: req.id,
+                      disabled: quotationRequests.some(qr => qr.procurementRequisition?.id === req.id)
+                    }))}
+                  onChange={handleProcurementRequisitionChange}
+                />
+              </Form.Item>
+              
+              {selectedProcurementRequisition && (
+                <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <strong>关联采购申请：</strong>{selectedProcurementRequisition.requisitionNumber}
+                    </Col>
+                    <Col span={12}>
+                      <strong>申请部门：</strong>{selectedProcurementRequisition.department}
+                    </Col>
+                  </Row>
+                  <Row gutter={16} style={{ marginTop: 8 }}>
+                    <Col span={12}>
+                      <strong>申请人：</strong>{selectedProcurementRequisition.applicant}
+                    </Col>
+                    <Col span={12}>
+                      <strong>申请日期：</strong>{selectedProcurementRequisition.applicationDate}
+                    </Col>
+                  </Row>
+                </div>
+              )}
+            </>
+          )}
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="title"
+                label="询价单标题"
+                rules={[{ required: true, message: '请输入询价单标题' }]}
+              >
+                <Input placeholder="请输入询价单标题" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="department"
+                label="申请部门"
+                rules={[{ required: true, message: '请输入申请部门' }]}
+              >
+                <Input placeholder="请输入申请部门" disabled={!!selectedProcurementRequisition} />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="requestDate"
+                label="询价日期"
+                rules={[{ required: true, message: '请选择询价日期' }]}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="deadline"
+                label="截止日期"
+                rules={[{ required: true, message: '请选择截止日期' }]}
+              >
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          <Form.Item
+            name="description"
+            label="询价说明"
+            rules={[{ required: true, message: '请输入询价说明' }]}
+          >
+            <TextArea rows={3} placeholder="请输入询价说明" />
+          </Form.Item>
+          
+          <Divider>询价物品清单</Divider>
+          
+          <Form.List name="items">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Card key={key} size="small" style={{ marginBottom: 16 }}>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'name']}
+                          label="物品名称"
+                          rules={[{ required: true, message: '请输入物品名称' }]}
+                        >
+                          <Input placeholder="请输入物品名称" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'specification']}
+                          label="规格型号"
+                          rules={[{ required: true, message: '请输入规格型号' }]}
+                        >
+                          <Input placeholder="请输入规格型号" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'unit']}
+                          label="单位"
+                          rules={[{ required: true, message: '请输入单位' }]}
+                        >
+                          <Input placeholder="单位" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'quantity']}
+                          label="数量"
+                          rules={[{ required: true, message: '请输入数量' }]}
+                        >
+                          <InputNumber min={1} placeholder="数量" style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'estimatedPrice']}
+                          label="预估单价"
+                          rules={[{ required: true, message: '请输入预估单价' }]}
+                        >
+                          <InputNumber
+                            min={0}
+                            precision={2}
+                            placeholder="预估单价"
+                            style={{ width: '100%' }}
+                            addonAfter="元"
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          {...restField}
+                          name={[name, 'description']}
+                          label="备注说明"
+                        >
+                          <Input placeholder="备注说明（可选）" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        <Form.Item>
+                          <Button
+                            type="link"
+                            danger
+                            icon={<MinusCircleOutlined />}
+                            onClick={() => remove(name)}
+                            disabled={fields.length === 1}
+                          >
+                            删除
+                          </Button>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+                ))}
+                <Form.Item>
+                  <Button
+                    type="dashed"
+                    onClick={() => add()}
+                    block
+                    icon={<PlusOutlined />}
+                  >
+                    添加询价物品
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
+          
+          <Divider>供应商选择</Divider>
+          
+          <Form.Item
+            name="suppliers"
+            label="选择供应商"
+            rules={[{ required: true, message: '请至少选择一个供应商' }]}
+          >
+            <Select
+              mode="multiple"
+              placeholder="请选择供应商"
+              style={{ width: '100%' }}
+            >
+              {suppliers.map(supplier => (
+                <Option key={supplier.id} value={supplier.id}>
+                  {supplier.name} - {supplier.contact} ({supplier.phone})
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 详情模态框 */}
+      <Modal
+        title="询价单详情"
+        open={isDetailModalVisible}
+        onCancel={() => setIsDetailModalVisible(false)}
+        footer={null}
+        width={1000}
+      >
+        {selectedRecord && (
+          <div>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="询价单号">{selectedRecord.requestNo}</Descriptions.Item>
+              <Descriptions.Item label="询价标题">{selectedRecord.title}</Descriptions.Item>
+              <Descriptions.Item label="申请部门">{selectedRecord.department}</Descriptions.Item>
+              <Descriptions.Item label="询价日期">{selectedRecord.requestDate}</Descriptions.Item>
+              <Descriptions.Item label="截止日期">{selectedRecord.deadline}</Descriptions.Item>
+              <Descriptions.Item label="状态">
+                <Tag color={getStatusColor(selectedRecord.status)}>{selectedRecord.statusText}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="关联采购申请" span={2}>
+                {(() => {
+                  const relatedRequisition = procurementRequisitions.find(req => 
+                    selectedRecord.procurementRequisition?.id === req.id
+                  );
+                  return relatedRequisition ? (
+                    <div>
+                      <div className="font-medium">{relatedRequisition.requisitionNumber} - {relatedRequisition.title}</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        申请人：{relatedRequisition.applicant} | 申请日期：{relatedRequisition.applicationDate}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        预算金额：¥{relatedRequisition.budgetAmount} | 审批状态：{relatedRequisition.approvalStatus}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">无关联采购申请</span>
+                  );
+                })()}
+              </Descriptions.Item>
+              <Descriptions.Item label="询价说明" span={2}>{selectedRecord.description}</Descriptions.Item>
+            </Descriptions>
+
+            <div className="mt-4">
+              <h4>询价项目</h4>
+              <Table
+                size="small"
+                dataSource={selectedRecord.items}
+                rowKey="id"
+                pagination={false}
+                columns={[
+                  { title: '项目名称', dataIndex: 'name', key: 'name' },
+                  { title: '规格型号', dataIndex: 'specification', key: 'specification' },
+                  { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
+                  { title: '数量', dataIndex: 'quantity', key: 'quantity', width: 80 },
+                  { title: '预估单价', dataIndex: 'estimatedPrice', key: 'estimatedPrice', width: 100, render: (value) => `¥${value}` },
+                ]}
+              />
+            </div>
+
+            <div className="mt-4">
+              <h4>供应商报价</h4>
+              {selectedRecord.quotations.map(quotation => (
+                <Card key={quotation.id} size="small" className="mb-2">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium">{quotation.supplierName}</span>
+                    <div>
+                      <Tag color={quotation.status === 'selected' ? 'success' : quotation.status === 'rejected' ? 'error' : 'default'}>
+                        {quotation.status === 'selected' ? '已选定' : quotation.status === 'rejected' ? '已拒绝' : '待处理'}
+                      </Tag>
+                      <span className="ml-2 text-lg font-bold text-red-500">¥{quotation.totalAmount}</span>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    报价日期：{quotation.quotationDate} | 有效期至：{quotation.validUntil}
+                  </div>
+                  {quotation.remarks && (
+                    <div className="text-sm text-gray-600 mt-1">备注：{quotation.remarks}</div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 比价模态框 */
+      <Modal
+        title="报价比较"
+        open={isComparisonModalVisible}
+        onCancel={() => setIsComparisonModalVisible(false)}
+        footer={null}
+        width={1200}
+      >
+        {selectedRecord && (
+          <div>
+            <div className="mb-4">
+              <h4>{selectedRecord.title} - 报价比较</h4>
+            </div>
+            
+            {selectedRecord.quotations.map(quotation => (
+              <Card 
+                key={quotation.id} 
+                className="mb-4"
+                title={
+                  <div className="flex justify-between items-center">
+                    <span>{quotation.supplierName}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold text-red-500">总价：¥{quotation.totalAmount}</span>
+                      {quotation.status === 'submitted' && (
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<CheckOutlined />}
+                          onClick={() => handleSelectQuotation(quotation.id)}
+                        >
+                          选定此报价
+                        </Button>
+                      )}
+                      {quotation.status === 'selected' && (
+                        <Tag color="success">已选定</Tag>
+                      )}
+                      {quotation.status === 'rejected' && (
+                        <Tag color="error">已拒绝</Tag>
+                      )}
+                    </div>
+                  </div>
+                }
+              >
+                <div className="mb-2 text-sm text-gray-600">
+                  报价日期：{quotation.quotationDate} | 有效期至：{quotation.validUntil}
+                </div>
+                <Table
+                  size="small"
+                  dataSource={quotation.items}
+                  rowKey="itemId"
+                  pagination={false}
+                  columns={[
+                    { 
+                      title: '项目名称', 
+                      key: 'itemName',
+                      render: (_, record) => {
+                        const item = selectedRecord.items.find(i => i.id === record.itemId);
+                        return item?.name;
+                      },
+                    },
+                    { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', render: (value) => `¥${value}` },
+                    { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', render: (value) => `¥${value}` },
+                    { title: '交货期', dataIndex: 'deliveryTime', key: 'deliveryTime' },
+                    { title: '备注', dataIndex: 'remarks', key: 'remarks' },
+                  ]}
+                />
+                {quotation.remarks && (
+                  <div className="mt-2 text-sm">
+                    <strong>供应商备注：</strong> {quotation.remarks}
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        )}
+      </Modal>
+    </>
+  );
+};
+
+export default QuotationComparison;
