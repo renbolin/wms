@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, InputNumber, Row, Col, Upload, Image, Statistic, Typography } from 'antd';
-import { PlusOutlined, EyeOutlined, CheckOutlined, CloseOutlined, UploadOutlined, CameraOutlined, InboxOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, Upload, Statistic, Typography } from 'antd';
+import { EyeOutlined, CloseOutlined, UploadOutlined, InboxOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
 
@@ -14,9 +14,9 @@ interface ReceivingRecord {
   receivingNo: string;
   purchaseOrderNo: string;
   supplierName: string;
-  receivingDate: string;
-  receiver: string;
-  department: string;
+  receivingDate: string | null;
+  receiver: string | null;
+  department: string | null;
   warehouse?: string | null;
   warehouseName?: string | null;
   status: 'pending' | 'partial' | 'completed' | 'rejected';
@@ -47,7 +47,7 @@ interface ReceivingItem {
 interface QualityCheck {
   checker: string;
   checkDate: string;
-  checkResult: 'pass' | 'fail' | 'partial';
+  checkResult: 'pass' | 'fail' | 'partial' | 'pending';
   checkRemarks: string;
   attachments: string[];
 }
@@ -65,11 +65,11 @@ interface PurchaseOrder {
 const WarehouseReceiving: React.FC = () => {
   const [data, setData] = useState<ReceivingRecord[]>([]);
   const [filteredData, setFilteredData] = useState<ReceivingRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isReceivingModalVisible, setIsReceivingModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<ReceivingRecord | null>(null);
+  const [editingRecord, _setEditingRecord] = useState<ReceivingRecord | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<ReceivingRecord | null>(null);
   const [form] = Form.useForm();
   const [receivingForm] = Form.useForm();
@@ -265,12 +265,7 @@ const WarehouseReceiving: React.FC = () => {
     setIsReceivingModalVisible(true);
   };
 
-  const handleAdd = () => {
-    setEditingRecord(null);
-    form.resetFields();
-    setFileList([]);
-    setIsModalVisible(true);
-  };
+
 
 
 
@@ -338,8 +333,8 @@ const WarehouseReceiving: React.FC = () => {
           ...selectedRecord.qualityCheck,
           checker: values.operator,
           checkDate: new Date().toISOString().split('T')[0],
-          checkResult: values.qualityStatus === 'passed' ? 'pass' : 
-                      values.qualityStatus === 'failed' ? 'fail' : 'pending',
+          checkResult: (values.qualityStatus === 'passed' ? 'pass' : 
+                      values.qualityStatus === 'failed' ? 'fail' : 'pending') as 'pass' | 'fail' | 'partial' | 'pending',
           checkRemarks: values.remarks || ''
         }
       };
@@ -446,13 +441,7 @@ const WarehouseReceiving: React.FC = () => {
     setFilteredData(data);
   };
 
-  const handleFilter = (status: string) => {
-    if (status === 'all') {
-      setFilteredData(data);
-    } else {
-      setFilteredData(data.filter(item => item.status === status));
-    }
-  };
+
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -754,7 +743,7 @@ const WarehouseReceiving: React.FC = () => {
             {/* 库存信息展示区域 */}
             <div className="mt-4">
               <h4 style={{ marginBottom: 12 }}>库存变化信息</h4>
-              {selectedRecord.items?.map((item, index) => (
+              {selectedRecord.items?.map((item, _index) => (
                 <Card key={item.id} size="small" style={{ marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ flex: 1 }}>
@@ -874,7 +863,7 @@ const WarehouseReceiving: React.FC = () => {
             {/* 物品库存信息 */}
             <div style={{ marginBottom: 16 }}>
               <h4 style={{ marginBottom: 12 }}>物品库存信息</h4>
-              {selectedRecord.items?.map((item, index) => (
+              {selectedRecord.items?.map((item, _index) => (
                 <Card key={item.id} size="small" style={{ marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ flex: 1 }}>
@@ -894,8 +883,7 @@ const WarehouseReceiving: React.FC = () => {
                         <Input
                           style={{ width: 80 }}
                           placeholder="0"
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value) || 0;
+                          onChange={(_e) => {
                             // 这里可以添加状态管理逻辑
                           }}
                         />
