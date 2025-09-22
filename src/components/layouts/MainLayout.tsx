@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Button, Avatar, Dropdown } from 'antd';
+import { Layout, Menu, Button, Avatar, Dropdown, Badge } from 'antd';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -235,12 +235,13 @@ const MainLayout: React.FC = () => {
             className="text-lg"
           />
           <div className="flex items-center">
-            <Button 
-              type="text" 
-              icon={<BellOutlined />} 
-              className="mr-2"
-              badge={{ count: 5 }}
-            />
+            <Badge count={5}>
+              <Button 
+                type="text" 
+                icon={<BellOutlined />} 
+                className="mr-2"
+              />
+            </Badge>
             <ThemeToggle className="mr-2" />
             <Dropdown
               menu={{

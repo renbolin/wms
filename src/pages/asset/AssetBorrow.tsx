@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, Space, Tag, message, Descriptions, Row, Col, DatePicker, Upload, Divider } from 'antd';
-import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, SearchOutlined, DownloadOutlined, PrinterOutlined, CheckOutlined, CloseOutlined, UploadOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Modal, Form, Input, Select, Space, message, DatePicker } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -60,18 +60,11 @@ interface AssetInfo {
 const AssetBorrow: React.FC = () => {
   const [data, setData] = useState<AssetBorrow[]>([]);
   const [filteredData, setFilteredData] = useState<AssetBorrow[]>([]);
-  const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [isApproveModalVisible, setIsApproveModalVisible] = useState(false);
-  const [isReturnModalVisible, setIsReturnModalVisible] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<AssetBorrow | null>(null);
   const [editingRecord, setEditingRecord] = useState<AssetBorrow | null>(null);
   const [assetList, setAssetList] = useState<AssetInfo[]>([]);
   const [form] = Form.useForm();
   const [searchForm] = Form.useForm();
-  const [approveForm] = Form.useForm();
-  const [returnForm] = Form.useForm();
 
   // 模拟资产数据
   const mockAssetList: AssetInfo[] = [
@@ -261,11 +254,6 @@ const AssetBorrow: React.FC = () => {
     });
   };
 
-  const handleView = (record: AssetBorrow) => {
-    setSelectedRecord(record);
-    setIsDetailModalVisible(true);
-  };
-
   const handleDelete = (record: AssetBorrow) => {
     Modal.confirm({
       title: '确认删除',
@@ -276,21 +264,6 @@ const AssetBorrow: React.FC = () => {
         setFilteredData(newData);
         message.success('删除成功');
       },
-    });
-  };
-
-  const handleApprove = (record: AssetBorrow) => {
-    setSelectedRecord(record);
-    setIsApproveModalVisible(true);
-    approveForm.resetFields();
-  };
-
-  const handleReturn = (record: AssetBorrow) => {
-    setSelectedRecord(record);
-    setIsReturnModalVisible(true);
-    returnForm.resetFields();
-    returnForm.setFieldsValue({
-      actualReturnDate: dayjs(),
     });
   };
 
@@ -341,67 +314,7 @@ const AssetBorrow: React.FC = () => {
     }
   };
 
-  const handleApproveSubmit = async () => {
-    try {
-      const values = await approveForm.validateFields();
-      
-      if (selectedRecord) {
-        const newStatus = values.action === 'approve' ? 'approved' : 'rejected';
-        const newStatusText = values.action === 'approve' ? '已审批' : '已拒绝';
-        
-        const updatedRecord = {
-          ...selectedRecord,
-          status: newStatus as AssetBorrow['status'],
-          statusText: newStatusText,
-          approver: '当前用户',
-          approveDate: dayjs().format('YYYY-MM-DD'),
-          approveRemark: values.action === 'approve' ? values.approveRemark : undefined,
-          rejectReason: values.action === 'reject' ? values.rejectReason : undefined,
-          updateUser: '当前用户',
-          updateDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-        };
 
-        const newData = data.map(item => item.id === selectedRecord.id ? updatedRecord : item);
-        setData(newData);
-        setFilteredData(newData);
-        
-        message.success(values.action === 'approve' ? '审批通过' : '审批拒绝');
-        setIsApproveModalVisible(false);
-        approveForm.resetFields();
-      }
-    } catch (error) {
-      console.error('审批失败:', error);
-    }
-  };
-
-  const handleReturnSubmit = async () => {
-    try {
-      const values = await returnForm.validateFields();
-      
-      if (selectedRecord) {
-        const updatedRecord = {
-          ...selectedRecord,
-          status: 'returned' as AssetBorrow['status'],
-          statusText: '已归还',
-          actualReturnDate: values.actualReturnDate.format('YYYY-MM-DD'),
-          returnCondition: values.returnCondition,
-          returnRemark: values.returnRemark,
-          updateUser: '当前用户',
-          updateDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-        };
-
-        const newData = data.map(item => item.id === selectedRecord.id ? updatedRecord : item);
-        setData(newData);
-        setFilteredData(newData);
-        
-        message.success('归还成功');
-        setIsReturnModalVisible(false);
-        returnForm.resetFields();
-      }
-    } catch (error) {
-      console.error('归还失败:', error);
-    }
-  };
 
   const handleSearch = async () => {
     try {
@@ -547,14 +460,6 @@ const AssetBorrow: React.FC = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
-          >
-            详情
-          </Button>
           {record.status === 'pending' && (
             <>
               <Button
@@ -568,15 +473,6 @@ const AssetBorrow: React.FC = () => {
               <Button
                 type="link"
                 size="small"
-                icon={<CheckOutlined />}
-                onClick={() => handleApprove(record)}
-                style={{ color: '#52c41a' }}
-              >
-                审批
-              </Button>
-              <Button
-                type="link"
-                size="small"
                 icon={<DeleteOutlined />}
                 onClick={() => handleDelete(record)}
                 danger
@@ -584,16 +480,6 @@ const AssetBorrow: React.FC = () => {
                 删除
               </Button>
             </>
-          )}
-          {(record.status === 'approved' || record.status === 'borrowed') && (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => handleReturn(record)}
-              style={{ color: '#1890ff' }}
-            >
-              归还
-            </Button>
           )}
         </Space>
       ),
@@ -653,7 +539,6 @@ const AssetBorrow: React.FC = () => {
           columns={columns}
           dataSource={filteredData}
           rowKey="id"
-          loading={loading}
           scroll={{ x: 1600 }}
           pagination={{
             total: filteredData.length,

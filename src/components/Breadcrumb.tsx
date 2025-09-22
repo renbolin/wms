@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   HomeOutlined, SettingOutlined, UserOutlined, SafetyOutlined, KeyOutlined,
   ShoppingOutlined, InboxOutlined, AppstoreOutlined, FileTextOutlined,
-  ShoppingCartOutlined, FileProtectOutlined, TeamOutlined, ImportOutlined,
+  ShoppingCartOutlined, TeamOutlined, ImportOutlined,
   ExportOutlined, DatabaseOutlined, CheckSquareOutlined, FormOutlined,
   SwapOutlined, ToolOutlined, DeleteOutlined, AuditOutlined
 } from '@ant-design/icons';
@@ -44,39 +44,43 @@ const routeConfig: Record<string, { title: string; icon?: React.ReactNode }> = {
 const Breadcrumb: React.FC = () => {
   const location = useLocation();
   const pathSnippets = location.pathname.split('/').filter(i => i);
-  
-  const breadcrumbItems = [
-    {
-      title: (
-        <Link to="/">
-          <HomeOutlined style={{ marginRight: 4 }} />
-          首页
+
+  const homeItem = {
+    key: '/',
+    title: (
+      <Link to="/">
+        <HomeOutlined style={{ marginRight: 4 }} />
+        首页
+      </Link>
+    ),
+  };
+
+  const extraBreadcrumbItems = pathSnippets.map((_, index) => {
+    const url = `/${pathSnippets.slice(0, index + 1).join('/')}`;
+    const config = routeConfig[url];
+    if (!config) {
+      return null;
+    }
+    const isLast = index === pathSnippets.length - 1;
+
+    return {
+      key: url,
+      title: isLast ? (
+        <span>
+          {config.icon && React.cloneElement(config.icon as React.ReactElement, { style: { marginRight: 4 } })}
+          {config.title}
+        </span>
+      ) : (
+        <Link to={url}>
+          {config.icon && React.cloneElement(config.icon as React.ReactElement, { style: { marginRight: 4 } })}
+          {config.title}
         </Link>
       ),
-    },
-  ];
+    };
+  }).filter((item): item is NonNullable<typeof item> => item !== null);
 
-  let path = '';
-  pathSnippets.forEach(snippet => {
-    path += `/${snippet}`;
-    const config = routeConfig[path];
-    
-    if (config) {
-      breadcrumbItems.push({
-        title: path === location.pathname ? (
-          <span>
-            {config.icon && React.cloneElement(config.icon as React.ReactElement, { style: { marginRight: 4 } })}
-            {config.title}
-          </span>
-        ) : (
-          <Link to={path}>
-            {config.icon && React.cloneElement(config.icon as React.ReactElement, { style: { marginRight: 4 } })}
-            {config.title}
-          </Link>
-        ),
-      });
-    }
-  });
+
+  const breadcrumbItems = [homeItem, ...extraBreadcrumbItems];
 
   return (
     <div style={{ 

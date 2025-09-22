@@ -17,6 +17,8 @@ interface ReceivingRecord {
   receivingDate: string;
   receiver: string;
   department: string;
+  warehouse?: string | null;
+  warehouseName?: string | null;
   status: 'pending' | 'partial' | 'completed' | 'rejected';
   statusText: string;
   totalAmount: number;
