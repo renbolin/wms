@@ -90,7 +90,7 @@ const ProcurementNotifications: React.FC<ProcurementNotificationsProps> = ({
                 <span className={`${!item.isRead ? 'font-semibold' : ''}`}>
                   {item.title}
                 </span>
-                <Tag color={getPriorityColor(item.priority)} size="small">
+                <Tag color={getPriorityColor(item.priority)} className="text-xs">
                   {getPriorityText(item.priority)}
                 </Tag>
               </div>
