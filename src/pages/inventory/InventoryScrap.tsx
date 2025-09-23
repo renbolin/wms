@@ -46,7 +46,7 @@ interface ScrapItem {
 const InventoryScrap: React.FC = () => {
   const [data, setData] = useState<ScrapOrder[]>([]);
   const [filteredData, setFilteredData] = useState<ScrapOrder[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ScrapOrder | null>(null);

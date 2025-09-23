@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, Space, Tag, message, Descriptions, Row, Col, DatePicker, Progress, Statistic, Alert, Divider } from 'antd';
-import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, CloseOutlined, FileTextOutlined, PrinterOutlined, DownloadOutlined, ScanOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Modal, Form, Input, Select, Space, Tag, message, Descriptions, Row, Col, DatePicker, Progress, Statistic } from 'antd';
+import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, FileTextOutlined, ScanOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -66,7 +66,7 @@ const AssetInventory: React.FC = () => {
   const [data, setData] = useState<InventoryPlan[]>([]);
   const [filteredData, setFilteredData] = useState<InventoryPlan[]>([]);
   const [detailData, setDetailData] = useState<InventoryDetail[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isCheckModalVisible, setIsCheckModalVisible] = useState(false);
@@ -753,7 +753,7 @@ const AssetInventory: React.FC = () => {
       dataIndex: 'actualLocation',
       key: 'actualLocation',
       width: 120,
-      render: (text, record) => text || <span style={{ color: '#ff4d4f' }}>未找到</span>,
+      render: (text, _record) => text || <span style={{ color: '#ff4d4f' }}>未找到</span>,
     },
     {
       title: '原保管人',
@@ -766,7 +766,7 @@ const AssetInventory: React.FC = () => {
       dataIndex: 'actualCustodian',
       key: 'actualCustodian',
       width: 100,
-      render: (text, record) => text || <span style={{ color: '#ff4d4f' }}>-</span>,
+      render: (text, _record) => text || <span style={{ color: '#ff4d4f' }}>-</span>,
     },
     {
       title: '盘点结果',

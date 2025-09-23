@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, Statistic } from 'antd';
+import { Table, Card, Button, Modal, Form, Input, Select, Space, Tag, message, Descriptions, Row, Col, Statistic } from 'antd';
 import { EyeOutlined, SearchOutlined, DownloadOutlined, PrinterOutlined, BarChartOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 // 库存台账接口
 interface InventoryLedger {
@@ -48,7 +47,7 @@ interface InventoryTransaction {
 const InventoryLedger: React.FC = () => {
   const [data, setData] = useState<InventoryLedger[]>([]);
   const [filteredData, setFilteredData] = useState<InventoryLedger[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isTransactionModalVisible, setIsTransactionModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<InventoryLedger | null>(null);

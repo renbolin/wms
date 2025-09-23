@@ -67,12 +67,12 @@ const Breadcrumb: React.FC = () => {
       key: url,
       title: isLast ? (
         <span>
-          {config.icon && React.cloneElement(config.icon as React.ReactElement, { style: { marginRight: 4 } })}
+          {config.icon && React.cloneElement(config.icon as React.ReactElement<any>, { style: { marginRight: 4 } })}
           {config.title}
         </span>
       ) : (
         <Link to={url}>
-          {config.icon && React.cloneElement(config.icon as React.ReactElement, { style: { marginRight: 4 } })}
+          {config.icon && React.cloneElement(config.icon as React.ReactElement<any>, { style: { marginRight: 4 } })}
           {config.title}
         </Link>
       ),

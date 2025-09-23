@@ -46,7 +46,7 @@ interface TransferItem {
 const InventoryTransfer: React.FC = () => {
   const [data, setData] = useState<TransferOrder[]>([]);
   const [filteredData, setFilteredData] = useState<TransferOrder[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<TransferOrder | null>(null);

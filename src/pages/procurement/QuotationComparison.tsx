@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, InputNumber, Row, Col, Divider } from 'antd';
-import { EyeOutlined, CheckOutlined, CloseOutlined, FileTextOutlined, DeleteOutlined, MinusCircleOutlined, SendOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col } from 'antd';
+import { EyeOutlined, CheckOutlined, FileTextOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useInquiry } from '@/contexts/InquiryContext';
 
 const { Option } = Select;
-const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
 // 筛选条件组件
@@ -95,7 +94,7 @@ interface QuotationRequest {
   department: string;
   requestDate: string;
   deadline: string;
-  status: 'inquiring' | 'quoted' | 'completed';
+  status: 'inquiring' | 'quoted' | 'completed' | 'compared' | 'selected' | 'draft';
   statusText: string;
   description: string;
   items: QuotationItem[];
@@ -143,14 +142,7 @@ interface QuotationItemPrice {
   remarks: string;
 }
 
-// 供应商接口
-interface Supplier {
-  id: string;
-  name: string;
-  contact: string;
-  phone: string;
-  email: string;
-}
+
 
 const QuotationComparison: React.FC = () => {
   // 使用全局状态管理
@@ -162,501 +154,16 @@ const QuotationComparison: React.FC = () => {
   const { requisitionNumber, openComparison } = location.state || {};
   
   const [filteredData, setFilteredData] = useState<QuotationRequest[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isComparisonModalVisible, setIsComparisonModalVisible] = useState(false);
-  const [isProcurementDetailModalVisible, setIsProcurementDetailModalVisible] = useState(false);
 
   const [selectedRecord, setSelectedRecord] = useState<QuotationRequest | null>(null);
-  const [viewingProcurementRecord, setViewingProcurementRecord] = useState<QuotationRequest | null>(null);
   
   // 比价弹窗按钮状态
   const [isConfirmed, setIsConfirmed] = useState(false); // 是否已确定选择
   const [canConfirm, setCanConfirm] = useState(false); // 是否可以确定（已选定供应商）
-  const [form] = Form.useForm();
-
-  // 模拟供应商数据
-  const suppliers: Supplier[] = [
-    { id: '1', name: '北京科技有限公司', contact: '张经理', phone: '010-12345678', email: 'zhang@bjtech.com' },
-    { id: '2', name: '上海设备制造厂', contact: '李经理', phone: '021-87654321', email: 'li@shequip.com' },
-    { id: '3', name: '广州电子科技', contact: '王经理', phone: '020-11223344', email: 'wang@gztech.com' },
-    { id: '4', name: '深圳智能设备', contact: '刘经理', phone: '0755-99887766', email: 'liu@szai.com' },
-  ];
-
-  // 模拟数据
-  const mockData: QuotationRequest[] = [
-    {
-      id: '1',
-      requestNo: 'RFQ202401001',
-      title: '办公设备采购询价',
-      department: '行政部',
-      requestDate: '2024-01-15',
-      deadline: '2024-01-25',
-      status: 'completed',
-    statusText: '已完成',
-      description: '办公室电脑、打印机等设备采购',
-      procurementRequisition: {
-        id: 10,
-        requisitionNumber: 'PR2024010',
-        applicant: '张三',
-        department: '行政部',
-        applicationDate: '2024-01-10',
-        description: '办公设备采购申请'
-      },
-      items: [
-        { id: '1', name: '台式电脑', specification: 'Intel i5, 8GB内存, 256GB SSD', unit: '台', quantity: 10, estimatedPrice: 4000 },
-        { id: '2', name: '激光打印机', specification: 'A4黑白激光打印机', unit: '台', quantity: 2, estimatedPrice: 1500 },
-      ],
-      quotations: [
-        {
-          id: '1',
-          supplierId: '1',
-          supplierName: '北京科技有限公司',
-          quotationDate: '2024-01-18',
-          validUntil: '2024-02-18',
-          totalAmount: 43000,
-          status: 'submitted',
-          items: [
-            { itemId: '1', unitPrice: 3800, totalPrice: 38000, deliveryTime: '7个工作日', remarks: '含三年质保' },
-            { itemId: '2', unitPrice: 2500, totalPrice: 5000, deliveryTime: '3个工作日', remarks: '含安装调试' },
-          ],
-          remarks: '价格优惠，质量可靠'
-        },
-        {
-          id: '2',
-          supplierId: '2',
-          supplierName: '上海设备制造厂',
-          quotationDate: '2024-01-19',
-          validUntil: '2024-02-19',
-          totalAmount: 41000,
-          status: 'selected',
-          items: [
-            { itemId: '1', unitPrice: 3600, totalPrice: 36000, deliveryTime: '5个工作日', remarks: '含两年质保' },
-            { itemId: '2', unitPrice: 2500, totalPrice: 5000, deliveryTime: '2个工作日', remarks: '免费送货上门' },
-          ],
-          remarks: '性价比最高'
-        }
-      ]
-    },
-    {
-      id: '2',
-      requestNo: 'RFQ202401002',
-      title: '生产设备询价',
-      department: '生产部',
-      requestDate: '2024-01-20',
-      deadline: '2024-01-30',
-      status: 'quoted',
-      statusText: '已报价',
-      description: '生产线设备更新采购',
-      items: [
-        { id: '3', name: '数控机床', specification: 'CNC加工中心', unit: '台', quantity: 1, estimatedPrice: 500000 },
-      ],
-      quotations: [
-        {
-          id: '3',
-          supplierId: '2',
-          supplierName: '上海设备制造厂',
-          quotationDate: '2024-01-22',
-          validUntil: '2024-02-22',
-          totalAmount: 480000,
-          status: 'submitted',
-          items: [
-            { itemId: '3', unitPrice: 480000, totalPrice: 480000, deliveryTime: '30个工作日', remarks: '含培训服务' },
-          ],
-          remarks: '专业制造商，技术成熟'
-        },
-        {
-          id: '12',
-          supplierId: '4',
-          supplierName: '深圳智能设备',
-          quotationDate: '2024-01-23',
-          validUntil: '2024-02-23',
-          totalAmount: 465000,
-          status: 'submitted',
-          items: [
-            { itemId: '3', unitPrice: 465000, totalPrice: 465000, deliveryTime: '25个工作日', remarks: '德国技术，精度更高' },
-          ],
-          remarks: '进口核心部件，精度保证'
-        },
-        {
-          id: '13',
-          supplierId: '1',
-          supplierName: '北京科技有限公司',
-          quotationDate: '2024-01-24',
-          validUntil: '2024-02-24',
-          totalAmount: 495000,
-          status: 'submitted',
-          items: [
-            { itemId: '3', unitPrice: 495000, totalPrice: 495000, deliveryTime: '35个工作日', remarks: '含安装调试及操作培训' },
-          ],
-          remarks: '本土化服务，售后保障完善'
-        }
-      ]
-    },
-    {
-      id: '4',
-      requestNo: 'RFQ202401004',
-      title: '服务器设备询价',
-      department: 'IT部',
-      requestDate: '2024-01-16',
-      deadline: '2024-01-26',
-      status: 'quoted',
-      statusText: '已报价',
-      description: '数据中心服务器设备采购',
-      items: [
-        { id: '6', name: '服务器', specification: 'Dell PowerEdge R740', unit: '台', quantity: 5, estimatedPrice: 25000 },
-        { id: '7', name: '交换机', specification: '48口千兆交换机', unit: '台', quantity: 2, estimatedPrice: 8000 },
-      ],
-      quotations: [
-        {
-          id: '9',
-          supplierId: '1',
-          supplierName: '北京科技有限公司',
-          quotationDate: '2024-01-18',
-          validUntil: '2024-02-18',
-          totalAmount: 141000,
-          status: 'submitted',
-          items: [
-            { itemId: '6', unitPrice: 24000, totalPrice: 120000, deliveryTime: '15个工作日', remarks: '原装正品，三年保修' },
-            { itemId: '7', unitPrice: 7000, totalPrice: 14000, deliveryTime: '7个工作日', remarks: '含配置服务' },
-          ],
-          remarks: '专业IT设备供应商，技术支持完善'
-        },
-        {
-          id: '10',
-          supplierId: '4',
-          supplierName: '深圳智能设备',
-          quotationDate: '2024-01-19',
-          validUntil: '2024-02-19',
-          totalAmount: 138500,
-          status: 'submitted',
-          items: [
-            { itemId: '6', unitPrice: 23500, totalPrice: 117500, deliveryTime: '12个工作日', remarks: '企业级配置，五年保修' },
-            { itemId: '7', unitPrice: 7500, totalPrice: 15000, deliveryTime: '5个工作日', remarks: '免费上门安装' },
-          ],
-          remarks: '价格优势明显，服务响应快'
-        },
-        {
-          id: '11',
-          supplierId: '2',
-          supplierName: '上海设备制造厂',
-          quotationDate: '2024-01-20',
-          validUntil: '2024-02-20',
-          totalAmount: 145000,
-          status: 'submitted',
-          items: [
-            { itemId: '6', unitPrice: 25000, totalPrice: 125000, deliveryTime: '20个工作日', remarks: '高端配置，终身维护' },
-            { itemId: '7', unitPrice: 8000, totalPrice: 16000, deliveryTime: '10个工作日', remarks: '专业网络配置' },
-          ],
-          remarks: '质量可靠，长期合作伙伴'
-        }
-      ]
-    },
-    {
-      id: '5',
-      requestNo: 'RFQ202401005',
-      title: '营销物料询价',
-      department: '市场部',
-      requestDate: '2024-01-18',
-      deadline: '2024-01-28',
-      status: 'inquiring',
-    statusText: '询价中',
-      description: '品牌推广物料制作',
-      items: [
-        { id: '8', name: '宣传册', specification: 'A4彩印 200g铜版纸', unit: '本', quantity: 1000, estimatedPrice: 15 },
-        { id: '9', name: '展示架', specification: '铝合金易拉宝 80*200cm', unit: '个', quantity: 20, estimatedPrice: 120 },
-      ],
-      quotations: [
-        {
-          id: '4',
-          supplierId: '1',
-          supplierName: '北京科技有限公司',
-          quotationDate: '2024-01-20',
-          validUntil: '2024-02-20',
-          totalAmount: 17400,
-          status: 'selected',
-          items: [
-            { itemId: '8', unitPrice: 12, totalPrice: 12000, deliveryTime: '5个工作日', remarks: '包装精美' },
-            { itemId: '9', unitPrice: 100, totalPrice: 2000, deliveryTime: '3个工作日', remarks: '含设计费' },
-          ],
-          remarks: '设计能力强，交期快'
-        },
-        {
-          id: '5',
-          supplierId: '3',
-          supplierName: '广州电子科技',
-          quotationDate: '2024-01-21',
-          validUntil: '2024-02-21',
-          totalAmount: 18500,
-          status: 'submitted',
-          items: [
-            { itemId: '8', unitPrice: 14, totalPrice: 14000, deliveryTime: '7个工作日', remarks: '质量保证' },
-            { itemId: '9', unitPrice: 110, totalPrice: 2200, deliveryTime: '5个工作日', remarks: '免费送货' },
-          ],
-          remarks: '质量可靠，服务周到'
-        }
-      ]
-    },
-    {
-      id: '6',
-      requestNo: 'RFQ202401006',
-      title: '实验设备询价',
-      department: '研发部',
-      requestDate: '2024-01-19',
-      deadline: '2024-01-29',
-      status: 'completed',
-    statusText: '已完成',
-      description: '实验室精密仪器采购',
-      items: [
-        { id: '10', name: '显微镜', specification: '光学显微镜 1000倍', unit: '台', quantity: 3, estimatedPrice: 15000 },
-        { id: '11', name: '天平', specification: '精密电子天平 0.1mg', unit: '台', quantity: 2, estimatedPrice: 8000 },
-      ],
-      quotations: [
-        {
-          id: '6',
-          supplierId: '4',
-          supplierName: '深圳智能设备',
-          quotationDate: '2024-01-22',
-          validUntil: '2024-02-22',
-          totalAmount: 61000,
-          status: 'selected',
-          items: [
-            { itemId: '10', unitPrice: 14000, totalPrice: 42000, deliveryTime: '10个工作日', remarks: '德国进口镜头' },
-            { itemId: '11', unitPrice: 7500, totalPrice: 15000, deliveryTime: '7个工作日', remarks: '含校准证书' },
-          ],
-          remarks: '专业实验设备供应商'
-        }
-      ]
-    },
-    {
-      id: '7',
-      requestNo: 'RFQ202401007',
-      title: '清洁用品询价',
-      department: '后勤部',
-      requestDate: '2024-01-22',
-      deadline: '2024-02-01',
-      status: 'quoted',
-      statusText: '已报价',
-      description: '办公区域清洁用品采购',
-      items: [
-        { id: '12', name: '洗手液', specification: '500ml 抗菌型', unit: '瓶', quantity: 50, estimatedPrice: 25 },
-        { id: '13', name: '垃圾袋', specification: '45L 加厚型', unit: '卷', quantity: 20, estimatedPrice: 15 },
-      ],
-      quotations: [
-        {
-          id: '14',
-          supplierId: '1',
-          supplierName: '北京科技有限公司',
-          quotationDate: '2024-01-24',
-          validUntil: '2024-02-24',
-          totalAmount: 1350,
-          status: 'submitted',
-          items: [
-            { itemId: '12', unitPrice: 22, totalPrice: 1100, deliveryTime: '3个工作日', remarks: '品牌产品，质量保证' },
-            { itemId: '13', unitPrice: 12.5, totalPrice: 250, deliveryTime: '2个工作日', remarks: '环保材质' },
-          ],
-          remarks: '长期合作，价格优惠'
-        },
-        {
-          id: '15',
-          supplierId: '3',
-          supplierName: '广州电子科技',
-          quotationDate: '2024-01-25',
-          validUntil: '2024-02-25',
-          totalAmount: 1420,
-          status: 'submitted',
-          items: [
-            { itemId: '12', unitPrice: 24, totalPrice: 1200, deliveryTime: '5个工作日', remarks: '进口原料，抗菌效果好' },
-            { itemId: '13', unitPrice: 11, totalPrice: 220, deliveryTime: '3个工作日', remarks: '可降解材质' },
-          ],
-          remarks: '质量优先，绿色环保'
-        }
-      ]
-    },
-    {
-      id: '8',
-      requestNo: 'RFQ202401008',
-      title: '安防设备询价',
-      department: '安保部',
-      requestDate: '2024-01-23',
-      deadline: '2024-02-02',
-      status: 'inquiring',
-      statusText: '询价中',
-      description: '园区安防监控设备升级',
-      items: [
-        { id: '14', name: '监控摄像头', specification: '4K高清 夜视功能', unit: '个', quantity: 12, estimatedPrice: 1200 },
-        { id: '15', name: '硬盘录像机', specification: '16路 4TB存储', unit: '台', quantity: 2, estimatedPrice: 3500 },
-      ],
-      quotations: []
-    },
-    {
-      id: '9',
-      requestNo: 'RFQ202401009',
-      title: '培训设备询价',
-      department: '人事部',
-      requestDate: '2024-01-24',
-      deadline: '2024-02-03',
-      status: 'quoted',
-      statusText: '已报价',
-      description: '员工培训室设备采购',
-      items: [
-        { id: '16', name: '投影仪', specification: '4K分辨率 激光光源', unit: '台', quantity: 2, estimatedPrice: 8000 },
-        { id: '17', name: '音响系统', specification: '无线麦克风 功放音箱', unit: '套', quantity: 1, estimatedPrice: 5000 },
-      ],
-      quotations: [
-        {
-          id: '7',
-          supplierId: '1',
-          supplierName: '北京科技有限公司',
-          quotationDate: '2024-01-26',
-          validUntil: '2024-02-26',
-          totalAmount: 20500,
-          status: 'submitted',
-          items: [
-            { itemId: '16', unitPrice: 7800, totalPrice: 15600, deliveryTime: '7个工作日', remarks: '含安装调试' },
-            { itemId: '17', unitPrice: 4900, totalPrice: 4900, deliveryTime: '5个工作日', remarks: '一年保修' },
-          ],
-          remarks: '专业AV设备供应商'
-        },
-        {
-          id: '8',
-          supplierId: '3',
-          supplierName: '广州电子科技',
-          quotationDate: '2024-01-27',
-          validUntil: '2024-02-27',
-          totalAmount: 21200,
-          status: 'pending',
-          items: [
-            { itemId: '16', unitPrice: 8100, totalPrice: 16200, deliveryTime: '10个工作日', remarks: '进口品牌' },
-            { itemId: '17', unitPrice: 5000, totalPrice: 5000, deliveryTime: '7个工作日', remarks: '免费培训' },
-          ],
-          remarks: '高端设备，质量保证'
-        },
-      ]
-    },
-    {
-      id: '10',
-      requestNo: 'RFQ202401010',
-      title: '车辆维修询价',
-      department: '车队',
-      requestDate: '2024-01-25',
-      deadline: '2024-02-04',
-      status: 'compared',
-      statusText: '已比价',
-      description: '公务车辆定期保养维修',
-      items: [
-        { id: '18', name: '机油更换', specification: '全合成机油 5W-30', unit: '次', quantity: 5, estimatedPrice: 300 },
-        { id: '19', name: '轮胎更换', specification: '205/55R16 品牌轮胎', unit: '条', quantity: 8, estimatedPrice: 600 },
-      ],
-      quotations: [
-        {
-          id: '9',
-          supplierId: '2',
-          supplierName: '上海设备制造厂',
-          quotationDate: '2024-01-27',
-          validUntil: '2024-02-27',
-          totalAmount: 6300,
-          status: 'submitted',
-          items: [
-            { itemId: '18', unitPrice: 280, totalPrice: 1400, deliveryTime: '当天完成', remarks: '含工时费' },
-            { itemId: '19', unitPrice: 580, totalPrice: 4640, deliveryTime: '2个工作日', remarks: '品牌保证' },
-          ],
-          remarks: '专业汽修服务'
-        },
-        {
-          id: '10',
-          supplierId: '4',
-          supplierName: '深圳智能设备',
-          quotationDate: '2024-01-28',
-          validUntil: '2024-02-28',
-          totalAmount: 6800,
-          status: 'submitted',
-          items: [
-            { itemId: '18', unitPrice: 320, totalPrice: 1600, deliveryTime: '当天完成', remarks: '原厂机油' },
-            { itemId: '19', unitPrice: 650, totalPrice: 5200, deliveryTime: '1个工作日', remarks: '进口轮胎' },
-          ],
-          remarks: '高端服务，质量优先'
-        },
-      ]
-    },
-    {
-      id: '11',
-      requestNo: 'RFQ202401011',
-      title: '食堂设备询价',
-      department: '餐饮部',
-      requestDate: '2024-01-26',
-      deadline: '2024-02-05',
-      status: 'selected',
-      statusText: '已选定',
-      description: '员工食堂厨房设备更新',
-      items: [
-        { id: '20', name: '商用冰箱', specification: '双门冷藏冷冻 600L', unit: '台', quantity: 2, estimatedPrice: 8000 },
-        { id: '21', name: '蒸饭柜', specification: '24盘电蒸箱 不锈钢', unit: '台', quantity: 1, estimatedPrice: 12000 },
-      ],
-      quotations: [
-        {
-          id: '11',
-          supplierId: '2',
-          supplierName: '上海设备制造厂',
-          quotationDate: '2024-01-28',
-          validUntil: '2024-02-28',
-          totalAmount: 26500,
-          status: 'selected',
-          items: [
-            { itemId: '20', unitPrice: 7500, totalPrice: 15000, deliveryTime: '5个工作日', remarks: '节能环保' },
-            { itemId: '21', unitPrice: 11500, totalPrice: 11500, deliveryTime: '7个工作日', remarks: '含安装' },
-          ],
-          remarks: '专业厨房设备制造商'
-        },
-        {
-          id: '12',
-          supplierId: '1',
-          supplierName: '北京科技有限公司',
-          quotationDate: '2024-01-29',
-          validUntil: '2024-02-29',
-          totalAmount: 28000,
-          status: 'rejected',
-          items: [
-            { itemId: '20', unitPrice: 8000, totalPrice: 16000, deliveryTime: '7个工作日', remarks: '进口压缩机' },
-            { itemId: '21', unitPrice: 12000, totalPrice: 12000, deliveryTime: '10个工作日', remarks: '智能控制' },
-          ],
-          remarks: '高端产品，价格偏高'
-        }
-      ]
-    },
-    {
-      id: '12',
-      requestNo: 'RFQ202401012',
-      title: '绿化用品询价',
-      department: '园林部',
-      requestDate: '2024-01-27',
-      deadline: '2024-02-06',
-      status: 'completed',
-      statusText: '已完成',
-      description: '园区绿化养护用品采购',
-      items: [
-        { id: '22', name: '有机肥料', specification: '复合有机肥 25kg装', unit: '袋', quantity: 100, estimatedPrice: 45 },
-        { id: '23', name: '园艺工具', specification: '修枝剪 浇水壶套装', unit: '套', quantity: 10, estimatedPrice: 120 },
-      ],
-      quotations: [
-        {
-          id: '13',
-          supplierId: '3',
-          supplierName: '广州电子科技',
-          quotationDate: '2024-01-29',
-          validUntil: '2024-02-29',
-          totalAmount: 5700,
-          status: 'selected',
-          items: [
-            { itemId: '22', unitPrice: 42, totalPrice: 4200, deliveryTime: '3个工作日', remarks: '有机认证' },
-            { itemId: '23', unitPrice: 110, totalPrice: 1100, deliveryTime: '2个工作日', remarks: '进口工具' },
-          ],
-          remarks: '专业园艺用品供应商'
-        },
-      ]
-    },
-  ];
 
   useEffect(() => {
     // 使用全局状态中的询价单数据
@@ -742,7 +249,7 @@ const QuotationComparison: React.FC = () => {
       statusText: '已完成'
     };
     
-    updateQuotationRequest(updatedRecord);
+    updateQuotationRequest(updatedRecord.id, updatedRecord);
     setSelectedRecord(updatedRecord);
     setIsConfirmed(true);
     message.success('询价单已完成');
@@ -838,11 +345,11 @@ const QuotationComparison: React.FC = () => {
     }
 
     // 供应商筛选
-    if (values.supplier) {
-      filtered = filtered.filter(item =>
-        item.suppliers.includes(values.supplier)
-      );
-    }
+     if (values.supplier) {
+       filtered = filtered.filter(item =>
+         item.quotations.some(q => q.supplierName === values.supplier)
+       );
+     }
 
     setFilteredData(filtered);
   };
@@ -1151,111 +658,7 @@ const QuotationComparison: React.FC = () => {
         )}
         </Modal>
 
-        {/* 采购申请详情模态框 */}
-        <Modal
-          title="采购申请详情"
-          open={isProcurementDetailModalVisible}
-          onCancel={() => setIsProcurementDetailModalVisible(false)}
-          footer={null}
-          width={800}
-        >
-          {viewingProcurementRecord && (
-            <div>
-              <Descriptions bordered column={2}>
-                <Descriptions.Item label="申请编号">{viewingProcurementRecord.requisitionNumber}</Descriptions.Item>
-                <Descriptions.Item label="申请标题">{viewingProcurementRecord.description}</Descriptions.Item>
-                <Descriptions.Item label="申请人">{viewingProcurementRecord.applicant}</Descriptions.Item>
-                <Descriptions.Item label="申请部门">{viewingProcurementRecord.department}</Descriptions.Item>
-                <Descriptions.Item label="申请日期">{viewingProcurementRecord.applicationDate}</Descriptions.Item>
-                <Descriptions.Item label="期望交付日期">{viewingProcurementRecord.expectedDeliveryDate}</Descriptions.Item>
-                <Descriptions.Item label="预算金额">¥{viewingProcurementRecord.budgetAmount}</Descriptions.Item>
-                <Descriptions.Item label="审批状态">
-                  <Tag color={
-                    viewingProcurementRecord.approvalStatus === '审批通过' ? 'success' :
-                    viewingProcurementRecord.approvalStatus === '审批中' ? 'processing' :
-                    viewingProcurementRecord.approvalStatus === '已拒绝' ? 'error' : 'default'
-                  }>
-                    {viewingProcurementRecord.approvalStatus}
-                  </Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label="申请说明" span={2}>
-                  {viewingProcurementRecord.description}
-                </Descriptions.Item>
-                {viewingProcurementRecord.urgencyLevel && (
-                  <Descriptions.Item label="紧急程度" span={2}>
-                    <Tag color={
-                      viewingProcurementRecord.urgencyLevel === '紧急' ? 'red' :
-                      viewingProcurementRecord.urgencyLevel === '一般' ? 'orange' : 'green'
-                    }>
-                      {viewingProcurementRecord.urgencyLevel}
-                    </Tag>
-                  </Descriptions.Item>
-                )}
-              </Descriptions>
 
-              {viewingProcurementRecord.items && viewingProcurementRecord.items.length > 0 && (
-                <div className="mt-4">
-                  <h4>采购物品清单</h4>
-                  <Table
-                    size="small"
-                    dataSource={viewingProcurementRecord.items}
-                    rowKey="id"
-                    pagination={false}
-                    columns={[
-                      { title: '物品名称', dataIndex: 'name', key: 'name' },
-                      { title: '规格型号', dataIndex: 'specification', key: 'specification' },
-                      { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
-                      { title: '数量', dataIndex: 'quantity', key: 'quantity', width: 80 },
-                      { 
-                        title: '预估单价', 
-                        dataIndex: 'estimatedPrice', 
-                        key: 'estimatedPrice', 
-                        width: 100, 
-                        render: (value) => value ? `¥${value}` : '-'
-                      },
-                      { 
-                        title: '小计', 
-                        key: 'subtotal', 
-                        width: 100,
-                        render: (_, record) => {
-                          const subtotal = (record.estimatedPrice || 0) * record.quantity;
-                          return `¥${subtotal}`;
-                        }
-                      },
-                    ]}
-                  />
-                </div>
-              )}
-
-              {viewingProcurementRecord.approvalHistory && viewingProcurementRecord.approvalHistory.length > 0 && (
-                <div className="mt-4">
-                  <h4>审批历史</h4>
-                  <Table
-                    size="small"
-                    dataSource={viewingProcurementRecord.approvalHistory}
-                    rowKey="id"
-                    pagination={false}
-                    columns={[
-                      { title: '审批人', dataIndex: 'approver', key: 'approver' },
-                      { title: '审批时间', dataIndex: 'approvalDate', key: 'approvalDate' },
-                      { 
-                        title: '审批结果', 
-                        dataIndex: 'result', 
-                        key: 'result',
-                        render: (result) => (
-                          <Tag color={result === '通过' ? 'success' : result === '拒绝' ? 'error' : 'processing'}>
-                            {result}
-                          </Tag>
-                        )
-                      },
-                      { title: '审批意见', dataIndex: 'comments', key: 'comments' },
-                    ]}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </Modal>
       </div>
     );
   };

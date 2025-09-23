@@ -29,24 +29,7 @@ interface ProcurementRequisition {
   inquiryStatus?: string; // 询价状态：未开始、询价中、已完成
 }
 
-// 询价项目接口
-interface QuotationItem {
-  id: string;
-  name: string;
-  specification: string;
-  unit: string;
-  quantity: number;
-  estimatedPrice: number;
-}
 
-// 供应商接口
-interface Supplier {
-  id: string;
-  name: string;
-  contact: string;
-  phone: string;
-  email: string;
-}
 
 
 
@@ -136,10 +119,10 @@ const ProcurementRequisition: React.FC = () => {
   const navigate = useNavigate();
   
   // 使用全局状态管理
-  const { addQuotationRequest, setProcurementRequisitions, procurementRequisitions, getQuotationRequestsByProcurementId, quotationRequests } = useInquiry();
+  const { addQuotationRequest, setProcurementRequisitions, getQuotationRequestsByProcurementId, quotationRequests } = useInquiry();
 
   // 供应商模拟数据
-  const suppliers: Supplier[] = [
+  const suppliers: any[] = [
     { id: '1', name: '北京科技有限公司', contact: '张经理', phone: '010-12345678', email: 'zhang@bjtech.com' },
     { id: '2', name: '上海办公用品公司', contact: '李经理', phone: '021-87654321', email: 'li@shoffice.com' },
     { id: '3', name: '深圳电子设备厂', contact: '王经理', phone: '0755-11223344', email: 'wang@szelectronics.com' },
@@ -307,7 +290,7 @@ const ProcurementRequisition: React.FC = () => {
       applicant: '陈十三',
       department: '技术部',
       applicationDate: '2024-01-25',
-      status: 'draft',
+      status: 'inquiring',
       type: 'normal',
       description: '开发工具软件采购',
       totalAmount: 18000,
@@ -322,7 +305,7 @@ const ProcurementRequisition: React.FC = () => {
       applicant: '刘十四',
       department: '运营部',
       applicationDate: '2024-01-26',
-      status: 'draft',
+      status: 'inquiring',
       type: 'emergency',
       description: '紧急维修材料采购',
       totalAmount: 8500,
@@ -651,7 +634,7 @@ const ProcurementRequisition: React.FC = () => {
                          record.description.includes('材料') ? 5000 : 1000
         }],
         suppliers: ['供应商A', '供应商B', '供应商C'],
-        status: record.inquiryStatus === '已完成' ? 'completed' : 'published',
+        status: record.inquiryStatus === '已完成' ? 'completed' : 'inquiring',
         statusText: record.inquiryStatus === '已完成' ? '已完成' : '询价中',
         quotations: [],
         procurementRequisition: {
@@ -686,7 +669,7 @@ const ProcurementRequisition: React.FC = () => {
          description: values.description,
          items: values.items || [],
          suppliers: values.suppliers || [],
-         status: 'draft',
+         status: 'inquiring',
          statusText: '草稿',
          quotations: [],
          procurementRequisition: inquiryRecord ? {
@@ -754,14 +737,14 @@ const ProcurementRequisition: React.FC = () => {
       
       if (editingRecord) {
         const newData = filteredData.map(item => 
-          item.id === editingRecord.id ? { ...item, ...formattedValues, status: 'draft' } : item
+          item.id === editingRecord.id ? { ...item, ...formattedValues, status: 'inquiring' } : item
         );
         setFilteredData(newData);
       } else {
         const newRecord = {
           id: Date.now(),
           ...formattedValues,
-          status: 'draft', // 草稿状态
+          status: 'inquiring', // 询价状态
           approvalStatus: '草稿',
           processStatus: 'draft', // 流程状态为草稿
           currentApprover: '',
@@ -781,14 +764,14 @@ const ProcurementRequisition: React.FC = () => {
       
       if (editingRecord) {
         const newData = filteredData.map(item => 
-          item.id === editingRecord.id ? { ...item, ...formattedValues, status: 'draft' } : item
+          item.id === editingRecord.id ? { ...item, ...formattedValues, status: 'inquiring' } : item
         );
         setFilteredData(newData);
       } else {
         const newRecord = {
           id: Date.now(),
           ...formattedValues,
-          status: 'draft',
+          status: 'inquiring',
           approvalStatus: '草稿',
           processStatus: 'draft',
           currentApprover: '',
@@ -837,10 +820,7 @@ const ProcurementRequisition: React.FC = () => {
     });
   };
 
-  const handleOk = () => {
-    // 保留原有的handleOk函数作为备用
-    handleCreateApplication();
-  };
+
 
   const handleCancel = () => {
     setIsModalVisible(false);
@@ -1004,7 +984,7 @@ const ProcurementRequisition: React.FC = () => {
                   min={0}
                   precision={2}
                   formatter={value => `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value!.replace(/¥\s?|(,*)/g, '')}
+                  parser={value => (Number(value!.replace(/¥\s?|(,*)/g, '')) || 0) as any}
                 />
               </Form.Item>
             </Col>
@@ -1404,7 +1384,7 @@ const ProcurementRequisition: React.FC = () => {
             <div className="mt-4">
               <h4>供应商报价</h4>
               {selectedQuotationRequest.quotations && selectedQuotationRequest.quotations.length > 0 ? (
-                selectedQuotationRequest.quotations.map(quotation => (
+                selectedQuotationRequest.quotations.map((quotation: any) => (
                   <Card key={quotation.id} size="small" className="mb-2">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium">{quotation.supplierName}</span>
@@ -1456,7 +1436,7 @@ const getProgressCurrentStep = (record: ProcurementRequisition) => {
 
 const getStepDescription = (record: ProcurementRequisition, stepIndex: number) => {
   const stepNames = ['张主管', '李财务', '王总经理'];
-  const stepRoles = ['部门主管', '财务经理', '总经理'];
+
   
   if (record.status === 'approved') {
     return `${stepNames[stepIndex]} 已同意`;

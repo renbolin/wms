@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Table, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Descriptions, Tag, Upload, message, Space, Card, Statistic } from 'antd';
-import { PlusOutlined, EyeOutlined, SearchOutlined, ReloadOutlined, UploadOutlined, PaperClipOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Descriptions, Tag, Upload, message, Space, Card, Statistic, Popconfirm } from 'antd';
+import { PlusOutlined, EyeOutlined, UploadOutlined, PaperClipOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
 import dayjs from 'dayjs';
 import { useProcurementOrder } from '@/contexts/ProcurementOrderContext';
 import { useInquiry } from '@/contexts/InquiryContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
   const [form] = Form.useForm();
@@ -71,10 +70,10 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
 };
 
 const ProcurementOrder: React.FC = () => {
-  const { orders, addOrder, updateOrder, deleteOrder } = useProcurementOrder();
+  const { orders, addOrder, updateOrder, deleteOrder: _deleteOrder } = useProcurementOrder();
   const { quotationRequests } = useInquiry();
   const location = useLocation();
-  const navigate = useNavigate();
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [detailsVisible, setDetailsVisible] = useState(false);
@@ -88,7 +87,7 @@ const ProcurementOrder: React.FC = () => {
   const [inventoryModalVisible, setInventoryModalVisible] = useState(false);
   const [inventoryDetailsModalVisible, setInventoryDetailsModalVisible] = useState(false);
   const [currentInventoryOrder, setCurrentInventoryOrder] = useState<any>(null);
-  const [inputQuantity, setInputQuantity] = useState<number>(0);
+  const [_inputQuantity, _setInputQuantity] = useState<number>(0);
   const [itemQuantities, setItemQuantities] = useState<{[key: string]: number}>({});
   const [inventoryForm] = Form.useForm();
 
@@ -158,27 +157,11 @@ const ProcurementOrder: React.FC = () => {
     });
   };
 
-  const handleComplete = (order: any) => {
-    Modal.confirm({
-      title: '完成订单',
-      content: '确认完成此订单吗？完成后可进行入库处理。',
-      onOk: () => {
-        const updatedOrder = {
-          ...order,
-          status: 'completed' as const,
-          statusText: '已完成',
-          updatedAt: new Date().toISOString()
-        };
-        updateOrder(updatedOrder);
-        message.success('订单已完成');
-      }
-    });
-  };
+
 
   const handleInventory = (order: any) => {
     setCurrentInventoryOrder(order);
     inventoryForm.resetFields();
-    setInputQuantity(0);
     setItemQuantities({});
     setInventoryModalVisible(true);
   };
@@ -198,7 +181,7 @@ const ProcurementOrder: React.FC = () => {
       }
 
       // 计算每个物品的库存变化
-      const itemUpdates = currentInventoryOrder?.items?.map(item => {
+      const itemUpdates = currentInventoryOrder?.items?.map((item: any) => {
         const inputQty = itemQuantities[item.id] || 0;
         const currentStock = item.currentStock || 0;
         const newStock = currentStock + inputQty;
@@ -208,7 +191,7 @@ const ProcurementOrder: React.FC = () => {
           previousStock: currentStock,
           newStock: newStock
         };
-      }).filter(item => item.inputQuantity > 0) || [];
+      }).filter((item: any) => item.inputQuantity > 0) || [];
 
       // 显示入库前后数量对比
       Modal.info({
@@ -220,7 +203,7 @@ const ProcurementOrder: React.FC = () => {
               <h4>订单：{currentInventoryOrder?.orderNumber}</h4>
             </div>
             <div style={{ backgroundColor: '#f5f5f5', padding: 16, borderRadius: 6 }}>
-              {itemUpdates.map((item, index) => (
+              {itemUpdates.map((item: any, index: number) => (
                 <div key={item.id} style={{ marginBottom: index < itemUpdates.length - 1 ? 16 : 0 }}>
                   <h5 style={{ marginBottom: 8 }}>{item.name} - {item.specification}</h5>
                   <Row gutter={16}>
@@ -270,7 +253,7 @@ const ProcurementOrder: React.FC = () => {
         ),
         onOk: () => {
           // 更新订单中每个物品的库存信息
-          const updatedItems = currentInventoryOrder?.items?.map(item => {
+          const updatedItems = currentInventoryOrder?.items?.map((item: any) => {
             const inputQty = itemQuantities[item.id] || 0;
             if (inputQty > 0) {
               return {
@@ -338,24 +321,24 @@ const ProcurementOrder: React.FC = () => {
         if (isFromQuotation && selectedQuotationId) {
           const quotationRequest = quotationRequests.find(q => q.id === selectedQuotationId);
           if (quotationRequest) {
-            const selectedQuotation = quotationRequest.quotations?.find(q => q.isSelected);
+            const selectedQuotation = quotationRequest.quotations?.find((q: any) => q.status === 'selected');
             if (selectedQuotation) {
               orderData = {
                 ...orderData,
                 title: quotationRequest.title,
-                supplier: selectedQuotation.supplier,
-                supplierContact: selectedQuotation.contactPerson,
-                supplierPhone: selectedQuotation.contactPhone,
-                totalAmount: selectedQuotation.totalPrice,
+                supplier: selectedQuotation.supplierName,
+                supplierContact: '联系人',
+                supplierPhone: '联系电话',
+                totalAmount: selectedQuotation.totalAmount,
                 quotationRequestId: quotationRequest.id,
                 quotationRequestNo: quotationRequest.requestNo,
                 selectedQuotationId: selectedQuotation.id,
-                items: selectedQuotation.items.map(item => ({
-                  id: item.id,
-                  name: item.name,
-                  specification: item.specification,
-                  unit: item.unit,
-                  quantity: item.quantity,
+                items: selectedQuotation.items.map((item: any) => ({
+                  id: item.itemId || item.id,
+                  name: item.name || '未知物品',
+                  specification: item.specification || '未知规格',
+                  unit: item.unit || '个',
+                  quantity: item.quantity || 1,
                   unitPrice: item.unitPrice,
                   totalPrice: item.totalPrice,
                   deliveryTime: item.deliveryTime,
@@ -392,7 +375,7 @@ const ProcurementOrder: React.FC = () => {
   };
 
   const columns: TableProps<any>['columns'] = [
-    { title: '序号', key: 'index', render: (text, record, index) => `${index + 1}` },
+    { title: '序号', key: 'index', render: (_text, _record, index) => `${index + 1}` },
     { title: '采购单号', dataIndex: 'orderNumber', key: 'orderNumber' },
     { title: '询价单号', dataIndex: 'quotationRequestNo', key: 'quotationRequestNo', render: (text) => text || '-' },
     { title: '订单标题', dataIndex: 'title', key: 'title' },
@@ -448,7 +431,7 @@ const ProcurementOrder: React.FC = () => {
     if (supplier && !order.supplier.includes(supplier)) {
       return false;
     }
-    if (buyer && !order.buyer.includes(buyer)) {
+    if (buyer && !order.creator.includes(buyer)) {
       return false;
     }
     if (status && order.status !== status) {
@@ -696,7 +679,7 @@ const ProcurementOrder: React.FC = () => {
                 {selectedOrder.contractFiles && selectedOrder.contractFiles.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
                     <h4>合同文件：</h4>
-                    {selectedOrder.contractFiles.map((file, index) => (
+                    {selectedOrder.contractFiles.map((file: any, index: any) => (
                       <div key={index} style={{ marginLeft: 16 }}>
                         <Button type="link">{file}</Button>
                       </div>
@@ -706,7 +689,7 @@ const ProcurementOrder: React.FC = () => {
                 {selectedOrder.attachmentFiles && selectedOrder.attachmentFiles.length > 0 && (
                   <div>
                     <h4>附件：</h4>
-                    {selectedOrder.attachmentFiles.map((file, index) => (
+                    {selectedOrder.attachmentFiles.map((file: any, index: any) => (
                       <div key={index} style={{ marginLeft: 16 }}>
                         <Button type="link">{file}</Button>
                       </div>
@@ -736,7 +719,7 @@ const ProcurementOrder: React.FC = () => {
             <Card title="当前附件" style={{ marginBottom: 16 }}>
               {currentAttachmentOrder.attachmentFiles && currentAttachmentOrder.attachmentFiles.length > 0 ? (
                 <div>
-                  {currentAttachmentOrder.attachmentFiles.map((file, index) => (
+                  {currentAttachmentOrder.attachmentFiles.map((file: any, index: any) => (
                     <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
                       <span>{file}</span>
                       <Space>
@@ -804,7 +787,7 @@ const ProcurementOrder: React.FC = () => {
             {/* 物品库存信息展示 */}
             <div style={{ marginBottom: 16 }}>
               <h4 style={{ marginBottom: 12, color: '#1890ff' }}>📦 物品库存信息</h4>
-              {currentInventoryOrder.items?.map((item: any, index: number) => (
+              {currentInventoryOrder.items?.map((item: any) => (
                 <Card 
                   key={item.id} 
                   size="small" 

@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "react-admin",
   "builds": [
     {
       "src": "package.json",
@@ -21,13 +20,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
-    }
-  }
+  ]
 }

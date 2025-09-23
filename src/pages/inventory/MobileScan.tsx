@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Modal, Form, Input, Select, Space, Tag, message, Descriptions, Row, Col, List, Avatar, Divider, QRCode, Alert } from 'antd';
+import { Card, Button, Modal, Form, Input, Select, Space, Tag, message, Descriptions, Row, Col, List, Avatar, Divider, QRCode } from 'antd';
 import { ScanOutlined, QrcodeOutlined, SearchOutlined, PlusOutlined, MinusOutlined, SwapOutlined, EyeOutlined, HistoryOutlined, CameraOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -45,14 +44,14 @@ interface StockInfo {
 const MobileScan: React.FC = () => {
   const [scanRecords, setScanRecords] = useState<ScanRecord[]>([]);
   const [stockInfo, setStockInfo] = useState<StockInfo | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [_loading, _setLoading] = useState(false);
   const [isScanModalVisible, setIsScanModalVisible] = useState(false);
   const [isOperationModalVisible, setIsOperationModalVisible] = useState(false);
   const [isStockModalVisible, setIsStockModalVisible] = useState(false);
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
   const [isQRCodeModalVisible, setIsQRCodeModalVisible] = useState(false);
   const [selectedOperation, setSelectedOperation] = useState<string>('');
-  const [scannedCode, setScannedCode] = useState<string>('');
+  const [_scannedCode, setScannedCode] = useState<string>('');
   const [form] = Form.useForm();
 
   // 模拟扫码记录数据

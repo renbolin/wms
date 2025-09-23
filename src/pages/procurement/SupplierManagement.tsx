@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Button, Table, Modal, Form, Input, Select, InputNumber, Row, Col, Descriptions, Upload, DatePicker, Space, Tag, message } from 'antd';
 import { UploadOutlined, FileTextOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
-import type { UploadFile } from 'antd/es/upload/interface';
 
 const { Option } = Select;
 
@@ -321,7 +320,7 @@ const SupplierManagement: React.FC = () => {
   };
 
   const handleContractSubmit = () => {
-    contractForm.validateFields().then(values => {
+    contractForm.validateFields().then(_values => {
       // 这里可以添加实际的合同更新逻辑
       message.success('合同更新成功');
       setContractUpdateVisible(false);
@@ -414,7 +413,7 @@ const SupplierManagement: React.FC = () => {
   };
 
   const columns: TableProps<Supplier>['columns'] = [
-    { title: '序号', key: 'index', render: (text, record, index) => `${index + 1}` },
+    { title: '序号', key: 'index', render: (_text, _record, index) => `${index + 1}` },
     {
       title: '供应商名称',
       dataIndex: 'name',
@@ -735,7 +734,7 @@ const SupplierManagement: React.FC = () => {
             <InputNumber 
               style={{ width: '100%' }} 
               formatter={value => `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={value => value!.replace(/¥\s?|(,*)/g, '')}
+              parser={value => (Number(value!.replace(/¥\s?|(,*)/g, '')) || 0) as any}
               min={0}
             />
           </Form.Item>

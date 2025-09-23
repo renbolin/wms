@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Button, Table, Modal, Form, Input, Select, Card, Steps, Space, Row, Col, InputNumber, Switch } from 'antd';
+import { Button, Table, Modal, Form, Input, Select, Card, Space, Row, Col, Switch } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
 
 const { Option } = Select;
-const { Step } = Steps;
 
 // 审批步骤接口
 interface ApprovalStep {

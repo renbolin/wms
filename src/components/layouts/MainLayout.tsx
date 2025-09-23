@@ -172,7 +172,7 @@ const MainLayout: React.FC = () => {
       label: '个人设置',
     },
     {
-      type: 'divider',
+      type: 'divider' as const,
     },
     {
       key: 'logout',

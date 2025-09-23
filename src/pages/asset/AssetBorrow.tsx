@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, Space, message, DatePicker } from 'antd';
+import { Table, Card, Button, Modal, Form, Input, Select, Space, message, DatePicker, Row, Col, Descriptions, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -61,10 +61,16 @@ const AssetBorrow: React.FC = () => {
   const [data, setData] = useState<AssetBorrow[]>([]);
   const [filteredData, setFilteredData] = useState<AssetBorrow[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isApproveModalVisible, setIsApproveModalVisible] = useState(false);
+  const [isReturnModalVisible, setIsReturnModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AssetBorrow | null>(null);
+  const [selectedRecord, _setSelectedRecord] = useState<AssetBorrow | null>(null);
   const [assetList, setAssetList] = useState<AssetInfo[]>([]);
   const [form] = Form.useForm();
   const [searchForm] = Form.useForm();
+  const [approveForm] = Form.useForm();
+  const [returnForm] = Form.useForm();
 
   // 模拟资产数据
   const mockAssetList: AssetInfo[] = [
@@ -373,6 +379,30 @@ const AssetBorrow: React.FC = () => {
       overdue: 'error',
     };
     return colors[status as keyof typeof colors] || 'default';
+  };
+
+  const handleApproveSubmit = async () => {
+    try {
+      await approveForm.validateFields();
+      // 处理审批逻辑
+      message.success('审批成功');
+      setIsApproveModalVisible(false);
+      approveForm.resetFields();
+    } catch (error) {
+      console.error('审批失败:', error);
+    }
+  };
+
+  const handleReturnSubmit = async () => {
+    try {
+      await returnForm.validateFields();
+      // 处理归还逻辑
+      message.success('归还成功');
+      setIsReturnModalVisible(false);
+      returnForm.resetFields();
+    } catch (error) {
+      console.error('归还失败:', error);
+    }
   };
 
   const columns: ColumnsType<AssetBorrow> = [

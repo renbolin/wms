@@ -54,13 +54,13 @@ interface AlertSetting {
 const InventoryAlert: React.FC = () => {
   const [data, setData] = useState<InventoryAlert[]>([]);
   const [filteredData, setFilteredData] = useState<InventoryAlert[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isSettingModalVisible, setIsSettingModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<InventoryAlert | null>(null);
-  const [alertSettings, setAlertSettings] = useState<AlertSetting[]>([]);
+  const [_alertSettings, setAlertSettings] = useState<AlertSetting[]>([]);
   const [form] = Form.useForm();
-  const [settingForm] = Form.useForm();
+  const [_settingForm] = Form.useForm();
 
   // 模拟数据
   const mockData: InventoryAlert[] = [
