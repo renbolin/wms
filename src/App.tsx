@@ -16,6 +16,7 @@ import SupplierManagement from '@/pages/procurement/SupplierManagement';
 import ApprovalWorkflow from '@/pages/procurement/ApprovalWorkflow';
 import QuotationComparison from '@/pages/procurement/QuotationComparison';
 import WarehouseReceiving from '@/pages/procurement/WarehouseReceiving';
+import DeliveryNotes from '@/pages/procurement/DeliveryNotes';
 
 // 库存管理模块
 import InventoryIn from '@/pages/inventory/InventoryIn';
@@ -63,6 +64,7 @@ function App() {
             <Route path="supplier" element={<SupplierManagement />} />
             <Route path="approval-workflow" element={<ApprovalWorkflow />} />
             <Route path="quotation" element={<QuotationComparison />} />
+            <Route path="delivery-notes" element={<DeliveryNotes />} />
             <Route path="receiving" element={<WarehouseReceiving />} />
           </Route>
           

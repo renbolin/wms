@@ -48,6 +48,10 @@ const MainLayout: React.FC = () => {
               label: '采购订单',
             },
             {
+              key: '/procurement/delivery-notes',
+              label: '到货单管理',
+            },
+            {
               key: '/procurement/receiving',
               label: '入库处理',
             },

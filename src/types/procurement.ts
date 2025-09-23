@@ -71,3 +71,59 @@ export interface ProcurementNotification {
   timestamp: string;
   isRead: boolean;
 }
+
+// 到货单相关类型定义
+export interface DeliveryNote {
+  id: string;
+  deliveryNo: string;
+  purchaseOrderNo: string;
+  supplierName: string;
+  supplierContact: string;
+  supplierPhone: string;
+  deliveryDate: string;
+  receivedDate?: string;
+  receiver?: string;
+  department?: string;
+  status: 'pending' | 'received' | 'partial' | 'completed' | 'rejected';
+  statusText: string;
+  totalAmount: number;
+  items: DeliveryItem[];
+  attachments: string[];
+  remarks: string;
+  transportInfo?: TransportInfo;
+  qualityCheck?: QualityCheckInfo;
+}
+
+export interface DeliveryItem {
+  id: string;
+  itemName: string;
+  specification: string;
+  unit: string;
+  orderedQuantity: number;
+  deliveredQuantity: number;
+  receivedQuantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  qualityStatus: 'pass' | 'fail' | 'pending' | 'not_checked';
+  remarks: string;
+  batchNo?: string;
+  expiryDate?: string;
+}
+
+export interface TransportInfo {
+  carrier: string;
+  trackingNo: string;
+  vehicleNo: string;
+  driverName: string;
+  driverPhone: string;
+  estimatedArrival: string;
+  actualArrival?: string;
+}
+
+export interface QualityCheckInfo {
+  checker: string;
+  checkDate: string;
+  checkResult: 'pass' | 'fail' | 'partial' | 'pending';
+  checkRemarks: string;
+  attachments: string[];
+}

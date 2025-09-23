@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, Upload, Statistic, Typography } from 'antd';
-import { EyeOutlined, CloseOutlined, UploadOutlined, InboxOutlined, SearchOutlined } from '@ant-design/icons';
+import { EyeOutlined, CloseOutlined, UploadOutlined, InboxOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
+import { DeliveryNote } from '../../types/procurement';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -41,6 +42,8 @@ interface ReceivingItem {
   qualityStatus: 'pass' | 'fail' | 'pending';
   remarks: string;
   currentStock?: number; // 当前库存数量
+  warehouseId?: string; // 入库仓库ID
+  warehouseName?: string; // 入库仓库名称
 }
 
 // 质检信息接口
@@ -71,16 +74,147 @@ const WarehouseReceiving: React.FC = () => {
   const [isReceivingModalVisible, setIsReceivingModalVisible] = useState(false);
   const [editingRecord, _setEditingRecord] = useState<ReceivingRecord | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<ReceivingRecord | null>(null);
+  const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
+  const [itemWarehouses, setItemWarehouses] = useState<Record<string, string>>({});
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [receivingForm] = Form.useForm();
   const [filterForm] = Form.useForm();
+
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+
+  // 获取仓库名称的辅助函数
+  const getWarehouseName = (warehouseId: string) => {
+    const warehouseMap: Record<string, string> = {
+      'warehouse1': '主仓库',
+      'warehouse2': '分仓库A',
+      'warehouse3': '分仓库B',
+      'warehouse4': '临时仓库'
+    };
+    return warehouseMap[warehouseId] || '未知仓库';
+  };
 
   // 模拟采购订单数据
   const purchaseOrders: PurchaseOrder[] = [
     { id: '1', orderNo: 'PO202401001', supplierName: '北京科技有限公司', orderDate: '2024-01-15', totalAmount: 43000, status: '已确认' },
-    { id: '2', orderNo: 'PO202401002', supplierName: '上海设备制造厂', orderDate: '2024-01-18', totalAmount: 480000, status: '已确认' },
+    { id: '2', orderNo: 'PO2024005', supplierName: '上海设备制造厂', orderDate: '2024-01-18', totalAmount: 480000, status: '已确认' },
     { id: '3', orderNo: 'PO202401003', supplierName: '广州电子科技', orderDate: '2024-01-20', totalAmount: 25000, status: '已确认' },
+  ];
+
+  // 模拟到货单数据（已接收状态，可以创建入库单）
+  const mockDeliveryNotes: DeliveryNote[] = [
+    {
+      id: '1',
+      deliveryNo: 'DN202401001',
+      purchaseOrderNo: 'PO202401001',
+      supplierName: '北京科技有限公司',
+      supplierContact: '张经理',
+      supplierPhone: '13800138001',
+      deliveryDate: '2024-01-25',
+      receivedDate: '2024-01-25',
+      receiver: '李收货',
+      department: '采购部',
+      status: 'received',
+      statusText: '已接收',
+      totalAmount: 43000,
+      items: [
+        {
+          id: '1',
+          itemName: '台式电脑',
+          specification: 'Intel i5-12400F, 16GB内存, 512GB SSD',
+          unit: '台',
+          orderedQuantity: 5,
+          deliveredQuantity: 5,
+          receivedQuantity: 5,
+          unitPrice: 3800,
+          totalPrice: 19000,
+          qualityStatus: 'pass',
+          remarks: '设备完好',
+          batchNo: 'B20240125001'
+        },
+        {
+          id: '2',
+          itemName: '激光打印机',
+          specification: 'HP LaserJet Pro M404dn',
+          unit: '台',
+          orderedQuantity: 2,
+          deliveredQuantity: 2,
+          receivedQuantity: 2,
+          unitPrice: 2000,
+          totalPrice: 4000,
+          qualityStatus: 'pass',
+          remarks: '包装完整',
+          batchNo: 'B20240125002'
+        }
+      ],
+      attachments: ['delivery_receipt.pdf'],
+      remarks: '货物完好，已接收',
+      transportInfo: {
+        carrier: '顺丰速运',
+        trackingNo: 'SF1234567890',
+        vehicleNo: '京A12345',
+        driverName: '王师傅',
+        driverPhone: '13900139001',
+        estimatedArrival: '2024-01-25 10:00',
+        actualArrival: '2024-01-25 09:45'
+      },
+      qualityCheck: {
+        checker: '质检员小李',
+        checkDate: '2024-01-25',
+        checkResult: 'pass',
+        checkRemarks: '所有物品质量合格',
+        attachments: ['quality_check_report.pdf']
+      }
+    },
+    {
+      id: '2',
+      deliveryNo: 'DN202401003',
+      purchaseOrderNo: 'PO202401003',
+      supplierName: '广州电子科技',
+      supplierContact: '黄经理',
+      supplierPhone: '13800138003',
+      deliveryDate: '2024-01-30',
+      receivedDate: '2024-01-30',
+      receiver: '王收货',
+      department: '采购部',
+      status: 'received',
+      statusText: '已接收',
+      totalAmount: 12000,
+      items: [
+        {
+          id: '5',
+          itemName: '监控摄像头',
+          specification: '4K高清网络摄像头',
+          unit: '个',
+          orderedQuantity: 15,
+          deliveredQuantity: 15,
+          receivedQuantity: 15,
+          unitPrice: 800,
+          totalPrice: 12000,
+          qualityStatus: 'pass',
+          remarks: '设备完好',
+          batchNo: 'B20240130001'
+        }
+      ],
+      attachments: ['delivery_receipt.pdf'],
+      remarks: '货物完好，已接收',
+      transportInfo: {
+        carrier: '中通快递',
+        trackingNo: 'ZT2024013001',
+        vehicleNo: '粤A54321',
+        driverName: '陈师傅',
+        driverPhone: '13900139003',
+        estimatedArrival: '2024-01-30 16:00',
+        actualArrival: '2024-01-30 15:30'
+      },
+      qualityCheck: {
+        checker: '质检员小王',
+        checkDate: '2024-01-30',
+        checkResult: 'pass',
+        checkRemarks: '设备质量合格',
+        attachments: ['quality_check_report.pdf']
+      }
+    }
   ];
 
   // 模拟数据
@@ -139,7 +273,7 @@ const WarehouseReceiving: React.FC = () => {
     {
       id: '2',
       receivingNo: 'WR202401002',
-      purchaseOrderNo: 'PO202401002',
+      purchaseOrderNo: 'PO2024005',
       supplierName: '上海设备制造厂',
       receivingDate: '2024-01-28',
       receiver: '王五',
@@ -252,7 +386,55 @@ const WarehouseReceiving: React.FC = () => {
   useEffect(() => {
     setData(mockData);
     setFilteredData(mockData);
+    setDeliveryNotes(mockDeliveryNotes);
   }, []);
+
+  // 处理从到货单创建入库单
+  const handleCreateFromDeliveryNote = (deliveryNote: DeliveryNote) => {
+    const newReceivingRecord: ReceivingRecord = {
+      id: `WR${Date.now()}`,
+      receivingNo: `WR${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+      purchaseOrderNo: deliveryNote.purchaseOrderNo,
+      supplierName: deliveryNote.supplierName,
+      receivingDate: null,
+      receiver: null,
+      department: null,
+      warehouse: null,
+      warehouseName: null,
+      status: 'pending',
+      statusText: '待处理',
+      totalAmount: deliveryNote.totalAmount,
+      items: deliveryNote.items.map(item => ({
+          id: `item_${Date.now()}_${Math.random()}`,
+          itemName: item.itemName,
+          specification: item.specification,
+          unit: item.unit,
+          orderedQuantity: item.orderedQuantity,
+          receivedQuantity: 0,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+          qualityStatus: 'pending' as const,
+          remarks: '',
+          currentStock: Math.floor(Math.random() * 50) + 10 // 模拟当前库存
+        })),
+      attachments: [],
+      remarks: `基于到货单 ${deliveryNote.deliveryNo} 创建`,
+      qualityCheck: {
+        checker: '',
+        checkDate: '',
+        checkResult: 'pending',
+        checkRemarks: '',
+        attachments: []
+      }
+    };
+
+    const updatedData = [...data, newReceivingRecord];
+    setData(updatedData);
+    setFilteredData(updatedData);
+    message.success('已基于到货单创建入库单');
+  };
+
+
 
   const handleView = (record: ReceivingRecord) => {
     setSelectedRecord(record);
@@ -262,6 +444,8 @@ const WarehouseReceiving: React.FC = () => {
   const handleReceiving = (record: ReceivingRecord) => {
     setSelectedRecord(record);
     receivingForm.resetFields();
+    // 重置物品仓库选择状态
+    setItemWarehouses({});
     setIsReceivingModalVisible(true);
   };
 
@@ -323,8 +507,23 @@ const WarehouseReceiving: React.FC = () => {
       const values = await receivingForm.validateFields();
       if (!selectedRecord) return;
 
+      // 检查是否所有物品都选择了入库仓库
+      const missingWarehouses = selectedRecord.items?.filter(item => !itemWarehouses[item.id]);
+      if (missingWarehouses && missingWarehouses.length > 0) {
+        message.warning('请为所有物品选择入库仓库');
+        return;
+      }
+
+      // 更新物品信息，包含入库仓库信息
+      const updatedItems = selectedRecord.items?.map(item => ({
+        ...item,
+        warehouseId: itemWarehouses[item.id],
+        warehouseName: getWarehouseName(itemWarehouses[item.id])
+      }));
+
       const updatedRecord = {
         ...selectedRecord,
+        items: updatedItems,
         status: values.qualityStatus === 'passed' ? 'completed' as const : 
                 values.qualityStatus === 'failed' ? 'rejected' as const : 'partial' as const,
         statusText: values.qualityStatus === 'passed' ? '已完成' : 
@@ -562,16 +761,20 @@ const WarehouseReceiving: React.FC = () => {
       <Card>
         {/* 筛选条件区域 */}
         <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => setIsCreateModalVisible(true)}
+            >
+              创建入库单
+            </Button>
+          </div>
           <Form form={filterForm} layout="inline">
             <Row gutter={[16, 16]} className="w-full">
               <Col span={4}>
                 <Form.Item name="receivingNo" label="入库单号">
                   <Input placeholder="请输入入库单号" />
-                </Form.Item>
-              </Col>
-              <Col span={4}>
-                <Form.Item name="purchaseOrderNo" label="采购订单号">
-                  <Input placeholder="请输入采购订单号" />
                 </Form.Item>
               </Col>
               <Col span={4}>
@@ -865,11 +1068,30 @@ const WarehouseReceiving: React.FC = () => {
               <h4 style={{ marginBottom: 12 }}>物品库存信息</h4>
               {selectedRecord.items?.map((item, _index) => (
                 <Card key={item.id} size="small" style={{ marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <div style={{ flex: 1 }}>
                       <Text strong>{item.itemName}</Text>
                       <br />
                       <Text type="secondary">{item.specification}</Text>
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ marginBottom: 4, fontSize: 12, color: '#666' }}>入库仓库</div>
+                        <Select
+                          style={{ width: 120 }}
+                          placeholder="选择仓库"
+                          value={itemWarehouses[item.id]}
+                          onChange={(value) => {
+                            setItemWarehouses(prev => ({
+                              ...prev,
+                              [item.id]: value
+                            }));
+                          }}
+                        >
+                          <Option value="warehouse1">主仓库</Option>
+                          <Option value="warehouse2">分仓库A</Option>
+                          <Option value="warehouse3">分仓库B</Option>
+                          <Option value="warehouse4">临时仓库</Option>
+                        </Select>
+                      </div>
                     </div>
                     <div style={{ display: 'flex', gap: 16 }}>
                       <Statistic
@@ -956,6 +1178,95 @@ const WarehouseReceiving: React.FC = () => {
             </Form>
           </>
         )}
+      </Modal>
+
+      {/* 创建入库单对话框 */}
+      <Modal
+        title="创建入库单"
+        open={isCreateModalVisible}
+        onCancel={() => setIsCreateModalVisible(false)}
+        footer={null}
+        width={1200}
+        destroyOnClose
+      >
+        <div className="mb-4">
+          <p className="text-gray-600">请从以下已接收的到货单中选择一个来创建入库单：</p>
+        </div>
+        <Table
+          columns={[
+            {
+              title: '到货单号',
+              dataIndex: 'deliveryNo',
+              key: 'deliveryNo',
+              width: 120,
+            },
+            {
+              title: '采购订单号',
+              dataIndex: 'purchaseOrderNo',
+              key: 'purchaseOrderNo',
+              width: 120,
+            },
+            {
+              title: '供应商',
+              dataIndex: 'supplierName',
+              key: 'supplierName',
+              width: 150,
+            },
+            {
+              title: '到货日期',
+              dataIndex: 'deliveryDate',
+              key: 'deliveryDate',
+              width: 100,
+            },
+            {
+              title: '总金额',
+              dataIndex: 'totalAmount',
+              key: 'totalAmount',
+              width: 100,
+              render: (amount: number) => `¥${amount.toLocaleString()}`,
+            },
+            {
+              title: '状态',
+              dataIndex: 'status',
+              key: 'status',
+              width: 80,
+              render: (status: string) => (
+                <Tag color={status === 'received' ? 'success' : 'processing'}>
+                  {status === 'received' ? '已接收' : '待接收'}
+                </Tag>
+              ),
+            },
+            {
+              title: '操作',
+              key: 'action',
+              width: 120,
+              render: (_, record: DeliveryNote) => (
+                <Space size="small">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      handleCreateFromDeliveryNote(record);
+                      setIsCreateModalVisible(false);
+                    }}
+                  >
+                    创建入库单
+                  </Button>
+                </Space>
+              ),
+            },
+          ]}
+          dataSource={deliveryNotes.filter(note => note.status === 'received')}
+          rowKey="id"
+          pagination={{
+            pageSize: 5,
+            showSizeChanger: false,
+            showQuickJumper: false,
+            showTotal: (total) => `共 ${total} 条记录`,
+          }}
+          scroll={{ x: 800 }}
+        />
       </Modal>
     </div>
   );

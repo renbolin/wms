@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Table, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Descriptions, Tag, Upload, message, Space, Card, Statistic, Popconfirm } from 'antd';
-import { PlusOutlined, EyeOutlined, UploadOutlined, PaperClipOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Descriptions, Tag, Upload, message, Space, Card, Popconfirm } from 'antd';
+import { PlusOutlined, EyeOutlined, UploadOutlined, PaperClipOutlined, FileTextOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
 import dayjs from 'dayjs';
 import { useProcurementOrder } from '@/contexts/ProcurementOrderContext';
 import { useInquiry } from '@/contexts/InquiryContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
 
@@ -54,7 +54,7 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
             <Select placeholder="请选择状态" allowClear>
               <Option value="待发货">待发货</Option>
               <Option value="已发货">已发货</Option>
-              <Option value="已完成">已完成</Option>
+              <Option value="已送达">已送达</Option>
             </Select>
           </Form.Item>
         </Col>
@@ -73,6 +73,7 @@ const ProcurementOrder: React.FC = () => {
   const { orders, addOrder, updateOrder, deleteOrder: _deleteOrder } = useProcurementOrder();
   const { quotationRequests } = useInquiry();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
@@ -84,12 +85,8 @@ const ProcurementOrder: React.FC = () => {
   const [selectedQuotationId, setSelectedQuotationId] = useState<string>('');
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
   const [currentAttachmentOrder, setCurrentAttachmentOrder] = useState<any>(null);
-  const [inventoryModalVisible, setInventoryModalVisible] = useState(false);
-  const [inventoryDetailsModalVisible, setInventoryDetailsModalVisible] = useState(false);
-  const [currentInventoryOrder, setCurrentInventoryOrder] = useState<any>(null);
+
   const [_inputQuantity, _setInputQuantity] = useState<number>(0);
-  const [itemQuantities, setItemQuantities] = useState<{[key: string]: number}>({});
-  const [inventoryForm] = Form.useForm();
 
   const handleAdd = () => {
     setEditingOrder(null);
@@ -138,156 +135,19 @@ const ProcurementOrder: React.FC = () => {
     setAttachmentModalVisible(true);
   };
 
-  const handleConfirmDelivery = (order: any) => {
-    Modal.confirm({
-      title: '确认收货',
-      content: `确认收到订单 ${order.orderNumber} 的货物吗？`,
-      okText: '确认',
-      cancelText: '取消',
-      onOk: () => {
-        const updatedOrder = {
-          ...order,
-          status: 'completed' as const,
-          statusText: '已完成',
-          updatedAt: new Date().toISOString()
-        };
-        updateOrder(updatedOrder);
-        message.success('已确认收货，订单已完成');
-      },
-    });
-  };
 
 
 
-  const handleInventory = (order: any) => {
-    setCurrentInventoryOrder(order);
-    inventoryForm.resetFields();
-    setItemQuantities({});
-    setInventoryModalVisible(true);
-  };
 
-  const handleInventoryDetails = (order: any) => {
-    setCurrentInventoryOrder(order);
-    setInventoryDetailsModalVisible(true);
-  };
 
-  const handleInventorySubmit = () => {
-    inventoryForm.validateFields().then(values => {
-      // 检查是否有物品设置了入库数量
-      const hasQuantities = Object.values(itemQuantities).some(qty => qty > 0);
-      if (!hasQuantities) {
-        message.warning('请至少为一个物品设置入库数量');
-        return;
-      }
 
-      // 计算每个物品的库存变化
-      const itemUpdates = currentInventoryOrder?.items?.map((item: any) => {
-        const inputQty = itemQuantities[item.id] || 0;
-        const currentStock = item.currentStock || 0;
-        const newStock = currentStock + inputQty;
-        return {
-          ...item,
-          inputQuantity: inputQty,
-          previousStock: currentStock,
-          newStock: newStock
-        };
-      }).filter((item: any) => item.inputQuantity > 0) || [];
 
-      // 显示入库前后数量对比
-      Modal.info({
-        title: '入库处理',
-        width: 700,
-        content: (
-          <div>
-            <div style={{ marginBottom: 16 }}>
-              <h4>订单：{currentInventoryOrder?.orderNumber}</h4>
-            </div>
-            <div style={{ backgroundColor: '#f5f5f5', padding: 16, borderRadius: 6 }}>
-              {itemUpdates.map((item: any, index: number) => (
-                <div key={item.id} style={{ marginBottom: index < itemUpdates.length - 1 ? 16 : 0 }}>
-                  <h5 style={{ marginBottom: 8 }}>{item.name} - {item.specification}</h5>
-                  <Row gutter={16}>
-                    <Col span={6}>
-                      <Statistic 
-                        title="入库前" 
-                        value={item.previousStock} 
-                        suffix={item.unit}
-                        valueStyle={{ color: '#666' }}
-                      />
-                    </Col>
-                    <Col span={6}>
-                      <Statistic 
-                        title="入库数量" 
-                        value={item.inputQuantity} 
-                        suffix={item.unit}
-                        prefix="+"
-                        valueStyle={{ color: '#1890ff' }}
-                      />
-                    </Col>
-                    <Col span={6}>
-                      <Statistic 
-                        title="入库后" 
-                        value={item.newStock} 
-                        suffix={item.unit}
-                        valueStyle={{ color: '#52c41a', fontWeight: 'bold' }}
-                      />
-                    </Col>
-                    <Col span={6}>
-                      <Statistic 
-                        title="库存变化" 
-                        value={`+${item.inputQuantity}`} 
-                        suffix={item.unit}
-                        valueStyle={{ color: '#fa8c16' }}
-                      />
-                    </Col>
-                  </Row>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 16, padding: 12, backgroundColor: '#e6f7ff', borderRadius: 4 }}>
-              <p style={{ margin: 0, color: '#1890ff' }}>
-                ✓ 库存已成功更新，共处理 {itemUpdates.length} 个物品项目
-              </p>
-            </div>
-          </div>
-        ),
-        onOk: () => {
-          // 更新订单中每个物品的库存信息
-          const updatedItems = currentInventoryOrder?.items?.map((item: any) => {
-            const inputQty = itemQuantities[item.id] || 0;
-            if (inputQty > 0) {
-              return {
-                ...item,
-                currentStock: (item.currentStock || 0) + inputQty
-              };
-            }
-            return item;
-          }) || [];
 
-          // 更新订单状态为已入库，并添加库存信息
-          const updatedOrder = {
-            ...currentInventoryOrder,
-            status: 'inventoried',
-            items: updatedItems,
-            inventoryInfo: {
-              ...values,
-              inventoryDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-              operator: values.operator || '当前用户',
-              itemUpdates: itemUpdates
-            }
-          };
-          
-          updateOrder(updatedOrder);
-          setInventoryModalVisible(false);
-          setItemQuantities({});
-          
-          // 显示成功消息
-          message.success(`入库处理完成！共更新 ${itemUpdates.length} 个物品的库存`);
-        }
-      });
-    }).catch(error => {
-      console.error('表单验证失败:', error);
-    });
+
+
+  const handleDeliveryNotes = (order: any) => {
+    // 跳转到到货单管理页面，并携带采购订单号参数
+    navigate(`/procurement/delivery-notes?orderNumber=${order.orderNumber}`);
   };
 
   const handleOk = () => {
@@ -391,34 +251,23 @@ const ProcurementOrder: React.FC = () => {
       fixed: 'right',
       width: 200,
       render: (_: any, record: any) => {
-        const getActionButtons = (status: string) => {
-          const baseButtons = [
+        const getActionButtons = () => {
+          const buttons = [
             <Button key="details" type="link" icon={<EyeOutlined />} onClick={() => handleDetails(record)}>详情</Button>,
             <Button key="attachment" type="link" icon={<PaperClipOutlined />} onClick={() => handleAttachment(record)}>附件</Button>
           ];
-
-          switch (status) {
-            case 'shipped':
-              return [
-                ...baseButtons,
-                <Button key="confirm-delivery" type="link" onClick={() => handleConfirmDelivery(record)}>确认收货</Button>
-              ];
-            case 'completed':
-              return [
-                ...baseButtons,
-                <Button key="inventory" type="link" onClick={() => handleInventory(record)}>入库处理</Button>
-              ];
-            case 'inventoried':
-              return [
-                ...baseButtons,
-                <Button key="inventory-details" type="link" onClick={() => handleInventoryDetails(record)}>入库详情</Button>
-              ];
-            default:
-              return baseButtons;
+          
+          // 为PO2024005订单添加到货单按钮
+          if (record.orderNumber === 'PO2024005') {
+            buttons.push(
+              <Button key="delivery" type="link" icon={<FileTextOutlined />} onClick={() => handleDeliveryNotes(record)}>到货单</Button>
+            );
           }
+          
+          return buttons;
         };
 
-        return <Space>{getActionButtons(record.status)}</Space>;
+        return <Space>{getActionButtons()}</Space>;
       },
     },
   ];
@@ -543,7 +392,7 @@ const ProcurementOrder: React.FC = () => {
                   <Option value="in_production">生产中</Option>
                   <Option value="shipped">已发货</Option>
                   <Option value="delivered">已送达</Option>
-                  <Option value="completed">已完成</Option>
+                  <Option value="completed">已送达</Option>
                   <Option value="cancelled">已取消</Option>
                 </Select>
               </Form.Item>
@@ -766,194 +615,9 @@ const ProcurementOrder: React.FC = () => {
         )}
       </Modal>
 
-      {/* 入库处理对话框 */}
-      <Modal
-        title="入库处理"
-        open={inventoryModalVisible}
-        onOk={handleInventorySubmit}
-        onCancel={() => setInventoryModalVisible(false)}
-        width={600}
-        okText="完成入库"
-        cancelText="取消"
-      >
-        {currentInventoryOrder && (
-          <div>
-            <Descriptions title="订单信息" bordered size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="订单编号">{currentInventoryOrder.orderNumber}</Descriptions.Item>
-              <Descriptions.Item label="供应商">{currentInventoryOrder.supplier}</Descriptions.Item>
-              <Descriptions.Item label="订单金额">¥{currentInventoryOrder.amount?.toLocaleString()}</Descriptions.Item>
-            </Descriptions>
-            
-            {/* 物品库存信息展示 */}
-            <div style={{ marginBottom: 16 }}>
-              <h4 style={{ marginBottom: 12, color: '#1890ff' }}>📦 物品库存信息</h4>
-              {currentInventoryOrder.items?.map((item: any) => (
-                <Card 
-                  key={item.id} 
-                  size="small" 
-                  style={{ marginBottom: 12 }}
-                  title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 'bold', color: '#1890ff' }}>
-                        {item.name} ({item.specification})
-                      </span>
-                      <span style={{ fontSize: '12px', color: '#666' }}>
-                        订单数量: {item.quantity} {item.unit}
-                      </span>
-                    </div>
-                  }
-                >
-                  <Row gutter={16} align="middle">
-                    <Col span={6}>
-                      <Statistic 
-                        title="当前库存" 
-                        value={item.currentStock || 0} 
-                        suffix={item.unit} 
-                        valueStyle={{ color: '#666', fontSize: '18px', fontWeight: 'bold' }}
-                      />
-                    </Col>
-                    <Col span={6}>
-                      <div>
-                        <div style={{ fontSize: '12px', color: '#666', marginBottom: 4 }}>入库数量</div>
-                        <InputNumber
-                          min={0}
-                          max={item.quantity}
-                          placeholder="0"
-                          style={{ width: '100%' }}
-                          value={itemQuantities[item.id] || 0}
-                          onChange={(value) => {
-                            setItemQuantities(prev => ({
-                              ...prev,
-                              [item.id]: value || 0
-                            }));
-                          }}
-                        />
-                      </div>
-                    </Col>
-                    <Col span={6}>
-                      <Statistic 
-                        title="入库后库存" 
-                        value={(item.currentStock || 0) + (itemQuantities[item.id] || 0)} 
-                        suffix={item.unit} 
-                        valueStyle={{ color: '#52c41a', fontSize: '18px', fontWeight: 'bold' }}
-                      />
-                    </Col>
-                    <Col span={6}>
-                      <Statistic 
-                        title="库存变化" 
-                        value={itemQuantities[item.id] || 0} 
-                        suffix={item.unit} 
-                        prefix="+"
-                        valueStyle={{ color: '#1890ff', fontSize: '18px', fontWeight: 'bold' }}
-                      />
-                    </Col>
-                  </Row>
-                </Card>
-              ))}
-            </div>
 
-            <Form form={inventoryForm} layout="vertical">
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    label="入库仓库"
-                    name="warehouse"
-                    rules={[{ required: true, message: '请选择入库仓库' }]}
-                  >
-                    <Select placeholder="请选择仓库">
-                      <Option value="warehouse1">主仓库</Option>
-                      <Option value="warehouse2">分仓库A</Option>
-                      <Option value="warehouse3">分仓库B</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    label="入库人员"
-                    name="operator"
-                    rules={[{ required: true, message: '请输入入库人员' }]}
-                  >
-                    <Input placeholder="请输入入库人员姓名" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    label="质检状态"
-                    name="qualityStatus"
-                    rules={[{ required: true, message: '请选择质检状态' }]}
-                  >
-                    <Select placeholder="请选择质检状态">
-                      <Option value="passed">质检合格</Option>
-                      <Option value="failed">质检不合格</Option>
-                      <Option value="pending">待质检</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-              
-              <Form.Item
-                label="备注"
-                name="remarks"
-              >
-                <Input.TextArea
-                  rows={3}
-                  placeholder="请输入入库备注信息"
-                />
-              </Form.Item>
-            </Form>
-          </div>
-        )}
-      </Modal>
 
-      {/* 入库详情对话框 */}
-      <Modal
-        title="入库详情"
-        open={inventoryDetailsModalVisible}
-        onCancel={() => setInventoryDetailsModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setInventoryDetailsModalVisible(false)}>
-            关闭
-          </Button>
-        ]}
-        width={700}
-      >
-        {currentInventoryOrder && currentInventoryOrder.inventoryInfo && (
-          <div>
-            <Descriptions title="订单信息" bordered size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="订单编号">{currentInventoryOrder.orderNumber}</Descriptions.Item>
-              <Descriptions.Item label="供应商">{currentInventoryOrder.supplier}</Descriptions.Item>
-              <Descriptions.Item label="订单金额">¥{currentInventoryOrder.amount?.toLocaleString()}</Descriptions.Item>
-            </Descriptions>
-            
-            <Descriptions title="入库信息" bordered size="small">
-              <Descriptions.Item label="入库仓库">{currentInventoryOrder.inventoryInfo.warehouse}</Descriptions.Item>
-              <Descriptions.Item label="入库数量">{currentInventoryOrder.inventoryInfo.quantity}</Descriptions.Item>
-              <Descriptions.Item label="质检状态">
-                <Tag color={
-                  currentInventoryOrder.inventoryInfo.qualityStatus === 'passed' ? 'green' :
-                  currentInventoryOrder.inventoryInfo.qualityStatus === 'failed' ? 'red' : 'orange'
-                }>
-                  {currentInventoryOrder.inventoryInfo.qualityStatus === 'passed' ? '质检合格' :
-                   currentInventoryOrder.inventoryInfo.qualityStatus === 'failed' ? '质检不合格' : '待质检'}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="入库人员">{currentInventoryOrder.inventoryInfo.operator}</Descriptions.Item>
-              <Descriptions.Item label="入库时间">{currentInventoryOrder.inventoryInfo.inventoryDate}</Descriptions.Item>
-              <Descriptions.Item label="备注" span={3}>
-                {currentInventoryOrder.inventoryInfo.remarks || '无'}
-              </Descriptions.Item>
-            </Descriptions>
-          </div>
-        )}
-        {currentInventoryOrder && !currentInventoryOrder.inventoryInfo && (
-          <div style={{ textAlign: 'center', color: '#999', padding: '40px' }}>
-            该订单尚未进行入库处理
-          </div>
-        )}
-      </Modal>
+
     </div>
   );
 };
