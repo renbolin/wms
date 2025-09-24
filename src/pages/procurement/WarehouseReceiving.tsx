@@ -4,6 +4,7 @@ import { EyeOutlined, CloseOutlined, UploadOutlined, InboxOutlined, SearchOutlin
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { DeliveryNote } from '../../types/procurement';
+import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -44,6 +45,8 @@ interface ReceivingItem {
   currentStock?: number; // 当前库存数量
   warehouseId?: string; // 入库仓库ID
   warehouseName?: string; // 入库仓库名称
+  lastInboundDate?: string; // 最近一次入库时间
+  lastInboundWarehouse?: string; // 最近一次入库仓库
 }
 
 // 质检信息接口
@@ -244,7 +247,10 @@ const WarehouseReceiving: React.FC = () => {
           totalPrice: 38000,
           qualityStatus: 'pass',
           remarks: '外观完好，功能正常',
-          currentStock: 15 // 当前库存15台
+          currentStock: 15, // 当前库存15台
+          warehouseName: '主仓库', // 入库仓库名称
+          lastInboundDate: '2024-01-20', // 最近一次入库时间
+          lastInboundWarehouse: '主仓库' // 最近一次入库仓库
         },
         {
           id: '2',
@@ -257,7 +263,10 @@ const WarehouseReceiving: React.FC = () => {
           totalPrice: 5000,
           qualityStatus: 'pass',
           remarks: '包装完整，测试正常',
-          currentStock: 5 // 当前库存5台
+          currentStock: 5, // 当前库存5台
+          warehouseName: '分仓库A', // 入库仓库名称
+          lastInboundDate: '2024-01-18', // 最近一次入库时间
+          lastInboundWarehouse: '分仓库A' // 最近一次入库仓库
         },
       ],
       attachments: ['入库单.pdf', '质检报告.pdf'],
@@ -294,8 +303,9 @@ const WarehouseReceiving: React.FC = () => {
           unitPrice: 480000,
           totalPrice: 480000,
           qualityStatus: 'pending',
-          remarks: '设备尚未到货',
-          currentStock: 0 // 当前库存0台
+          remarks: '设备需要专业安装',
+          currentStock: 0, // 当前库存0台
+          warehouseName: '分仓库A' // 入库仓库名称
         },
       ],
       attachments: [],
@@ -333,7 +343,8 @@ const WarehouseReceiving: React.FC = () => {
           totalPrice: 25000,
           qualityStatus: 'fail',
           remarks: '产品质量不符合要求',
-          currentStock: 8 // 当前库存8个
+          currentStock: 8, // 当前库存8个
+          warehouseName: undefined // 入库仓库名称（已拒绝）
         },
       ],
       attachments: ['拒收通知.pdf'],
@@ -368,7 +379,9 @@ const WarehouseReceiving: React.FC = () => {
           unitPrice: 750,
           totalPrice: 15000,
           qualityStatus: 'pending',
-          remarks: '待质检'
+          remarks: '待质检',
+          currentStock: 0, // 当前库存0把
+          warehouseName: '主仓库' // 入库仓库名称
         },
       ],
       attachments: ['送货单.pdf'],
@@ -652,14 +665,7 @@ const WarehouseReceiving: React.FC = () => {
     return colors[status as keyof typeof colors] || 'default';
   };
 
-  const getQualityStatusColor = (status: string) => {
-    const colors = {
-      pass: 'success',
-      fail: 'error',
-      pending: 'processing',
-    };
-    return colors[status as keyof typeof colors] || 'default';
-  };
+
 
   const columns: ColumnsType<ReceivingRecord> = [
     {
@@ -924,9 +930,6 @@ const WarehouseReceiving: React.FC = () => {
               <Descriptions.Item label="入库单号">{selectedRecord.receivingNo}</Descriptions.Item>
               <Descriptions.Item label="采购订单号">{selectedRecord.purchaseOrderNo}</Descriptions.Item>
               <Descriptions.Item label="供应商">{selectedRecord.supplierName}</Descriptions.Item>
-              {selectedRecord.status !== 'rejected' && selectedRecord.warehouseName && (
-                <Descriptions.Item label="入库仓库">{selectedRecord.warehouseName}</Descriptions.Item>
-              )}
               {selectedRecord.status !== 'rejected' && selectedRecord.receivingDate && (
                 <Descriptions.Item label="入库日期">{selectedRecord.receivingDate}</Descriptions.Item>
               )}
@@ -953,6 +956,14 @@ const WarehouseReceiving: React.FC = () => {
                       <Text strong>{item.itemName}</Text>
                       <br />
                       <Text type="secondary">{item.specification}</Text>
+                      {item.lastInboundDate && (
+                        <>
+                          <br />
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            最近入库：{item.lastInboundDate} ({item.lastInboundWarehouse})
+                          </Text>
+                        </>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: 16 }}>
                       <Statistic
@@ -985,197 +996,136 @@ const WarehouseReceiving: React.FC = () => {
               ))}
             </div>
 
-            <div className="mt-4">
-              <h4>入库明细</h4>
-              <Table
-                size="small"
-                dataSource={selectedRecord.items}
-                rowKey="id"
-                pagination={false}
-                columns={[
-                  { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
-                  { title: '规格型号', dataIndex: 'specification', key: 'specification' },
-                  { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
-                  { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80 },
-                  { title: '实收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80 },
-                  { title: '入库前库存', dataIndex: 'currentStock', key: 'currentStock', width: 90, render: (value) => `${value || 0}` },
-                  { 
-                    title: '入库后库存', 
-                    key: 'afterStock', 
-                    width: 90,
-                    render: (_, record) => `${(record.currentStock || 0) + (record.receivedQuantity || 0)}`
-                  },
-                  { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 100, render: (value) => `¥${value}` },
-                  { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (value) => `¥${value}` },
-                  { 
-                    title: '质检状态', 
-                    dataIndex: 'qualityStatus', 
-                    key: 'qualityStatus', 
-                    width: 80,
-                    render: (status) => (
-                      <Tag color={getQualityStatusColor(status)}>
-                        {status === 'pass' ? '合格' : status === 'fail' ? '不合格' : '待检'}
-                      </Tag>
-                    )
-                  },
-                  { title: '备注', dataIndex: 'remarks', key: 'remarks' },
-                ]}
-              />
-            </div>
+            {selectedRecord.status === 'completed' && (
+              <div className="mt-4">
+                <h4>入库明细</h4>
+                <Table
+                  size="small"
+                  dataSource={selectedRecord.items}
+                  rowKey="id"
+                  pagination={false}
+                  columns={[
+                    { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
+                    { title: '规格型号', dataIndex: 'specification', key: 'specification' },
+                    { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
+                    { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80 },
+                    { title: '实收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80 },
+                    { title: '入库前库存', dataIndex: 'currentStock', key: 'currentStock', width: 90, render: (value) => `${value || 0}` },
+                    { 
+                      title: '入库后库存', 
+                      key: 'afterStock', 
+                      width: 90,
+                      render: (_, record) => `${(record.currentStock || 0) + (record.receivedQuantity || 0)}`
+                    },
+                    { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 100, render: (value) => `¥${value}` },
+                    { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (value) => `¥${value}` },
+                    { title: '入库仓库', dataIndex: 'warehouseName', key: 'warehouseName', width: 100, render: (value) => value || '主仓库' },
+                    { title: '备注', dataIndex: 'remarks', key: 'remarks' },
+                  ]}
+                />
+              </div>
+            )}
 
-            <div className="mt-4">
-              <h4>质检信息</h4>
-              <Descriptions bordered column={2}>
-                <Descriptions.Item label="质检员">{selectedRecord.qualityCheck.checker || '未指定'}</Descriptions.Item>
-                <Descriptions.Item label="质检日期">{selectedRecord.qualityCheck.checkDate || '未检查'}</Descriptions.Item>
-                <Descriptions.Item label="质检结果">
-                  {selectedRecord.qualityCheck.checkResult === 'pass' && <Tag color="success">合格</Tag>}
-                  {selectedRecord.qualityCheck.checkResult === 'fail' && <Tag color="error">不合格</Tag>}
-                  {selectedRecord.qualityCheck.checkResult === 'partial' && <Tag color="warning">部分合格</Tag>}
-                  {selectedRecord.qualityCheck.checkResult === 'pending' && <Tag color="processing">待检查</Tag>}
-                </Descriptions.Item>
-                <Descriptions.Item label="质检备注" span={2}>
-                  {selectedRecord.qualityCheck.checkRemarks || '无'}
-                </Descriptions.Item>
-              </Descriptions>
-            </div>
+
 
 
           </div>
         )}
       </Modal>
 
-      {/* 入库处理模态框 */}
+      {/* 入库处理模态框 - 复用到货单详情页面布局 */}
       <Modal
-        title="入库处理"
+        title="入库处理详情"
         open={isReceivingModalVisible}
         onOk={handleReceivingSubmit}
         onCancel={() => setIsReceivingModalVisible(false)}
-        width={800}
+        width={1200}
         destroyOnClose
+        okText="确认入库"
+        cancelText="取消"
       >
         {selectedRecord && (
           <>
-            {/* 订单信息 */}
-            <Descriptions title="订单信息" bordered size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="订单编号">{selectedRecord.purchaseOrderNo}</Descriptions.Item>
+            {/* 基本信息 - 一行两列布局 */}
+            <Descriptions title="入库单基本信息" bordered size="small" column={2} style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="入库单号">{selectedRecord.receivingNo}</Descriptions.Item>
+              <Descriptions.Item label="采购订单号">{selectedRecord.purchaseOrderNo}</Descriptions.Item>
               <Descriptions.Item label="供应商">{selectedRecord.supplierName}</Descriptions.Item>
-              <Descriptions.Item label="订单金额">¥{selectedRecord.totalAmount?.toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="入库日期">{selectedRecord.receivingDate || '待确定'}</Descriptions.Item>
+              <Descriptions.Item label="收货人">{selectedRecord.receiver || '待确定'}</Descriptions.Item>
+              <Descriptions.Item label="收货部门">{selectedRecord.department || '待确定'}</Descriptions.Item>
+              <Descriptions.Item label="总金额">¥{selectedRecord.totalAmount?.toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="状态">
+                <Tag color={selectedRecord.status === 'pending' ? 'orange' : selectedRecord.status === 'completed' ? 'green' : 'red'}>
+                  {selectedRecord.statusText}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="备注" span={2}>{selectedRecord.remarks || '无'}</Descriptions.Item>
             </Descriptions>
 
-            {/* 物品库存信息 */}
+
+
+            {/* 货物明细 - 复用到货单详情页面的表格布局 */}
             <div style={{ marginBottom: 16 }}>
-              <h4 style={{ marginBottom: 12 }}>物品库存信息</h4>
-              {selectedRecord.items?.map((item, _index) => (
-                <Card key={item.id} size="small" style={{ marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                    <div style={{ flex: 1 }}>
-                      <Text strong>{item.itemName}</Text>
-                      <br />
-                      <Text type="secondary">{item.specification}</Text>
-                      <div style={{ marginTop: 8 }}>
-                        <div style={{ marginBottom: 4, fontSize: 12, color: '#666' }}>入库仓库</div>
-                        <Select
-                          style={{ width: 120 }}
-                          placeholder="选择仓库"
-                          value={itemWarehouses[item.id]}
-                          onChange={(value) => {
-                            setItemWarehouses(prev => ({
-                              ...prev,
-                              [item.id]: value
-                            }));
-                          }}
-                        >
-                          <Option value="warehouse1">主仓库</Option>
-                          <Option value="warehouse2">分仓库A</Option>
-                          <Option value="warehouse3">分仓库B</Option>
-                          <Option value="warehouse4">临时仓库</Option>
-                        </Select>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 16 }}>
-                      <Statistic
-                        title="当前库存"
-                        value={item.currentStock || 0}
-                        suffix={item.unit}
-                        valueStyle={{ fontSize: 16 }}
-                      />
-                      <div>
-                        <div style={{ marginBottom: 4, fontSize: 12, color: '#666' }}>入库数量</div>
-                        <Input
-                          style={{ width: 80 }}
-                          placeholder="0"
-                          onChange={(_e) => {
-                            // 这里可以添加状态管理逻辑
-                          }}
-                        />
-                      </div>
-                      <Statistic
-                        title="入库后库存"
-                        value={(item.currentStock || 0) + (item.receivedQuantity || 0)}
-                        suffix={item.unit}
-                        valueStyle={{ fontSize: 16, color: '#52c41a' }}
-                      />
-                      <Statistic
-                        title="库存变化"
-                        value={`+${item.receivedQuantity || 0}`}
-                        suffix={item.unit}
-                        valueStyle={{ fontSize: 16, color: '#1890ff' }}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              ))}
+              <Typography.Title level={5}>货物明细</Typography.Title>
+              <Table
+                size="small"
+                dataSource={selectedRecord.items}
+                rowKey="id"
+                pagination={false}
+                columns={[
+                  { title: '物品名称', dataIndex: 'itemName', key: 'itemName', width: 120 },
+                  { title: '规格型号', dataIndex: 'specification', key: 'specification', width: 150 },
+                  { title: '单位', dataIndex: 'unit', key: 'unit', width: 60, align: 'center' },
+                  { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80, align: 'center' },
+                  { title: '实收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80, align: 'center' },
+                  { title: '入库前库存', dataIndex: 'currentStock', key: 'currentStock', width: 90, align: 'center', render: (value) => `${value || 0}` },
+                  { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, align: 'right', render: (price: number) => `¥${price.toLocaleString()}` },
+                  { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, align: 'right', render: (price: number) => `¥${price.toLocaleString()}` },
+                  { title: '备注', dataIndex: 'remarks', key: 'remarks', width: 120, ellipsis: true }
+                ]}
+                scroll={{ x: 1050 }}
+              />
             </div>
 
-            {/* 入库信息表单 */}
+            {/* 入库操作表单 */}
+
             <Form form={receivingForm} layout="vertical">
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="warehouse"
-                    label="入库仓库"
-                    rules={[{ required: true, message: '请选择入库仓库' }]}
-                  >
-                    <Select placeholder="请选择仓库">
-                      <Option value="warehouse1">主仓库</Option>
-                      <Option value="warehouse2">分仓库A</Option>
-                      <Option value="warehouse3">分仓库B</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
                     name="operator"
-                    label="入库人员"
-                    rules={[{ required: true, message: '请输入入库人员姓名' }]}
+                    label="操作员"
+                    rules={[{ required: true, message: '请输入操作员' }]}
                   >
-                    <Input placeholder="请输入入库人员姓名" />
+                    <Input placeholder="请输入操作员姓名" />
                   </Form.Item>
                 </Col>
-              </Row>
-              <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
-                    name="qualityStatus"
-                    label="质检状态"
-                    rules={[{ required: true, message: '请选择质检状态' }]}
+                    name="operationDate"
+                    label="操作日期"
+                    initialValue={dayjs()}
                   >
-                    <Select placeholder="请选择质检状态">
-                      <Option value="passed">质检通过</Option>
-                      <Option value="failed">质检不通过</Option>
-                      <Option value="pending">待质检</Option>
-                    </Select>
+                    <DatePicker style={{ width: '100%' }} />
                   </Form.Item>
                 </Col>
               </Row>
               <Form.Item
                 name="remarks"
-                label="备注"
+                label="入库备注"
               >
-                <TextArea rows={3} placeholder="请输入备注信息" />
+                <TextArea rows={3} placeholder="请输入入库备注信息" />
               </Form.Item>
             </Form>
+
+            {/* 备注信息 */}
+            {selectedRecord.remarks && (
+              <div style={{ marginTop: 16 }}>
+                <Typography.Text strong>原始备注：</Typography.Text>
+                <Typography.Text>{selectedRecord.remarks}</Typography.Text>
+              </div>
+            )}
           </>
         )}
       </Modal>

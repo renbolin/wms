@@ -3,7 +3,6 @@ import MainLayout from '@/components/layouts/MainLayout';
 import { InquiryProvider } from '@/contexts/InquiryContext';
 import { ProcurementOrderProvider } from '@/contexts/ProcurementOrderContext';
 import Dashboard from '@/pages/Dashboard';
-import Login from '@/pages/Login';
 import UserManagement from '@/pages/system/UserManagement';
 import RoleManagement from '@/pages/system/RoleManagement';
 import PermissionManagement from '@/pages/system/PermissionManagement';
@@ -39,20 +38,15 @@ import AssetInventory from '@/pages/asset/AssetInventory';
 import AssetReport from '@/pages/asset/AssetReport';
 
 function App() {
-  // 简单的身份验证检查，实际项目中应该使用更复杂的认证系统
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-
   return (
     <ProcurementOrderProvider>
       <InquiryProvider>
         <BrowserRouter>
         <Routes>
-        <Route path="/login" element={<Login />} />
-        
-        {/* 受保护的路由 */}
+        {/* 直接访问主布局，无需登录验证 */}
         <Route 
           path="/" 
-          element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />}
+          element={<MainLayout />}
         >
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<Dashboard />} />

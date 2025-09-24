@@ -391,27 +391,7 @@ const DeliveryNotes: React.FC = () => {
     return colorMap[status as keyof typeof colorMap] || 'default';
   };
 
-  // 质检状态颜色映射
-  const getQualityStatusColor = (status: string) => {
-    const colorMap = {
-      pass: 'green',
-      fail: 'red',
-      pending: 'orange',
-      not_checked: 'default'
-    };
-    return colorMap[status as keyof typeof colorMap] || 'default';
-  };
 
-  // 质检状态文本映射
-  const getQualityStatusText = (status: string) => {
-    const textMap = {
-      pass: '合格',
-      fail: '不合格',
-      pending: '待检',
-      not_checked: '未检'
-    };
-    return textMap[status as keyof typeof textMap] || status;
-  };
 
   // 表格列定义
   const columns: ColumnsType<DeliveryNote> = [
@@ -804,7 +784,7 @@ const DeliveryNotes: React.FC = () => {
             关闭
           </Button>
         ]}
-        width={900}
+        width={1350}
       >
         {selectedRecord && (
           <div>
@@ -849,17 +829,6 @@ const DeliveryNotes: React.FC = () => {
                 { title: '接收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80 },
                 { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, render: (price: number) => `¥${price}` },
                 { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (price: number) => `¥${price.toLocaleString()}` },
-                { 
-                  title: '质检状态', 
-                  dataIndex: 'qualityStatus', 
-                  key: 'qualityStatus', 
-                  width: 80,
-                  render: (status: string) => (
-                    <Tag color={getQualityStatusColor(status)}>
-                      {getQualityStatusText(status)}
-                    </Tag>
-                  )
-                },
                 { title: '批次号', dataIndex: 'batchNo', key: 'batchNo', width: 100 },
                 { title: '备注', dataIndex: 'remarks', key: 'remarks' }
               ]}
@@ -881,7 +850,7 @@ const DeliveryNotes: React.FC = () => {
         open={isReceiveModalVisible}
         onOk={handleReceiveConfirm}
         onCancel={() => setIsReceiveModalVisible(false)}
-        width={1000}
+        width={1300}
         destroyOnClose
       >
         {selectedRecord && (
@@ -998,7 +967,23 @@ const DeliveryNotes: React.FC = () => {
                     title: '备注',
                     dataIndex: 'remarks',
                     key: 'remarks',
-                    width: 100,
+                    width: 150,
+                    render: (text: string, _record: any, index: number) => (
+                      <Input
+                        placeholder="请输入备注（可选）"
+                        defaultValue={text}
+                        onChange={(e) => {
+                          // 更新对应行的备注数据
+                          const newItems = [...selectedRecord.items];
+                          newItems[index].remarks = e.target.value;
+                          setSelectedRecord({
+                            ...selectedRecord,
+                            items: newItems
+                          });
+                        }}
+                        size="small"
+                      />
+                    )
                   }
                 ]}
               />
