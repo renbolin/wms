@@ -27,6 +27,13 @@ interface InventoryLedger {
   lastOutDate: string;
   status: 'normal' | 'low' | 'out' | 'excess';
   statusText: string;
+  // 新增字段
+  batchCount: number; // 批次数量
+  ageInDays: number; // 库龄天数
+  turnoverRate: number; // 周转率
+  supplier: string; // 主要供应商
+  abc: 'A' | 'B' | 'C'; // ABC分类
+  frozen: boolean; // 是否冻结
 }
 
 // 库存流水接口
@@ -76,7 +83,13 @@ const InventoryLedger: React.FC = () => {
       lastInDate: '2024-01-25',
       lastOutDate: '2024-01-28',
       status: 'normal',
-      statusText: '正常'
+      statusText: '正常',
+      batchCount: 2,
+      ageInDays: 15,
+      turnoverRate: 2.5,
+      supplier: '科技设备公司',
+      abc: 'A',
+      frozen: false
     },
     {
       id: '2',
@@ -98,7 +111,13 @@ const InventoryLedger: React.FC = () => {
       lastInDate: '2024-01-25',
       lastOutDate: '',
       status: 'normal',
-      statusText: '正常'
+      statusText: '正常',
+      batchCount: 1,
+      ageInDays: 5,
+      turnoverRate: 1.8,
+      supplier: '办公设备公司',
+      abc: 'B',
+      frozen: false
     },
     {
       id: '3',
@@ -120,7 +139,13 @@ const InventoryLedger: React.FC = () => {
       lastInDate: '2024-01-20',
       lastOutDate: '2024-01-30',
       status: 'low',
-      statusText: '库存不足'
+      statusText: '库存不足',
+      batchCount: 1,
+      ageInDays: 45,
+      turnoverRate: 3.2,
+      supplier: '家具制造公司',
+      abc: 'A',
+      frozen: false
     },
     {
       id: '4',
@@ -142,7 +167,13 @@ const InventoryLedger: React.FC = () => {
       lastInDate: '',
       lastOutDate: '',
       status: 'out',
-      statusText: '缺货'
+      statusText: '缺货',
+      batchCount: 0,
+      ageInDays: 0,
+      turnoverRate: 0,
+      supplier: '家具制造公司',
+      abc: 'B',
+      frozen: false
     },
     {
       id: '5',
@@ -164,7 +195,13 @@ const InventoryLedger: React.FC = () => {
       lastInDate: '2024-01-22',
       lastOutDate: '2024-01-29',
       status: 'excess',
-      statusText: '库存过量'
+      statusText: '库存过量',
+      batchCount: 3,
+      ageInDays: 8,
+      turnoverRate: 0.5,
+      supplier: '钢制家具公司',
+      abc: 'C',
+      frozen: true
     },
   ];
 
@@ -295,6 +332,10 @@ const InventoryLedger: React.FC = () => {
   const totalItems = filteredData.length;
   const lowStockItems = filteredData.filter(item => item.status === 'low' || item.status === 'out').length;
   const excessStockItems = filteredData.filter(item => item.status === 'excess').length;
+  const totalBatches = filteredData.reduce((sum, item) => sum + (item.batchCount || 0), 0);
+  const avgAge = filteredData.length > 0 ? Math.round(filteredData.reduce((sum, item) => sum + (item.ageInDays || 0), 0) / filteredData.length) : 0;
+  const avgTurnover = filteredData.length > 0 ? (filteredData.reduce((sum, item) => sum + (item.turnoverRate || 0), 0) / filteredData.length).toFixed(1) : '0.0';
+  const frozenItems = filteredData.filter(item => item.frozen).length;
 
   const columns: ColumnsType<InventoryLedger> = [
     {
@@ -402,12 +443,72 @@ const InventoryLedger: React.FC = () => {
       render: (value) => `¥${value.toLocaleString()}`,
     },
     {
+      title: '批次数',
+      dataIndex: 'batchCount',
+      key: 'batchCount',
+      width: 60,
+      align: 'right',
+      render: (value) => value > 0 ? value : '-',
+    },
+    {
+      title: '库龄(天)',
+      dataIndex: 'ageInDays',
+      key: 'ageInDays',
+      width: 80,
+      align: 'right',
+      render: (value) => (
+        <span style={{ 
+          color: value <= 30 ? '#52c41a' : value <= 90 ? '#faad14' : '#ff4d4f',
+          fontWeight: 'bold'
+        }}>
+          {value > 0 ? value : '-'}
+        </span>
+      ),
+    },
+    {
+      title: '周转率',
+      dataIndex: 'turnoverRate',
+      key: 'turnoverRate',
+      width: 70,
+      align: 'right',
+      render: (value) => (
+        <span style={{ 
+          color: value >= 2 ? '#52c41a' : value >= 1 ? '#faad14' : '#ff4d4f',
+          fontWeight: 'bold'
+        }}>
+          {value > 0 ? value.toFixed(1) : '-'}
+        </span>
+      ),
+    },
+    {
+      title: 'ABC分类',
+      dataIndex: 'abc',
+      key: 'abc',
+      width: 70,
+      align: 'center',
+      render: (value) => (
+        <Tag color={value === 'A' ? 'red' : value === 'B' ? 'orange' : 'green'}>
+          {value}
+        </Tag>
+      ),
+    },
+    {
+      title: '供应商',
+      dataIndex: 'supplier',
+      key: 'supplier',
+      width: 120,
+      ellipsis: true,
+    },
+    {
       title: '状态',
       dataIndex: 'statusText',
       key: 'status',
       width: 80,
       render: (text, record) => (
-        <Tag color={getStatusColor(record.status)}>{text}</Tag>
+        <div>
+          <Tag color={getStatusColor(record.status)}>{text}</Tag>
+          {record.frozen && <Tag color="blue">冻结</Tag>}
+        </div>
       ),
     },
     {
@@ -559,6 +660,49 @@ const InventoryLedger: React.FC = () => {
         </Col>
       </Row>
 
+      {/* 扩展统计卡片 */}
+      <Row gutter={16} className="mb-4">
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="总批次数"
+              value={totalBatches}
+              suffix="批"
+              valueStyle={{ color: '#13c2c2' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="平均库龄"
+              value={avgAge}
+              suffix="天"
+              valueStyle={{ color: avgAge <= 30 ? '#52c41a' : avgAge <= 90 ? '#faad14' : '#ff4d4f' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="平均周转率"
+              value={avgTurnover}
+              valueStyle={{ color: parseFloat(avgTurnover) >= 2 ? '#52c41a' : parseFloat(avgTurnover) >= 1 ? '#faad14' : '#ff4d4f' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="冻结物料"
+              value={frozenItems}
+              suffix="种"
+              valueStyle={{ color: '#fa8c16' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
       <Card>
         {/* 搜索表单 */}
         <Form form={form} layout="inline" className="mb-4">
@@ -588,6 +732,19 @@ const InventoryLedger: React.FC = () => {
               <Option value="excess">库存过量</Option>
             </Select>
           </Form.Item>
+          <Form.Item name="abc" label="ABC分类">
+            <Select placeholder="请选择分类" style={{ width: 100 }}>
+              <Option value="A">A类</Option>
+              <Option value="B">B类</Option>
+              <Option value="C">C类</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="frozen" label="冻结状态">
+            <Select placeholder="请选择" style={{ width: 100 }}>
+              <Option value={true}>已冻结</Option>
+              <Option value={false}>未冻结</Option>
+            </Select>
+          </Form.Item>
           <Form.Item>
             <Space>
               <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
@@ -599,6 +756,18 @@ const InventoryLedger: React.FC = () => {
               </Button>
               <Button icon={<PrinterOutlined />} onClick={handlePrint}>
                 打印
+              </Button>
+              <Button 
+                type="dashed" 
+                onClick={() => window.open('/inventory/batch-management', '_blank')}
+              >
+                批次管理
+              </Button>
+              <Button 
+                type="dashed" 
+                onClick={() => window.open('/inventory/age-analysis', '_blank')}
+              >
+                库龄分析
               </Button>
             </Space>
           </Form.Item>

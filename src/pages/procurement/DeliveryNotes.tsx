@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, Statistic, Typography, Divider } from 'antd';
-import { EyeOutlined, CheckOutlined, InboxOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, Statistic, Typography, Divider, InputNumber } from 'antd';
+import { EyeOutlined, CheckOutlined, InboxOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
 import { DeliveryNote } from '../../types/procurement';
@@ -52,7 +52,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 5,
           unitPrice: 3800,
           totalPrice: 19000,
-          qualityStatus: 'pass',
           remarks: '设备完好',
           batchNo: 'B20240125001'
         },
@@ -66,7 +65,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 2,
           unitPrice: 2000,
           totalPrice: 4000,
-          qualityStatus: 'pass',
           remarks: '包装完整',
           batchNo: 'B20240125002'
         },
@@ -80,7 +78,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 10,
           unitPrice: 500,
           totalPrice: 5000,
-          qualityStatus: 'pass',
           remarks: '质量良好',
           batchNo: 'B20240125003'
         },
@@ -94,7 +91,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 8,
           unitPrice: 1200,
           totalPrice: 9600,
-          qualityStatus: 'pass',
           remarks: '显示效果良好',
           batchNo: 'B20240125004'
         },
@@ -108,7 +104,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 15,
           unitPrice: 280,
           totalPrice: 4200,
-          qualityStatus: 'pass',
           remarks: '手感良好',
           batchNo: 'B20240125005'
         },
@@ -122,12 +117,11 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 6,
           unitPrice: 680,
           totalPrice: 4080,
-          qualityStatus: 'pass',
           remarks: '结构牢固',
           batchNo: 'B20240125006'
         }
       ],
-      attachments: ['delivery_receipt.pdf', 'quality_report.pdf'],
+      attachments: ['delivery_receipt.pdf'],
       remarks: '货物完好，按时到达',
       transportInfo: {
         carrier: '顺丰速运',
@@ -137,13 +131,6 @@ const DeliveryNotes: React.FC = () => {
         driverPhone: '13900139001',
         estimatedArrival: '2024-01-25 10:00',
         actualArrival: '2024-01-25 09:45'
-      },
-      qualityCheck: {
-        checker: '质检员小李',
-        checkDate: '2024-01-25',
-        checkResult: 'pass',
-        checkRemarks: '所有物品质量合格',
-        attachments: ['quality_check_report.pdf']
       }
     },
     {
@@ -168,7 +155,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 0,
           unitPrice: 480000,
           totalPrice: 480000,
-          qualityStatus: 'pending',
           remarks: '大型设备，需专业安装',
           batchNo: 'B20240128001'
         },
@@ -182,7 +168,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 0,
           unitPrice: 180000,
           totalPrice: 360000,
-          qualityStatus: 'pending',
           remarks: '需要专业调试',
           batchNo: 'B20240128002'
         },
@@ -196,7 +181,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 0,
           unitPrice: 320000,
           totalPrice: 320000,
-          qualityStatus: 'pending',
           remarks: '需要专业安装和调试',
           batchNo: 'B20240128003'
         },
@@ -210,7 +194,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 0,
           unitPrice: 45000,
           totalPrice: 45000,
-          qualityStatus: 'pending',
           remarks: '配套设备',
           batchNo: 'B20240128004'
         },
@@ -224,7 +207,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 0,
           unitPrice: 8000,
           totalPrice: 24000,
-          qualityStatus: 'pending',
           remarks: '车间配套设施',
           batchNo: 'B20240128005'
         }
@@ -262,7 +244,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 15,
           unitPrice: 800,
           totalPrice: 12000,
-          qualityStatus: 'pass',
           remarks: '部分货物延期',
           batchNo: 'B20240130001'
         },
@@ -276,7 +257,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 0,
           unitPrice: 1200,
           totalPrice: 6000,
-          qualityStatus: 'pending',
           remarks: '货物延期，预计下周到达'
         },
         {
@@ -289,7 +269,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 8,
           unitPrice: 1500,
           totalPrice: 12000,
-          qualityStatus: 'pass',
           remarks: '已完成接收',
           batchNo: 'B20240130002'
         },
@@ -303,7 +282,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 10,
           unitPrice: 800,
           totalPrice: 8000,
-          qualityStatus: 'pass',
           remarks: '已完成接收',
           batchNo: 'B20240130003'
         },
@@ -317,7 +295,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 2,
           unitPrice: 3500,
           totalPrice: 7000,
-          qualityStatus: 'pass',
           remarks: '已完成接收',
           batchNo: 'B20240130004'
         },
@@ -331,7 +308,6 @@ const DeliveryNotes: React.FC = () => {
           receivedQuantity: 3,
           unitPrice: 4500,
           totalPrice: 13500,
-          qualityStatus: 'pass',
           remarks: '已完成接收',
           batchNo: 'B20240130005'
         }
@@ -395,6 +371,13 @@ const DeliveryNotes: React.FC = () => {
 
   // 表格列定义
   const columns: ColumnsType<DeliveryNote> = [
+    {
+      title: '序号',
+      key: 'index',
+      width: 60,
+      fixed: 'left',
+      render: (_, __, index) => index + 1,
+    },
     {
       title: '到货单号',
       dataIndex: 'deliveryNo',
@@ -647,28 +630,108 @@ const DeliveryNotes: React.FC = () => {
     filterForm.validateFields().then(values => {
       let filtered = [...data];
       
+      // 到货单号筛选
       if (values.deliveryNo) {
         filtered = filtered.filter(item => 
           item.deliveryNo.toLowerCase().includes(values.deliveryNo.toLowerCase())
         );
       }
       
+      // 采购订单号筛选
+      if (values.purchaseOrderNo) {
+        filtered = filtered.filter(item => 
+          item.purchaseOrderNo.toLowerCase().includes(values.purchaseOrderNo.toLowerCase())
+        );
+      }
+      
+      // 供应商筛选
       if (values.supplierName) {
         filtered = filtered.filter(item => 
           item.supplierName.toLowerCase().includes(values.supplierName.toLowerCase())
         );
       }
       
+      // 联系人筛选
+      if (values.supplierContact) {
+        filtered = filtered.filter(item => 
+          item.supplierContact?.toLowerCase().includes(values.supplierContact.toLowerCase())
+        );
+      }
+      
+      // 联系电话筛选
+      if (values.supplierPhone) {
+        filtered = filtered.filter(item => 
+          item.supplierPhone?.includes(values.supplierPhone)
+        );
+      }
+      
+      // 接收人筛选
+      if (values.receiver) {
+        filtered = filtered.filter(item => 
+          item.receiver?.toLowerCase().includes(values.receiver.toLowerCase())
+        );
+      }
+      
+      // 部门筛选
+      if (values.department) {
+        filtered = filtered.filter(item => 
+          item.department?.toLowerCase().includes(values.department.toLowerCase())
+        );
+      }
+      
+      // 状态筛选
       if (values.status) {
         filtered = filtered.filter(item => item.status === values.status);
       }
       
-      if (values.dateRange && values.dateRange.length === 2) {
-        const [startDate, endDate] = values.dateRange;
+      // 到货日期范围筛选
+      if (values.deliveryDateRange && values.deliveryDateRange.length === 2) {
+        const [startDate, endDate] = values.deliveryDateRange;
         filtered = filtered.filter(item => {
           const itemDate = dayjs(item.deliveryDate);
           return itemDate.isAfter(startDate.startOf('day')) && itemDate.isBefore(endDate.endOf('day'));
         });
+      }
+      
+      // 接收日期范围筛选
+      if (values.receivedDateRange && values.receivedDateRange.length === 2) {
+        const [startDate, endDate] = values.receivedDateRange;
+        filtered = filtered.filter(item => {
+          if (!item.receivedDate) return false;
+          const itemDate = dayjs(item.receivedDate);
+          return itemDate.isAfter(startDate.startOf('day')) && itemDate.isBefore(endDate.endOf('day'));
+        });
+      }
+      
+      // 总金额范围筛选
+      if (values.totalAmountRange && (values.totalAmountRange[0] || values.totalAmountRange[1])) {
+        const [minAmount, maxAmount] = values.totalAmountRange;
+        filtered = filtered.filter(item => {
+          if (minAmount && item.totalAmount < minAmount) return false;
+          if (maxAmount && item.totalAmount > maxAmount) return false;
+          return true;
+        });
+      }
+      
+      // 承运商筛选
+      if (values.carrier) {
+        filtered = filtered.filter(item => 
+          item.transportInfo?.carrier?.toLowerCase().includes(values.carrier.toLowerCase())
+        );
+      }
+      
+      // 运单号筛选
+      if (values.trackingNo) {
+        filtered = filtered.filter(item => 
+          item.transportInfo?.trackingNo?.toLowerCase().includes(values.trackingNo.toLowerCase())
+        );
+      }
+      
+      // 备注筛选
+      if (values.remarks) {
+        filtered = filtered.filter(item => 
+          item.remarks?.toLowerCase().includes(values.remarks.toLowerCase())
+        );
       }
       
       setFilteredData(filtered);
@@ -728,32 +791,101 @@ const DeliveryNotes: React.FC = () => {
         {/* 筛选表单 */}
         <Card size="small" style={{ marginBottom: 16 }}>
           <Form form={filterForm} layout="inline">
-            <Form.Item name="deliveryNo" label="到货单号">
-              <Input placeholder="请输入到货单号" style={{ width: 150 }} />
-            </Form.Item>
-            <Form.Item name="supplierName" label="供应商">
-              <Input placeholder="请输入供应商名称" style={{ width: 150 }} />
-            </Form.Item>
-            <Form.Item name="status" label="状态">
-              <Select placeholder="请选择状态" style={{ width: 120 }} allowClear>
-                <Option value="pending">待接收</Option>
-                <Option value="received">已接收</Option>
-                <Option value="partial">部分接收</Option>
-                <Option value="completed">已完成</Option>
-                <Option value="rejected">已拒绝</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item name="dateRange" label="到货日期">
-              <DatePicker.RangePicker />
-            </Form.Item>
-            <Form.Item>
-              <Space>
-                <Button type="primary" icon={<SearchOutlined />} onClick={handleFilter}>
-                  查询
-                </Button>
-                <Button onClick={handleResetFilter}>重置</Button>
-              </Space>
-            </Form.Item>
+            <Row gutter={[16, 16]} style={{ width: '100%' }}>
+              <Col span={6}>
+                <Form.Item name="deliveryNo" label="到货单号">
+                  <Input placeholder="请输入到货单号" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="purchaseOrderNo" label="采购订单号">
+                  <Input placeholder="请输入采购订单号" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="supplierName" label="供应商">
+                  <Input placeholder="请输入供应商名称" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="supplierContact" label="联系人">
+                  <Input placeholder="请输入联系人" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="supplierPhone" label="联系电话">
+                  <Input placeholder="请输入联系电话" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="receiver" label="接收人">
+                  <Input placeholder="请输入接收人" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="department" label="部门">
+                  <Input placeholder="请输入部门" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="status" label="状态">
+                  <Select placeholder="请选择状态" allowClear>
+                    <Option value="pending">待接收</Option>
+                    <Option value="received">已接收</Option>
+                    <Option value="partial">部分接收</Option>
+                    <Option value="completed">已完成</Option>
+                    <Option value="rejected">已拒绝</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="deliveryDateRange" label="到货日期">
+                  <DatePicker.RangePicker style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="receivedDateRange" label="接收日期">
+                  <DatePicker.RangePicker style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item label="总金额范围">
+                  <Input.Group compact>
+                    <Form.Item name={['totalAmountRange', 0]} noStyle>
+                      <InputNumber placeholder="最小金额" style={{ width: '50%' }} min={0} />
+                    </Form.Item>
+                    <Form.Item name={['totalAmountRange', 1]} noStyle>
+                      <InputNumber placeholder="最大金额" style={{ width: '50%' }} min={0} />
+                    </Form.Item>
+                  </Input.Group>
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="carrier" label="承运商">
+                  <Input placeholder="请输入承运商" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="trackingNo" label="运单号">
+                  <Input placeholder="请输入运单号" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="remarks" label="备注">
+                  <Input placeholder="请输入备注关键词" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Space>
+                  <Button type="primary" icon={<SearchOutlined />} onClick={handleFilter}>
+                    查询
+                  </Button>
+                  <Button onClick={handleResetFilter} icon={<ReloadOutlined />}>
+                    重置
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
           </Form>
         </Card>
 

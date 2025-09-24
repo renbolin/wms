@@ -91,7 +91,6 @@ export interface DeliveryNote {
   attachments: string[];
   remarks: string;
   transportInfo?: TransportInfo;
-  qualityCheck?: QualityCheckInfo;
 }
 
 export interface DeliveryItem {
@@ -104,7 +103,6 @@ export interface DeliveryItem {
   receivedQuantity: number;
   unitPrice: number;
   totalPrice: number;
-  qualityStatus: 'pass' | 'fail' | 'pending' | 'not_checked';
   remarks: string;
   batchNo?: string;
   expiryDate?: string;
@@ -118,12 +116,4 @@ export interface TransportInfo {
   driverPhone: string;
   estimatedArrival: string;
   actualArrival?: string;
-}
-
-export interface QualityCheckInfo {
-  checker: string;
-  checkDate: string;
-  checkResult: 'pass' | 'fail' | 'partial' | 'pending';
-  checkRemarks: string;
-  attachments: string[];
 }

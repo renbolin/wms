@@ -106,6 +106,14 @@ const MainLayout: React.FC = () => {
               key: '/inventory/mobile-scan',
               label: '移动扫码',
             },
+            {
+              key: '/inventory/age-analysis',
+              label: '库龄分析',
+            },
+            {
+              key: '/inventory/batch-management',
+              label: '批次管理',
+            },
           ],
         },
     {
@@ -115,7 +123,11 @@ const MainLayout: React.FC = () => {
       children: [
         {
           key: '/asset/register',
-          label: '资产登记',
+          label: '资产建档',
+        },
+        {
+          key: '/asset/warehouse',
+          label: '仓库管理',
         },
         {
           key: '/asset/borrow',

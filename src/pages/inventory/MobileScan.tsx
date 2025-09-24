@@ -52,7 +52,9 @@ const MobileScan: React.FC = () => {
   const [isQRCodeModalVisible, setIsQRCodeModalVisible] = useState(false);
   const [selectedOperation, setSelectedOperation] = useState<string>('');
   const [_scannedCode, setScannedCode] = useState<string>('');
+  const [qrCodeValue, setQrCodeValue] = useState<string>('IT001');
   const [form] = Form.useForm();
+  const [qrForm] = Form.useForm();
 
   // 模拟扫码记录数据
   const mockScanRecords: ScanRecord[] = [
@@ -528,21 +530,51 @@ const MobileScan: React.FC = () => {
         title="生成二维码"
         open={isQRCodeModalVisible}
         onCancel={() => setIsQRCodeModalVisible(false)}
-        footer={null}
+        footer={[
+          <Button key="cancel" onClick={() => setIsQRCodeModalVisible(false)}>
+            关闭
+          </Button>,
+          <Button 
+            key="download" 
+            type="primary" 
+            onClick={() => {
+              // 这里可以添加下载二维码的功能
+              message.success('二维码已保存');
+            }}
+          >
+            保存二维码
+          </Button>
+        ]}
         width={400}
       >
         <div className="text-center">
-          <Form layout="vertical">
-            <Form.Item label="物料编码">
-              <Input placeholder="请输入物料编码" />
+          <Form 
+            form={qrForm} 
+            layout="vertical"
+            initialValues={{ itemCode: 'IT001' }}
+          >
+            <Form.Item 
+              label="物料编码" 
+              name="itemCode"
+              rules={[{ required: true, message: '请输入物料编码' }]}
+            >
+              <Input 
+                placeholder="请输入物料编码" 
+                onChange={(e) => setQrCodeValue(e.target.value || 'IT001')}
+              />
             </Form.Item>
           </Form>
           <div style={{ marginTop: '20px' }}>
-            <QRCode value="IT001" size={200} />
+            <QRCode value={qrCodeValue} size={200} />
           </div>
           <p style={{ marginTop: '16px', color: '#666' }}>
             扫描此二维码可快速查看物料信息
           </p>
+          <div style={{ marginTop: '16px', padding: '8px', background: '#f5f5f5', borderRadius: '4px' }}>
+            <small style={{ color: '#999' }}>
+              二维码内容：{qrCodeValue}
+            </small>
+          </div>
         </div>
       </Modal>
     </div>

@@ -1,31 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, InputNumber } from 'antd';
-import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, InputNumber, Statistic, Divider } from 'antd';
+import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, UploadOutlined, DownloadOutlined, UnorderedListOutlined, SwapOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
+
 // 调拨单接口
 interface TransferOrder {
   id: string;
   transferNo: string;
   fromWarehouse: string;
+  fromWarehouseName: string;
   toWarehouse: string;
+  toWarehouseName: string;
   applicant: string;
+  department: string;
   applyDate: string;
   transferDate: string;
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'transferred' | 'received';
+  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'transferred' | 'received' | 'in_transit';
   statusText: string;
   totalItems: number;
   totalQuantity: number;
+  totalAmount: number;
   approver?: string;
   approveDate?: string;
   transferer?: string;
   receiver?: string;
   receiveDate?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  urgentReason?: string;
+  expectedDate?: string;
+  actualDate?: string;
+  purpose: string;
+  isBatch: boolean;
+  batchId?: string;
+  trackingNo?: string;
+  transportMethod?: string;
+  transportCost?: number;
   remarks: string;
+  items: TransferItem[];
 }
 
 // 调拨明细接口
@@ -40,6 +56,16 @@ interface TransferItem {
   receiveQuantity: number;
   unitPrice: number;
   totalAmount: number;
+  currentStock: number;
+  batchNo?: string;
+  serialNo?: string;
+  fromLocation?: string;
+  toLocation?: string;
+  expiryDate?: string;
+  transferStatus: 'pending' | 'transferred' | 'in_transit' | 'received' | 'shortage';
+  transferDate?: string;
+  receiveDate?: string;
+  supplier?: string;
   remarks: string;
 }
 
@@ -49,6 +75,7 @@ const InventoryTransfer: React.FC = () => {
   const [loading, _setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+
   const [editingRecord, setEditingRecord] = useState<TransferOrder | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<TransferOrder | null>(null);
   const [transferItems, setTransferItems] = useState<TransferItem[]>([]);
@@ -60,82 +87,53 @@ const InventoryTransfer: React.FC = () => {
     {
       id: '1',
       transferNo: 'TR202401001',
-      fromWarehouse: '主仓库',
-      toWarehouse: '分仓库',
+      fromWarehouse: 'WH001',
+      fromWarehouseName: '主仓库',
+      toWarehouse: 'WH002',
+      toWarehouseName: '分仓库',
       applicant: '张三',
+      department: '采购部',
       applyDate: '2024-01-25',
       transferDate: '2024-01-26',
-      status: 'transferred',
-      statusText: '已调出',
+      status: 'pending',
+      statusText: '待审批',
       totalItems: 3,
-      totalQuantity: 15,
-      approver: '李经理',
-      approveDate: '2024-01-25',
-      transferer: '王五',
-      receiver: '',
-      receiveDate: '',
-      remarks: '分仓库急需补充办公用品'
+      totalQuantity: 150,
+      totalAmount: 45000,
+      priority: 'medium',
+      expectedDate: '2024-01-28',
+      purpose: '库存调整',
+      isBatch: false,
+      remarks: '紧急调拨',
+      items: []
     },
     {
       id: '2',
       transferNo: 'TR202401002',
-      fromWarehouse: '分仓库',
-      toWarehouse: '主仓库',
+      fromWarehouse: 'WH002',
+      fromWarehouseName: '分仓库',
+      toWarehouse: 'WH001',
+      toWarehouseName: '主仓库',
       applicant: '李四',
-      applyDate: '2024-01-26',
-      transferDate: '',
+      department: '仓储部',
+      applyDate: '2024-01-24',
+      transferDate: '2024-01-25',
       status: 'approved',
       statusText: '已审批',
       totalItems: 2,
-      totalQuantity: 8,
-      approver: '李经理',
-      approveDate: '2024-01-26',
-      transferer: '',
-      receiver: '',
-      receiveDate: '',
-      remarks: '退回多余库存'
-    },
-    {
-      id: '3',
-      transferNo: 'TR202401003',
-      fromWarehouse: '主仓库',
-      toWarehouse: '临时仓库',
-      applicant: '王五',
-      applyDate: '2024-01-27',
-      transferDate: '',
-      status: 'pending',
-      statusText: '待审批',
-      totalItems: 1,
-      totalQuantity: 5,
-      approver: '',
-      approveDate: '',
-      transferer: '',
-      receiver: '',
-      receiveDate: '',
-      remarks: '项目临时需要'
-    },
-    {
-      id: '4',
-      transferNo: 'TR202401004',
-      fromWarehouse: '主仓库',
-      toWarehouse: '分仓库',
-      applicant: '赵六',
-      applyDate: '2024-01-28',
-      transferDate: '2024-01-29',
-      status: 'received',
-      statusText: '已接收',
-      totalItems: 4,
-      totalQuantity: 20,
-      approver: '李经理',
-      approveDate: '2024-01-28',
-      transferer: '王五',
-      receiver: '钱七',
-      receiveDate: '2024-01-29',
-      remarks: '月度库存调整'
-    },
+      totalQuantity: 80,
+      totalAmount: 32000,
+      approver: '王五',
+      approveDate: '2024-01-25',
+      priority: 'high',
+      expectedDate: '2024-01-27',
+      purpose: '补充库存',
+      isBatch: false,
+      remarks: '常规调拨',
+      items: []
+    }
   ];
 
-  // 模拟调拨明细数据
   const mockTransferItems: TransferItem[] = [
     {
       id: '1',
@@ -143,39 +141,21 @@ const InventoryTransfer: React.FC = () => {
       itemName: '台式电脑',
       specification: 'Intel i5, 8GB内存, 256GB SSD',
       unit: '台',
-      requestQuantity: 5,
-      transferQuantity: 5,
-      receiveQuantity: 5,
+      requestQuantity: 50,
+      transferQuantity: 50,
+      receiveQuantity: 48,
       unitPrice: 3800,
-      totalAmount: 19000,
-      remarks: ''
-    },
-    {
-      id: '2',
-      itemCode: 'OF001',
-      itemName: '办公桌',
-      specification: '1.2m*0.6m 钢木结构',
-      unit: '张',
-      requestQuantity: 8,
-      transferQuantity: 8,
-      receiveQuantity: 8,
-      unitPrice: 800,
-      totalAmount: 6400,
-      remarks: ''
-    },
-    {
-      id: '3',
-      itemCode: 'ST001',
-      itemName: '文件柜',
-      specification: '四抽屉钢制文件柜',
-      unit: '个',
-      requestQuantity: 2,
-      transferQuantity: 2,
-      receiveQuantity: 2,
-      unitPrice: 600,
-      totalAmount: 1200,
-      remarks: ''
-    },
+      totalAmount: 190000,
+      currentStock: 120,
+      batchNo: 'B20240125001',
+      fromLocation: 'A区-01',
+      toLocation: 'B区-02',
+      transferStatus: 'received',
+      transferDate: '2024-01-26',
+      receiveDate: '2024-01-27',
+      supplier: '联想科技',
+      remarks: '2台损坏'
+    }
   ];
 
   useEffect(() => {
@@ -195,14 +175,9 @@ const InventoryTransfer: React.FC = () => {
       ...record,
       applyDate: dayjs(record.applyDate),
       transferDate: record.transferDate ? dayjs(record.transferDate) : null,
+      expectedDate: record.expectedDate ? dayjs(record.expectedDate) : null,
     });
     setIsModalVisible(true);
-  };
-
-  const handleView = (record: TransferOrder) => {
-    setSelectedRecord(record);
-    setTransferItems(mockTransferItems);
-    setIsDetailModalVisible(true);
   };
 
   const handleDelete = (record: TransferOrder) => {
@@ -218,132 +193,54 @@ const InventoryTransfer: React.FC = () => {
     });
   };
 
-  const handleApprove = (record: TransferOrder) => {
-    Modal.confirm({
-      title: '确认审批',
-      content: `确定要审批通过调拨单 ${record.transferNo} 吗？`,
-      onOk: () => {
-        const newData = data.map(item => 
-          item.id === record.id 
-            ? { 
-                ...item, 
-                status: 'approved' as const, 
-                statusText: '已审批',
-                approver: '当前用户',
-                approveDate: dayjs().format('YYYY-MM-DD')
-              }
-            : item
-        );
-        setData(newData);
-        setFilteredData(newData);
-        message.success('审批成功');
-      },
-    });
-  };
-
-  const handleReject = (record: TransferOrder) => {
-    Modal.confirm({
-      title: '确认拒绝',
-      content: `确定要拒绝调拨单 ${record.transferNo} 吗？`,
-      onOk: () => {
-        const newData = data.map(item => 
-          item.id === record.id 
-            ? { 
-                ...item, 
-                status: 'rejected' as const, 
-                statusText: '已拒绝',
-                approver: '当前用户',
-                approveDate: dayjs().format('YYYY-MM-DD')
-              }
-            : item
-        );
-        setData(newData);
-        setFilteredData(newData);
-        message.success('已拒绝');
-      },
-    });
-  };
-
-  const handleTransfer = (record: TransferOrder) => {
-    Modal.confirm({
-      title: '确认调出',
-      content: `确定要执行调拨单 ${record.transferNo} 的调出操作吗？`,
-      onOk: () => {
-        const newData = data.map(item => 
-          item.id === record.id 
-            ? { 
-                ...item, 
-                status: 'transferred' as const, 
-                statusText: '已调出',
-                transferer: '当前用户',
-                transferDate: dayjs().format('YYYY-MM-DD')
-              }
-            : item
-        );
-        setData(newData);
-        setFilteredData(newData);
-        message.success('调出成功');
-      },
-    });
-  };
-
-  const handleReceive = (record: TransferOrder) => {
-    Modal.confirm({
-      title: '确认接收',
-      content: `确定要接收调拨单 ${record.transferNo} 的物料吗？`,
-      onOk: () => {
-        const newData = data.map(item => 
-          item.id === record.id 
-            ? { 
-                ...item, 
-                status: 'received' as const, 
-                statusText: '已接收',
-                receiver: '当前用户',
-                receiveDate: dayjs().format('YYYY-MM-DD')
-              }
-            : item
-        );
-        setData(newData);
-        setFilteredData(newData);
-        message.success('接收成功');
-      },
-    });
+  const handleView = (record: TransferOrder) => {
+    setSelectedRecord(record);
+    setTransferItems(mockTransferItems);
+    setIsDetailModalVisible(true);
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+      
       const newRecord: TransferOrder = {
-        id: editingRecord?.id || Date.now().toString(),
-        transferNo: editingRecord?.transferNo || `TR${dayjs().format('YYYYMMDD')}${String(data.length + 1).padStart(3, '0')}`,
+        id: editingRecord ? editingRecord.id : Date.now().toString(),
+        transferNo: editingRecord ? editingRecord.transferNo : `TR${Date.now()}`,
         fromWarehouse: values.fromWarehouse,
+        fromWarehouseName: values.fromWarehouseName || '主仓库',
         toWarehouse: values.toWarehouse,
+        toWarehouseName: values.toWarehouseName || '分仓库',
         applicant: values.applicant,
+        department: values.department,
         applyDate: values.applyDate.format('YYYY-MM-DD'),
         transferDate: values.transferDate ? values.transferDate.format('YYYY-MM-DD') : '',
-        status: editingRecord?.status || 'draft',
-        statusText: editingRecord?.statusText || '草稿',
-        totalItems: values.totalItems || 0,
-        totalQuantity: values.totalQuantity || 0,
-        approver: editingRecord?.approver || '',
-        approveDate: editingRecord?.approveDate || '',
-        transferer: editingRecord?.transferer || '',
-        receiver: editingRecord?.receiver || '',
-        receiveDate: editingRecord?.receiveDate || '',
+        status: 'draft',
+        statusText: '草稿',
+        totalItems: 0,
+        totalQuantity: 0,
+        totalAmount: 0,
+        priority: values.priority,
+        expectedDate: values.expectedDate ? values.expectedDate.format('YYYY-MM-DD') : '',
+        purpose: values.purpose,
+        isBatch: false,
         remarks: values.remarks || '',
+        items: []
       };
 
-      let newData;
       if (editingRecord) {
-        newData = data.map(item => item.id === editingRecord.id ? newRecord : item);
+        const newData = data.map(item => 
+          item.id === editingRecord.id ? { ...newRecord, status: editingRecord.status, statusText: editingRecord.statusText } : item
+        );
+        setData(newData);
+        setFilteredData(newData);
         message.success('修改成功');
       } else {
-        newData = [...data, newRecord];
+        const newData = [newRecord, ...data];
+        setData(newData);
+        setFilteredData(newData);
         message.success('新增成功');
       }
 
-      setData(newData);
-      setFilteredData(newData);
       setIsModalVisible(false);
       form.resetFields();
     } catch (error) {
@@ -354,10 +251,16 @@ const InventoryTransfer: React.FC = () => {
   const handleSearch = async () => {
     try {
       const values = await searchForm.validateFields();
-      let filtered = data;
+      let filtered = [...data];
 
       if (values.transferNo) {
-        filtered = filtered.filter(item => item.transferNo.includes(values.transferNo));
+        filtered = filtered.filter(item => 
+          item.transferNo.toLowerCase().includes(values.transferNo.toLowerCase())
+        );
+      }
+
+      if (values.status) {
+        filtered = filtered.filter(item => item.status === values.status);
       }
 
       if (values.fromWarehouse) {
@@ -368,15 +271,11 @@ const InventoryTransfer: React.FC = () => {
         filtered = filtered.filter(item => item.toWarehouse === values.toWarehouse);
       }
 
-      if (values.status) {
-        filtered = filtered.filter(item => item.status === values.status);
-      }
-
       if (values.dateRange && values.dateRange.length === 2) {
         const [startDate, endDate] = values.dateRange;
         filtered = filtered.filter(item => {
-          const applyDate = dayjs(item.applyDate);
-          return applyDate.isAfter(startDate.subtract(1, 'day')) && applyDate.isBefore(endDate.add(1, 'day'));
+          const itemDate = dayjs(item.applyDate);
+          return itemDate.isAfter(startDate.subtract(1, 'day')) && itemDate.isBefore(endDate.add(1, 'day'));
         });
       }
 
@@ -399,8 +298,19 @@ const InventoryTransfer: React.FC = () => {
       rejected: 'error',
       transferred: 'warning',
       received: 'success',
+      in_transit: 'processing'
     };
     return colors[status as keyof typeof colors] || 'default';
+  };
+
+  const getPriorityColor = (priority: string) => {
+    const colors = {
+      low: 'default',
+      medium: 'processing',
+      high: 'warning',
+      urgent: 'error'
+    };
+    return colors[priority as keyof typeof colors] || 'default';
   };
 
   const columns: ColumnsType<TransferOrder> = [
@@ -418,14 +328,14 @@ const InventoryTransfer: React.FC = () => {
     },
     {
       title: '调出仓库',
-      dataIndex: 'fromWarehouse',
-      key: 'fromWarehouse',
+      dataIndex: 'fromWarehouseName',
+      key: 'fromWarehouseName',
       width: 100,
     },
     {
       title: '调入仓库',
-      dataIndex: 'toWarehouse',
-      key: 'toWarehouse',
+      dataIndex: 'toWarehouseName',
+      key: 'toWarehouseName',
       width: 100,
     },
     {
@@ -441,118 +351,77 @@ const InventoryTransfer: React.FC = () => {
       width: 100,
     },
     {
-      title: '调拨日期',
-      dataIndex: 'transferDate',
-      key: 'transferDate',
-      width: 100,
-      render: (value) => value || '-',
+      title: '预计调拨日期',
+      dataIndex: 'expectedDate',
+      key: 'expectedDate',
+      width: 120,
     },
     {
       title: '物料种类',
       dataIndex: 'totalItems',
       key: 'totalItems',
       width: 80,
-      align: 'right',
-      render: (value) => `${value}种`,
+      render: (value) => `${value} 种`,
     },
     {
       title: '总数量',
       dataIndex: 'totalQuantity',
       key: 'totalQuantity',
       width: 80,
-      align: 'right',
+    },
+    {
+      title: '总金额',
+      dataIndex: 'totalAmount',
+      key: 'totalAmount',
+      width: 100,
+      render: (value) => `¥${value.toLocaleString()}`,
+    },
+    {
+      title: '优先级',
+      dataIndex: 'priority',
+      key: 'priority',
+      width: 80,
+      render: (priority) => {
+        const priorityMap = {
+          low: '低',
+          medium: '中',
+          high: '高',
+          urgent: '紧急'
+        };
+        return (
+          <Tag color={getPriorityColor(priority)}>
+            {priorityMap[priority as keyof typeof priorityMap]}
+          </Tag>
+        );
+      },
     },
     {
       title: '状态',
-      dataIndex: 'statusText',
+      dataIndex: 'status',
       key: 'status',
-      width: 80,
-      render: (text, record) => (
-        <Tag color={getStatusColor(record.status)}>{text}</Tag>
+      width: 100,
+      render: (status, record) => (
+        <Tag color={getStatusColor(status)}>
+          {record.statusText}
+        </Tag>
       ),
-    },
-    {
-      title: '备注',
-      dataIndex: 'remarks',
-      key: 'remarks',
-      width: 150,
-      ellipsis: true,
     },
     {
       title: '操作',
       key: 'action',
       width: 200,
-      fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
-          >
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>
             详情
           </Button>
           {record.status === 'draft' && (
-            <Button
-              type="link"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            >
+            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
               编辑
             </Button>
           )}
-          {record.status === 'pending' && (
-            <>
-              <Button
-                type="link"
-                size="small"
-                icon={<CheckOutlined />}
-                onClick={() => handleApprove(record)}
-                style={{ color: '#52c41a' }}
-              >
-                审批
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                icon={<CloseOutlined />}
-                onClick={() => handleReject(record)}
-                style={{ color: '#ff4d4f' }}
-              >
-                拒绝
-              </Button>
-            </>
-          )}
-          {record.status === 'approved' && (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => handleTransfer(record)}
-              style={{ color: '#fa8c16' }}
-            >
-              调出
-            </Button>
-          )}
-          {record.status === 'transferred' && (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => handleReceive(record)}
-              style={{ color: '#1890ff' }}
-            >
-              接收
-            </Button>
-          )}
           {(record.status === 'draft' || record.status === 'rejected') && (
-            <Button
-              type="link"
-              size="small"
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record)}
-              danger
-            >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>
               删除
             </Button>
           )}
@@ -561,107 +430,86 @@ const InventoryTransfer: React.FC = () => {
     },
   ];
 
-  const itemColumns: ColumnsType<TransferItem> = [
-    {
-      title: '物料编码',
-      dataIndex: 'itemCode',
-      key: 'itemCode',
-      width: 100,
-    },
-    {
-      title: '物料名称',
-      dataIndex: 'itemName',
-      key: 'itemName',
-      width: 150,
-    },
-    {
-      title: '规格型号',
-      dataIndex: 'specification',
-      key: 'specification',
-      width: 200,
-      ellipsis: true,
-    },
-    {
-      title: '单位',
-      dataIndex: 'unit',
-      key: 'unit',
-      width: 60,
-    },
-    {
-      title: '申请数量',
-      dataIndex: 'requestQuantity',
-      key: 'requestQuantity',
-      width: 80,
-      align: 'right',
-    },
-    {
-      title: '调出数量',
-      dataIndex: 'transferQuantity',
-      key: 'transferQuantity',
-      width: 80,
-      align: 'right',
-    },
-    {
-      title: '接收数量',
-      dataIndex: 'receiveQuantity',
-      key: 'receiveQuantity',
-      width: 80,
-      align: 'right',
-    },
-    {
-      title: '单价',
-      dataIndex: 'unitPrice',
-      key: 'unitPrice',
-      width: 80,
-      align: 'right',
-      render: (value) => `¥${value}`,
-    },
-    {
-      title: '金额',
-      dataIndex: 'totalAmount',
-      key: 'totalAmount',
-      width: 100,
-      align: 'right',
-      render: (value) => `¥${value.toLocaleString()}`,
-    },
-    {
-      title: '备注',
-      dataIndex: 'remarks',
-      key: 'remarks',
-      ellipsis: true,
-    },
-  ];
+  // 统计数据
+  const totalOrders = data.length;
+  const pendingOrders = data.filter(item => item.status === 'pending').length;
+  const approvedOrders = data.filter(item => item.status === 'approved').length;
+  const completedOrders = data.filter(item => item.status === 'received').length;
 
   return (
     <div className="p-6">
-      <Card>
-        {/* 搜索表单 */}
-        <Form form={searchForm} layout="inline" className="mb-4">
+      {/* 统计卡片 */}
+      <Row gutter={16} className="mb-6">
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="总调拨单"
+              value={totalOrders}
+              prefix={<UnorderedListOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="待审批"
+              value={pendingOrders}
+              prefix={<SwapOutlined />}
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="已审批"
+              value={approvedOrders}
+              prefix={<CheckOutlined />}
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="已完成"
+              value={completedOrders}
+              prefix={<CheckOutlined />}
+              valueStyle={{ color: '#13c2c2' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 搜索表单 */}
+      <Card className="mb-4">
+        <Form form={searchForm} layout="inline">
           <Form.Item name="transferNo" label="调拨单号">
             <Input placeholder="请输入调拨单号" style={{ width: 150 }} />
           </Form.Item>
-          <Form.Item name="fromWarehouse" label="调出仓库">
-            <Select placeholder="请选择调出仓库" style={{ width: 120 }}>
-              <Option value="主仓库">主仓库</Option>
-              <Option value="分仓库">分仓库</Option>
-              <Option value="临时仓库">临时仓库</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="toWarehouse" label="调入仓库">
-            <Select placeholder="请选择调入仓库" style={{ width: 120 }}>
-              <Option value="主仓库">主仓库</Option>
-              <Option value="分仓库">分仓库</Option>
-              <Option value="临时仓库">临时仓库</Option>
-            </Select>
-          </Form.Item>
           <Form.Item name="status" label="状态">
-            <Select placeholder="请选择状态" style={{ width: 100 }}>
+            <Select placeholder="请选择状态" style={{ width: 120 }} allowClear>
               <Option value="draft">草稿</Option>
               <Option value="pending">待审批</Option>
               <Option value="approved">已审批</Option>
               <Option value="rejected">已拒绝</Option>
-              <Option value="transferred">已调出</Option>
+              <Option value="transferred">已调拨</Option>
               <Option value="received">已接收</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="fromWarehouse" label="调出仓库">
+            <Select placeholder="请选择调出仓库" style={{ width: 120 }} allowClear>
+              <Option value="WH001">主仓库</Option>
+              <Option value="WH002">分仓库</Option>
+              <Option value="WH003">冷藏仓库</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="toWarehouse" label="调入仓库">
+            <Select placeholder="请选择调入仓库" style={{ width: 120 }} allowClear>
+              <Option value="WH001">主仓库</Option>
+              <Option value="WH002">分仓库</Option>
+              <Option value="WH003">冷藏仓库</Option>
             </Select>
           </Form.Item>
           <Form.Item name="dateRange" label="申请日期">
@@ -673,19 +521,33 @@ const InventoryTransfer: React.FC = () => {
                 搜索
               </Button>
               <Button onClick={handleReset}>重置</Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-                新增调拨
-              </Button>
             </Space>
           </Form.Item>
         </Form>
+      </Card>
 
+      {/* 调拨单表格 */}
+      <Card
+        title="调拨单列表"
+        extra={
+          <Space>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+              新增调拨单
+            </Button>
+            <Button icon={<UploadOutlined />}>
+              批量导入
+            </Button>
+            <Button icon={<DownloadOutlined />}>
+              导出
+            </Button>
+          </Space>
+        }
+      >
         <Table
           columns={columns}
           dataSource={filteredData}
           rowKey="id"
           loading={loading}
-          scroll={{ x: 1400 }}
           pagination={{
             total: filteredData.length,
             pageSize: 10,
@@ -707,61 +569,62 @@ const InventoryTransfer: React.FC = () => {
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                name="fromWarehouse"
-                label="调出仓库"
-                rules={[{ required: true, message: '请选择调出仓库' }]}
-              >
+              <Form.Item name="fromWarehouse" label="调出仓库" rules={[{ required: true, message: '请选择调出仓库' }]}>
                 <Select placeholder="请选择调出仓库">
-                  <Option value="主仓库">主仓库</Option>
-                  <Option value="分仓库">分仓库</Option>
-                  <Option value="临时仓库">临时仓库</Option>
+                  <Option value="WH001">主仓库</Option>
+                  <Option value="WH002">分仓库</Option>
+                  <Option value="WH003">冷藏仓库</Option>
                 </Select>
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item
-                name="toWarehouse"
-                label="调入仓库"
-                rules={[{ required: true, message: '请选择调入仓库' }]}
-              >
+              <Form.Item name="toWarehouse" label="调入仓库" rules={[{ required: true, message: '请选择调入仓库' }]}>
                 <Select placeholder="请选择调入仓库">
-                  <Option value="主仓库">主仓库</Option>
-                  <Option value="分仓库">分仓库</Option>
-                  <Option value="临时仓库">临时仓库</Option>
+                  <Option value="WH001">主仓库</Option>
+                  <Option value="WH002">分仓库</Option>
+                  <Option value="WH003">冷藏仓库</Option>
                 </Select>
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item
-                name="applicant"
-                label="申请人"
-                rules={[{ required: true, message: '请输入申请人' }]}
-              >
+              <Form.Item name="applicant" label="申请人" rules={[{ required: true, message: '请输入申请人' }]}>
                 <Input placeholder="请输入申请人" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item
-                name="applyDate"
-                label="申请日期"
-                rules={[{ required: true, message: '请选择申请日期' }]}
-              >
+              <Form.Item name="department" label="申请部门" rules={[{ required: true, message: '请输入申请部门' }]}>
+                <Input placeholder="请输入申请部门" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="applyDate" label="申请日期" rules={[{ required: true, message: '请选择申请日期' }]}>
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="expectedDate" label="预计调拨日期">
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="totalItems" label="物料种类">
-                <InputNumber min={0} placeholder="物料种类数" style={{ width: '100%' }} />
+              <Form.Item name="priority" label="优先级" rules={[{ required: true, message: '请选择优先级' }]}>
+                <Select placeholder="请选择优先级">
+                  <Option value="low">低</Option>
+                  <Option value="medium">中</Option>
+                  <Option value="high">高</Option>
+                  <Option value="urgent">紧急</Option>
+                </Select>
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="totalQuantity" label="总数量">
-                <InputNumber min={0} placeholder="总数量" style={{ width: '100%' }} />
+              <Form.Item name="purpose" label="调拨目的" rules={[{ required: true, message: '请输入调拨目的' }]}>
+                <Input placeholder="请输入调拨目的" />
               </Form.Item>
             </Col>
           </Row>
@@ -777,50 +640,60 @@ const InventoryTransfer: React.FC = () => {
         open={isDetailModalVisible}
         onCancel={() => setIsDetailModalVisible(false)}
         footer={null}
-        width={1200}
+        width={800}
       >
         {selectedRecord && (
           <div>
-            <Descriptions bordered column={3} className="mb-4">
+            <Descriptions column={2} bordered>
               <Descriptions.Item label="调拨单号">{selectedRecord.transferNo}</Descriptions.Item>
-              <Descriptions.Item label="调出仓库">{selectedRecord.fromWarehouse}</Descriptions.Item>
-              <Descriptions.Item label="调入仓库">{selectedRecord.toWarehouse}</Descriptions.Item>
-              <Descriptions.Item label="申请人">{selectedRecord.applicant}</Descriptions.Item>
-              <Descriptions.Item label="申请日期">{selectedRecord.applyDate}</Descriptions.Item>
-              <Descriptions.Item label="调拨日期">{selectedRecord.transferDate || '未调拨'}</Descriptions.Item>
-              <Descriptions.Item label="物料种类">{selectedRecord.totalItems}种</Descriptions.Item>
-              <Descriptions.Item label="总数量">{selectedRecord.totalQuantity}</Descriptions.Item>
               <Descriptions.Item label="状态">
-                <Tag color={getStatusColor(selectedRecord.status)}>{selectedRecord.statusText}</Tag>
+                <Tag color={getStatusColor(selectedRecord.status)}>
+                  {selectedRecord.statusText}
+                </Tag>
               </Descriptions.Item>
+              <Descriptions.Item label="调出仓库">{selectedRecord.fromWarehouseName}</Descriptions.Item>
+              <Descriptions.Item label="调入仓库">{selectedRecord.toWarehouseName}</Descriptions.Item>
+              <Descriptions.Item label="申请人">{selectedRecord.applicant}</Descriptions.Item>
+              <Descriptions.Item label="申请部门">{selectedRecord.department}</Descriptions.Item>
+              <Descriptions.Item label="申请日期">{selectedRecord.applyDate}</Descriptions.Item>
+              <Descriptions.Item label="预计调拨日期">{selectedRecord.expectedDate}</Descriptions.Item>
+              <Descriptions.Item label="优先级">
+                <Tag color={getPriorityColor(selectedRecord.priority)}>
+                  {selectedRecord.priority === 'low' ? '低' : 
+                   selectedRecord.priority === 'medium' ? '中' : 
+                   selectedRecord.priority === 'high' ? '高' : '紧急'}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="调拨目的">{selectedRecord.purpose}</Descriptions.Item>
+              <Descriptions.Item label="物料种类">{selectedRecord.totalItems} 种</Descriptions.Item>
+              <Descriptions.Item label="总数量">{selectedRecord.totalQuantity}</Descriptions.Item>
+              <Descriptions.Item label="总金额" span={2}>¥{selectedRecord.totalAmount.toLocaleString()}</Descriptions.Item>
               {selectedRecord.approver && (
                 <>
                   <Descriptions.Item label="审批人">{selectedRecord.approver}</Descriptions.Item>
                   <Descriptions.Item label="审批日期">{selectedRecord.approveDate}</Descriptions.Item>
                 </>
               )}
-              {selectedRecord.transferer && (
-                <>
-                  <Descriptions.Item label="调出人">{selectedRecord.transferer}</Descriptions.Item>
-                </>
-              )}
-              {selectedRecord.receiver && (
-                <>
-                  <Descriptions.Item label="接收人">{selectedRecord.receiver}</Descriptions.Item>
-                  <Descriptions.Item label="接收日期">{selectedRecord.receiveDate}</Descriptions.Item>
-                </>
-              )}
-              <Descriptions.Item label="备注" span={3}>{selectedRecord.remarks}</Descriptions.Item>
+              <Descriptions.Item label="备注" span={2}>{selectedRecord.remarks}</Descriptions.Item>
             </Descriptions>
 
-            <h4>调拨明细</h4>
+            <Divider>调拨明细</Divider>
             <Table
-              columns={itemColumns}
+              columns={[
+                { title: '物料编码', dataIndex: 'itemCode', key: 'itemCode' },
+                { title: '物料名称', dataIndex: 'itemName', key: 'itemName' },
+                { title: '规格型号', dataIndex: 'specification', key: 'specification' },
+                { title: '单位', dataIndex: 'unit', key: 'unit' },
+                { title: '申请数量', dataIndex: 'requestQuantity', key: 'requestQuantity' },
+                { title: '调拨数量', dataIndex: 'transferQuantity', key: 'transferQuantity' },
+                { title: '接收数量', dataIndex: 'receiveQuantity', key: 'receiveQuantity' },
+                { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', render: (value) => `¥${value}` },
+                { title: '金额', dataIndex: 'totalAmount', key: 'totalAmount', render: (value) => `¥${value.toLocaleString()}` },
+              ]}
               dataSource={transferItems}
               rowKey="id"
-              size="small"
               pagination={false}
-              scroll={{ x: 1000 }}
+              size="small"
             />
           </div>
         )}

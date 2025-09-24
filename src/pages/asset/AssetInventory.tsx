@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, Space, Tag, message, Descriptions, Row, Col, DatePicker, Progress, Statistic } from 'antd';
+import { Table, Card, Button, Modal, Form, Input, InputNumber, Select, Space, Tag, message, Descriptions, Row, Col, DatePicker, Progress, Statistic } from 'antd';
 import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, FileTextOutlined, ScanOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -474,32 +474,150 @@ const AssetInventory: React.FC = () => {
       const values = await searchForm.validateFields();
       let filtered = data;
 
+      // 计划号筛选
       if (values.planNo) {
-        filtered = filtered.filter(item => item.planNo.includes(values.planNo));
+        filtered = filtered.filter(item => 
+          item.planNo.toLowerCase().includes(values.planNo.toLowerCase())
+        );
       }
 
+      // 计划名称筛选
       if (values.planName) {
-        filtered = filtered.filter(item => item.planName.includes(values.planName));
+        filtered = filtered.filter(item => 
+          item.planName.toLowerCase().includes(values.planName.toLowerCase())
+        );
       }
 
+      // 盘点类型筛选
       if (values.planType) {
         filtered = filtered.filter(item => item.planType === values.planType);
       }
 
+      // 盘点部门筛选
       if (values.department) {
         filtered = filtered.filter(item => item.department === values.department);
       }
 
+      // 资产类别筛选
+      if (values.assetCategory) {
+        filtered = filtered.filter(item => item.assetCategory === values.assetCategory);
+      }
+
+      // 盘点位置筛选
+      if (values.location) {
+        filtered = filtered.filter(item => 
+          item.location.toLowerCase().includes(values.location.toLowerCase())
+        );
+      }
+
+      // 状态筛选
       if (values.status) {
         filtered = filtered.filter(item => item.status === values.status);
       }
 
-      if (values.dateRange && values.dateRange.length === 2) {
-        const [startDate, endDate] = values.dateRange;
+      // 计划人筛选
+      if (values.planUser) {
+        filtered = filtered.filter(item => 
+          item.planUser.toLowerCase().includes(values.planUser.toLowerCase())
+        );
+      }
+
+      // 审批人筛选
+      if (values.approver) {
+        filtered = filtered.filter(item => 
+          item.approver && item.approver.toLowerCase().includes(values.approver.toLowerCase())
+        );
+      }
+
+      // 创建人筛选
+      if (values.createUser) {
+        filtered = filtered.filter(item => 
+          item.createUser.toLowerCase().includes(values.createUser.toLowerCase())
+        );
+      }
+
+      // 预计资产数量范围筛选
+      if (values.totalAssetsRange) {
+        const { min, max } = values.totalAssetsRange;
+        if (min !== undefined) {
+          filtered = filtered.filter(item => item.totalAssets >= min);
+        }
+        if (max !== undefined) {
+          filtered = filtered.filter(item => item.totalAssets <= max);
+        }
+      }
+
+      // 盘点进度范围筛选
+      if (values.progressRange) {
+        const { min, max } = values.progressRange;
+        if (min !== undefined) {
+          filtered = filtered.filter(item => item.progress >= min);
+        }
+        if (max !== undefined) {
+          filtered = filtered.filter(item => item.progress <= max);
+        }
+      }
+
+      // 计划日期范围筛选
+      if (values.planDateRange && values.planDateRange.length === 2) {
+        const [startDate, endDate] = values.planDateRange;
         filtered = filtered.filter(item => {
           const planDate = dayjs(item.planDate);
-          return planDate.isAfter(startDate.subtract(1, 'day')) && planDate.isBefore(endDate.add(1, 'day'));
+          return planDate.isAfter(startDate.subtract(1, 'day')) && 
+                 planDate.isBefore(endDate.add(1, 'day'));
         });
+      }
+
+      // 执行期间筛选
+      if (values.executionDateRange && values.executionDateRange.length === 2) {
+        const [startDate, endDate] = values.executionDateRange;
+        filtered = filtered.filter(item => {
+          const itemStartDate = dayjs(item.startDate);
+          const itemEndDate = dayjs(item.endDate);
+          return (itemStartDate.isAfter(startDate.subtract(1, 'day')) && 
+                  itemStartDate.isBefore(endDate.add(1, 'day'))) ||
+                 (itemEndDate.isAfter(startDate.subtract(1, 'day')) && 
+                  itemEndDate.isBefore(endDate.add(1, 'day')));
+        });
+      }
+
+      // 审批日期范围筛选
+      if (values.approveDateRange && values.approveDateRange.length === 2) {
+        const [startDate, endDate] = values.approveDateRange;
+        filtered = filtered.filter(item => {
+          if (!item.approveDate) return false;
+          const approveDate = dayjs(item.approveDate);
+          return approveDate.isAfter(startDate.subtract(1, 'day')) && 
+                 approveDate.isBefore(endDate.add(1, 'day'));
+        });
+      }
+
+      // 创建时间范围筛选
+      if (values.createDateRange && values.createDateRange.length === 2) {
+        const [startDate, endDate] = values.createDateRange;
+        filtered = filtered.filter(item => {
+          const createDate = dayjs(item.createDate);
+          return createDate.isAfter(startDate.subtract(1, 'second')) && 
+                 createDate.isBefore(endDate.add(1, 'second'));
+        });
+      }
+
+      // 更新时间范围筛选
+      if (values.updateDateRange && values.updateDateRange.length === 2) {
+        const [startDate, endDate] = values.updateDateRange;
+        filtered = filtered.filter(item => {
+          if (!item.updateDate) return false;
+          const updateDate = dayjs(item.updateDate);
+          return updateDate.isAfter(startDate.subtract(1, 'second')) && 
+                 updateDate.isBefore(endDate.add(1, 'second'));
+        });
+      }
+
+      // 计划描述筛选
+      if (values.description) {
+        filtered = filtered.filter(item => 
+          item.description.toLowerCase().includes(values.description.toLowerCase())
+        );
       }
 
       setFilteredData(filtered);
@@ -846,52 +964,159 @@ const AssetInventory: React.FC = () => {
 
       <Card>
         {/* 搜索表单 */}
-        <Form form={searchForm} layout="inline" className="mb-4">
-          <Form.Item name="planNo" label="计划号">
-            <Input placeholder="请输入计划号" style={{ width: 150 }} />
-          </Form.Item>
-          <Form.Item name="planName" label="计划名称">
-            <Input placeholder="请输入计划名称" style={{ width: 180 }} />
-          </Form.Item>
-          <Form.Item name="planType" label="盘点类型">
-            <Select placeholder="请选择盘点类型" style={{ width: 120 }}>
-              <Option value="full">全面盘点</Option>
-              <Option value="partial">部分盘点</Option>
-              <Option value="spot">抽查盘点</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="department" label="部门">
-            <Select placeholder="请选择部门" style={{ width: 120 }}>
-              <Option value="全公司">全公司</Option>
-              <Option value="技术部">技术部</Option>
-              <Option value="行政部">行政部</Option>
-              <Option value="生产部">生产部</Option>
-              <Option value="后勤部">后勤部</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="status" label="状态">
-            <Select placeholder="请选择状态" style={{ width: 120 }}>
-              <Option value="draft">草稿</Option>
-              <Option value="approved">已审批</Option>
-              <Option value="in_progress">盘点中</Option>
-              <Option value="completed">已完成</Option>
-              <Option value="cancelled">已取消</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item name="dateRange" label="计划日期">
-            <RangePicker style={{ width: 240 }} />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-                搜索
-              </Button>
-              <Button onClick={handleReset}>重置</Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-                新增计划
-              </Button>
-            </Space>
-          </Form.Item>
+        <Form form={searchForm} layout="vertical" className="mb-4">
+          <Row gutter={16}>
+            <Col span={6}>
+              <Form.Item name="planNo" label="计划号">
+                <Input placeholder="请输入计划号" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="planName" label="计划名称">
+                <Input placeholder="请输入计划名称" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="planType" label="盘点类型">
+                <Select placeholder="请选择盘点类型" allowClear>
+                  <Option value="full">全面盘点</Option>
+                  <Option value="partial">部分盘点</Option>
+                  <Option value="spot">抽查盘点</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="department" label="盘点部门">
+                <Select placeholder="请选择部门" allowClear>
+                  <Option value="全公司">全公司</Option>
+                  <Option value="技术部">技术部</Option>
+                  <Option value="行政部">行政部</Option>
+                  <Option value="生产部">生产部</Option>
+                  <Option value="后勤部">后勤部</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={6}>
+              <Form.Item name="assetCategory" label="资产类别">
+                <Select placeholder="请选择资产类别" allowClear>
+                  <Option value="全部">全部</Option>
+                  <Option value="电子设备">电子设备</Option>
+                  <Option value="办公设备">办公设备</Option>
+                  <Option value="办公家具">办公家具</Option>
+                  <Option value="生产设备">生产设备</Option>
+                  <Option value="车辆设备">车辆设备</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="location" label="盘点位置">
+                <Input placeholder="请输入盘点位置" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="status" label="状态">
+                <Select placeholder="请选择状态" allowClear>
+                  <Option value="draft">草稿</Option>
+                  <Option value="approved">已审批</Option>
+                  <Option value="in_progress">盘点中</Option>
+                  <Option value="completed">已完成</Option>
+                  <Option value="cancelled">已取消</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="planUser" label="计划人">
+                <Input placeholder="请输入计划人" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={6}>
+              <Form.Item name="approver" label="审批人">
+                <Input placeholder="请输入审批人" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="totalAssetsRange" label="预计资产数量">
+                <Input.Group compact>
+                  <Form.Item name={['totalAssetsRange', 'min']} noStyle>
+                    <InputNumber placeholder="最小值" style={{ width: '50%' }} />
+                  </Form.Item>
+                  <Form.Item name={['totalAssetsRange', 'max']} noStyle>
+                    <InputNumber placeholder="最大值" style={{ width: '50%' }} />
+                  </Form.Item>
+                </Input.Group>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="progressRange" label="盘点进度">
+                <Input.Group compact>
+                  <Form.Item name={['progressRange', 'min']} noStyle>
+                    <InputNumber placeholder="最小%" style={{ width: '50%' }} min={0} max={100} />
+                  </Form.Item>
+                  <Form.Item name={['progressRange', 'max']} noStyle>
+                    <InputNumber placeholder="最大%" style={{ width: '50%' }} min={0} max={100} />
+                  </Form.Item>
+                </Input.Group>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="createUser" label="创建人">
+                <Input placeholder="请输入创建人" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="planDateRange" label="计划日期">
+                <RangePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="executionDateRange" label="执行期间">
+                <RangePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="approveDateRange" label="审批日期">
+                <RangePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item name="createDateRange" label="创建时间">
+                <RangePicker showTime style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="updateDateRange" label="更新时间">
+                <RangePicker showTime style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="description" label="计划描述">
+                <Input placeholder="请输入计划描述关键词" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row>
+            <Col span={24}>
+              <Form.Item>
+                <Space>
+                  <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
+                    搜索
+                  </Button>
+                  <Button onClick={handleReset}>重置</Button>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+                    新增计划
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
 
         <Table

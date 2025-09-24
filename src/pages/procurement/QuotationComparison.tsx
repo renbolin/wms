@@ -41,21 +41,39 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Form.Item name="requestDate" label="申请日期">
-            <RangePicker placeholder={['开始日期', '结束日期']} />
+          <Form.Item name="requisitionNumber" label="申请单号">
+            <Input placeholder="请输入申请单号" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="applicant" label="申请人">
+            <Input placeholder="请输入申请人" />
           </Form.Item>
         </Col>
         <Col span={6}>
           <Form.Item name="status" label="询价状态">
             <Select placeholder="请选择状态" allowClear>
+              <Option value="draft">草稿</Option>
               <Option value="inquiring">询价中</Option>
               <Option value="quoted">已报价</Option>
+              <Option value="compared">已比价</Option>
+              <Option value="selected">已选定</Option>
               <Option value="completed">已完成</Option>
             </Select>
           </Form.Item>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
+          <Form.Item name="requestDate" label="申请日期">
+            <RangePicker placeholder={['开始日期', '结束日期']} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
           <Form.Item name="deadline" label="截止日期">
+            <RangePicker placeholder={['开始日期', '结束日期']} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item name="quotationDate" label="报价日期">
             <RangePicker placeholder={['开始日期', '结束日期']} />
           </Form.Item>
         </Col>
@@ -70,16 +88,71 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                查询
-              </Button>
-              <Button onClick={onReset}>
-                重置
-              </Button>
-            </Space>
+          <Form.Item name="quotationStatus" label="报价状态">
+            <Select placeholder="请选择报价状态" allowClear>
+              <Option value="pending">待报价</Option>
+              <Option value="submitted">已提交</Option>
+              <Option value="selected">已选定</Option>
+              <Option value="rejected">已拒绝</Option>
+            </Select>
           </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item name="totalAmountRange" label="总金额范围">
+            <Input.Group compact>
+              <Input
+                style={{ width: '45%' }}
+                placeholder="最小金额"
+                type="number"
+              />
+              <Input
+                style={{ width: '10%', textAlign: 'center', pointerEvents: 'none' }}
+                placeholder="~"
+                disabled
+              />
+              <Input
+                style={{ width: '45%' }}
+                placeholder="最大金额"
+                type="number"
+              />
+            </Input.Group>
+          </Form.Item>
+        </Col>
+        <Col span={4}>
+          <Form.Item name="quotationCountRange" label="报价数量">
+            <Input.Group compact>
+              <Input
+                style={{ width: '45%' }}
+                placeholder="最少"
+                type="number"
+              />
+              <Input
+                style={{ width: '10%', textAlign: 'center', pointerEvents: 'none' }}
+                placeholder="~"
+                disabled
+              />
+              <Input
+                style={{ width: '45%' }}
+                placeholder="最多"
+                type="number"
+              />
+            </Input.Group>
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item name="description" label="询价说明">
+            <Input placeholder="请输入询价说明关键词" />
+          </Form.Item>
+        </Col>
+        <Col span={24} className="text-right">
+          <Space>
+            <Button type="primary" htmlType="submit">
+              查询
+            </Button>
+            <Button onClick={onReset}>
+              重置
+            </Button>
+          </Space>
         </Col>
       </Row>
     </Form>
@@ -321,6 +394,20 @@ const QuotationComparison: React.FC = () => {
       );
     }
 
+    // 申请单号筛选
+    if (values.requisitionNumber) {
+      filtered = filtered.filter(item =>
+        item.procurementRequisition?.requisitionNumber?.toLowerCase().includes(values.requisitionNumber.toLowerCase())
+      );
+    }
+
+    // 申请人筛选
+    if (values.applicant) {
+      filtered = filtered.filter(item =>
+        item.procurementRequisition?.applicant?.toLowerCase().includes(values.applicant.toLowerCase())
+      );
+    }
+
     // 状态筛选
     if (values.status) {
       filtered = filtered.filter(item => item.status === values.status);
@@ -344,12 +431,67 @@ const QuotationComparison: React.FC = () => {
       });
     }
 
+    // 报价日期筛选
+    if (values.quotationDate && values.quotationDate.length === 2) {
+      const [startDate, endDate] = values.quotationDate;
+      filtered = filtered.filter(item => {
+        return item.quotations.some(q => {
+          const quotationDate = dayjs(q.quotationDate);
+          return quotationDate.isAfter(startDate.startOf('day')) && quotationDate.isBefore(endDate.endOf('day'));
+        });
+      });
+    }
+
     // 供应商筛选
-     if (values.supplier) {
-       filtered = filtered.filter(item =>
-         item.quotations.some(q => q.supplierName === values.supplier)
-       );
-     }
+    if (values.supplier) {
+      filtered = filtered.filter(item =>
+        item.quotations.some(q => q.supplierName === values.supplier)
+      );
+    }
+
+    // 报价状态筛选
+    if (values.quotationStatus) {
+      filtered = filtered.filter(item =>
+        item.quotations.some(q => q.status === values.quotationStatus)
+      );
+    }
+
+    // 总金额范围筛选
+    if (values.totalAmountRange) {
+      const minAmount = parseFloat(values.totalAmountRange[0]);
+      const maxAmount = parseFloat(values.totalAmountRange[1]);
+      
+      if (!isNaN(minAmount) || !isNaN(maxAmount)) {
+        filtered = filtered.filter(item => {
+          return item.quotations.some(q => {
+            if (!isNaN(minAmount) && q.totalAmount < minAmount) return false;
+            if (!isNaN(maxAmount) && q.totalAmount > maxAmount) return false;
+            return true;
+          });
+        });
+      }
+    }
+
+    // 报价数量范围筛选
+    if (values.quotationCountRange) {
+      const minCount = parseInt(values.quotationCountRange[0]);
+      const maxCount = parseInt(values.quotationCountRange[1]);
+      
+      if (!isNaN(minCount)) {
+        filtered = filtered.filter(item => item.quotations.length >= minCount);
+      }
+      
+      if (!isNaN(maxCount)) {
+        filtered = filtered.filter(item => item.quotations.length <= maxCount);
+      }
+    }
+
+    // 询价说明筛选
+    if (values.description) {
+      filtered = filtered.filter(item =>
+        item.description.toLowerCase().includes(values.description.toLowerCase())
+      );
+    }
 
     setFilteredData(filtered);
   };

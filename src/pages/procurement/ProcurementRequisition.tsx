@@ -64,13 +64,13 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
           </Form.Item>
         </Col>
         <Col span={6}>
-          <Form.Item name="applicationDate" label="申请日期">
-            <RangePicker placeholder={['Start date', 'End date']} />
+          <Form.Item name="description" label="采购描述">
+            <Input placeholder="请输入采购描述" />
           </Form.Item>
         </Col>
         <Col span={6}>
           <Form.Item name="status" label="状态">
-            <Select placeholder="请选择状态">
+            <Select placeholder="请选择状态" allowClear>
               <Option value="pending">待审批</Option>
               <Option value="approved">审批通过</Option>
               <Option value="rejected">已拒绝</Option>
@@ -79,10 +79,72 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
         </Col>
         <Col span={6}>
           <Form.Item name="type" label="申请类型">
-            <Select placeholder="请选择申请类型">
+            <Select placeholder="请选择申请类型" allowClear>
               <Option value="emergency">应急采购</Option>
               <Option value="normal">正常采购</Option>
             </Select>
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="approvalStatus" label="审批状态">
+            <Select placeholder="请选择审批状态" allowClear>
+              <Option value="pending">待审批</Option>
+              <Option value="approved">已审批</Option>
+              <Option value="rejected">已拒绝</Option>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="processStatus" label="流程状态">
+            <Select placeholder="请选择流程状态" allowClear>
+              <Option value="draft">草稿</Option>
+              <Option value="submitted">已提交审批</Option>
+              <Option value="approved">审批通过</Option>
+              <Option value="rejected">已拒绝</Option>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="currentApprover" label="当前审批人">
+            <Input placeholder="请输入当前审批人" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="rejectionReason" label="拒绝原因">
+            <Input placeholder="请输入拒绝原因" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="rejectedBy" label="拒绝人">
+            <Input placeholder="请输入拒绝人" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="inquiryStatus" label="询价状态">
+            <Select placeholder="请选择询价状态" allowClear>
+              <Option value="not_started">未开始</Option>
+              <Option value="in_progress">询价中</Option>
+              <Option value="completed">已完成</Option>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="applicationDate" label="申请日期">
+            <RangePicker placeholder={['开始日期', '结束日期']} />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="rejectedDate" label="拒绝日期">
+            <RangePicker placeholder={['开始日期', '结束日期']} />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item name="totalAmountRange" label="总金额范围">
+            <Input.Group compact>
+              <Input style={{ width: '45%' }} placeholder="最小金额" />
+              <Input style={{ width: '10%', textAlign: 'center', pointerEvents: 'none' }} placeholder="~" disabled />
+              <Input style={{ width: '45%' }} placeholder="最大金额" />
+            </Input.Group>
           </Form.Item>
         </Col>
         <Col span={24} style={{ textAlign: 'right' }}>

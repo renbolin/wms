@@ -49,46 +49,86 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
   };
 
   return (
-    <Form form={form} onFinish={onFinish} layout="inline" style={{ marginBottom: 16 }}>
-      <Row gutter={16}>
-        <Col>
+    <Form form={form} onFinish={onFinish} style={{ marginBottom: 16 }}>
+      <Row gutter={24}>
+        <Col span={8}>
           <Form.Item label="供应商名称" name="name">
             <Input placeholder="请输入供应商名称" />
           </Form.Item>
         </Col>
-        <Col>
+        <Col span={8}>
           <Form.Item label="分类" name="category">
-            <Select placeholder="请选择分类" style={{ width: 120 }} allowClear>
+            <Select placeholder="请选择分类" allowClear>
               <Option value="电子产品">电子产品</Option>
               <Option value="互联网服务">互联网服务</Option>
+              <Option value="办公用品">办公用品</Option>
+              <Option value="建筑材料">建筑材料</Option>
+              <Option value="食品饮料">食品饮料</Option>
+              <Option value="服装纺织">服装纺织</Option>
+              <Option value="化工原料">化工原料</Option>
+              <Option value="机械设备">机械设备</Option>
             </Select>
           </Form.Item>
         </Col>
-        <Col>
+        <Col span={8}>
           <Form.Item label="联系人" name="contactPerson">
             <Input placeholder="请输入联系人" />
           </Form.Item>
         </Col>
-        <Col>
+        <Col span={8}>
           <Form.Item label="联系电话" name="contactPhone">
             <Input placeholder="请输入联系电话" />
           </Form.Item>
         </Col>
-        <Col>
+        <Col span={8}>
           <Form.Item label="地址" name="address">
             <Input placeholder="请输入地址" />
           </Form.Item>
         </Col>
-        <Col>
-          <Form.Item label="采购次数" name="purchaseCount">
-            <InputNumber placeholder="请输入采购次数" style={{ width: '100%' }} />
+        <Col span={8}>
+          <Form.Item label="邮箱" name="email">
+            <Input placeholder="请输入邮箱" />
           </Form.Item>
         </Col>
-        <Col>
-          <Form.Item>
-            <Button type="primary" htmlType="submit">查询</Button>
-            <Button style={{ marginLeft: 8 }} onClick={onReset}>重置</Button>
+        <Col span={8}>
+          <Form.Item label="开户银行" name="bankName">
+            <Input placeholder="请输入开户银行" />
           </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="银行账号" name="bankAccountNumber">
+            <Input placeholder="请输入银行账号" />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="采购次数范围" name="purchaseCountRange">
+            <Input.Group compact>
+              <InputNumber placeholder="最小次数" style={{ width: '50%' }} />
+              <InputNumber placeholder="最大次数" style={{ width: '50%' }} />
+            </Input.Group>
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="合同总量范围" name="totalContractsRange">
+            <Input.Group compact>
+              <InputNumber placeholder="最小数量" style={{ width: '50%' }} />
+              <InputNumber placeholder="最大数量" style={{ width: '50%' }} />
+            </Input.Group>
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="进行中合同范围" name="activeContractsRange">
+            <Input.Group compact>
+              <InputNumber placeholder="最小数量" style={{ width: '50%' }} />
+              <InputNumber placeholder="最大数量" style={{ width: '50%' }} />
+            </Input.Group>
+          </Form.Item>
+        </Col>
+      </Row>
+      <Row>
+        <Col span={24} style={{ textAlign: 'right' }}>
+          <Button type="primary" htmlType="submit">查询</Button>
+          <Button style={{ marginLeft: 8 }} onClick={onReset}>重置</Button>
         </Col>
       </Row>
     </Form>
@@ -480,7 +520,20 @@ const SupplierManagement: React.FC = () => {
   ];
 
   const filteredSuppliers = suppliers.filter(supplier => {
-    const { name, category, contactPerson, contactPhone, address, purchaseCount } = filters as any;
+    const { 
+      name, 
+      category, 
+      contactPerson, 
+      contactPhone, 
+      address, 
+      email, 
+      bankName, 
+      bankAccountNumber, 
+      purchaseCountRange, 
+      totalContractsRange, 
+      activeContractsRange 
+    } = filters as any;
+
     if (name && !supplier.name.includes(name)) {
       return false;
     }
@@ -496,8 +549,32 @@ const SupplierManagement: React.FC = () => {
     if (address && !supplier.address.includes(address)) {
       return false;
     }
-    if (purchaseCount && supplier.purchaseCount !== purchaseCount) {
+    if (email && !supplier.email.includes(email)) {
       return false;
+    }
+    if (bankName && !supplier.bankName.includes(bankName)) {
+      return false;
+    }
+    if (bankAccountNumber && !supplier.bankAccountNumber.includes(bankAccountNumber)) {
+      return false;
+    }
+    if (purchaseCountRange && purchaseCountRange.length === 2) {
+      const [minCount, maxCount] = purchaseCountRange;
+      if ((minCount && supplier.purchaseCount < minCount) || (maxCount && supplier.purchaseCount > maxCount)) {
+        return false;
+      }
+    }
+    if (totalContractsRange && totalContractsRange.length === 2) {
+      const [minContracts, maxContracts] = totalContractsRange;
+      if ((minContracts && supplier.totalContracts < minContracts) || (maxContracts && supplier.totalContracts > maxContracts)) {
+        return false;
+      }
+    }
+    if (activeContractsRange && activeContractsRange.length === 2) {
+      const [minActive, maxActive] = activeContractsRange;
+      if ((minActive && supplier.activeContracts < minActive) || (maxActive && supplier.activeContracts > maxActive)) {
+        return false;
+      }
     }
     return true;
   });

@@ -134,10 +134,10 @@ const UserManagement: React.FC = () => {
 
   const columns: ColumnsType<User> = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
+      title: '序号',
+      key: 'index',
       width: 60,
+      render: (_, __, index) => index + 1,
     },
     {
       title: '用户名',

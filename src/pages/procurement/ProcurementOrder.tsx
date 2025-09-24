@@ -30,32 +30,99 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
           </Form.Item>
         </Col>
         <Col span={8}>
+          <Form.Item label="订单标题" name="title">
+            <Input placeholder="请输入订单标题" />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
           <Form.Item label="供应商" name="supplier">
             <Input placeholder="请输入供应商" />
           </Form.Item>
         </Col>
         <Col span={8}>
-          <Form.Item label="采购员" name="buyer">
-            <Input placeholder="请输入采购员" />
+          <Form.Item label="供应商联系人" name="supplierContact">
+            <Input placeholder="请输入供应商联系人" />
           </Form.Item>
         </Col>
         <Col span={8}>
-          <Form.Item label="订单日期" name="orderDate">
-            <DatePicker.RangePicker style={{ width: '100%' }} />
+          <Form.Item label="供应商电话" name="supplierPhone">
+            <Input placeholder="请输入供应商电话" />
           </Form.Item>
         </Col>
         <Col span={8}>
-          <Form.Item label="总金额" name="totalAmount">
-            <InputNumber placeholder="请输入总金额" style={{ width: '100%' }} />
+          <Form.Item label="创建人" name="creator">
+            <Input placeholder="请输入创建人" />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="部门" name="department">
+            <Input placeholder="请输入部门" />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="收货人" name="recipient">
+            <Input placeholder="请输入收货人" />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="收货人电话" name="recipientPhone">
+            <Input placeholder="请输入收货人电话" />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="收货地址" name="deliveryAddress">
+            <Input placeholder="请输入收货地址" />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="询价单号" name="quotationRequestNo">
+            <Input placeholder="请输入询价单号" />
           </Form.Item>
         </Col>
         <Col span={8}>
           <Form.Item label="状态" name="status">
             <Select placeholder="请选择状态" allowClear>
-              <Option value="待发货">待发货</Option>
-              <Option value="已发货">已发货</Option>
-              <Option value="已送达">已送达</Option>
+              <Option value="draft">草稿</Option>
+              <Option value="confirmed">已确认</Option>
+              <Option value="in_production">生产中</Option>
+              <Option value="shipped">已发货</Option>
+              <Option value="delivered">已送达</Option>
+              <Option value="completed">已完成</Option>
+              <Option value="cancelled">已取消</Option>
             </Select>
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="订单日期" name="orderDateRange">
+            <DatePicker.RangePicker style={{ width: '100%' }} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="预期交货日期" name="expectedDeliveryDateRange">
+            <DatePicker.RangePicker style={{ width: '100%' }} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="创建时间" name="createdAtRange">
+            <DatePicker.RangePicker style={{ width: '100%' }} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="更新时间" name="updatedAtRange">
+            <DatePicker.RangePicker style={{ width: '100%' }} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="总金额范围" name="totalAmountRange">
+            <Input.Group compact>
+              <InputNumber placeholder="最小金额" style={{ width: '50%' }} />
+              <InputNumber placeholder="最大金额" style={{ width: '50%' }} />
+            </Input.Group>
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="备注" name="remarks">
+            <Input placeholder="请输入备注关键词" />
           </Form.Item>
         </Col>
       </Row>
@@ -273,23 +340,94 @@ const ProcurementOrder: React.FC = () => {
   ];
 
   const filteredOrders = orders.filter(order => {
-    const { orderNumber, supplier, buyer, orderDate, totalAmount, status } = filters as any;
+    const { 
+      orderNumber, 
+      title, 
+      supplier, 
+      supplierContact, 
+      supplierPhone, 
+      creator, 
+      department, 
+      recipient, 
+      recipientPhone, 
+      deliveryAddress, 
+      quotationRequestNo, 
+      status, 
+      orderDateRange, 
+      expectedDeliveryDateRange, 
+      createdAtRange, 
+      updatedAtRange, 
+      totalAmountRange, 
+      remarks 
+    } = filters as any;
+
     if (orderNumber && !order.orderNumber.includes(orderNumber)) {
+      return false;
+    }
+    if (title && !order.title.includes(title)) {
       return false;
     }
     if (supplier && !order.supplier.includes(supplier)) {
       return false;
     }
-    if (buyer && !order.creator.includes(buyer)) {
+    if (supplierContact && !order.supplierContact.includes(supplierContact)) {
+      return false;
+    }
+    if (supplierPhone && !order.supplierPhone.includes(supplierPhone)) {
+      return false;
+    }
+    if (creator && !order.creator.includes(creator)) {
+      return false;
+    }
+    if (department && !order.department.includes(department)) {
+      return false;
+    }
+    if (recipient && !order.recipient.includes(recipient)) {
+      return false;
+    }
+    if (recipientPhone && !order.recipientPhone.includes(recipientPhone)) {
+      return false;
+    }
+    if (deliveryAddress && !order.deliveryAddress.includes(deliveryAddress)) {
+      return false;
+    }
+    if (quotationRequestNo && order.quotationRequestNo && !order.quotationRequestNo.includes(quotationRequestNo)) {
       return false;
     }
     if (status && order.status !== status) {
       return false;
     }
-    if (totalAmount && order.totalAmount !== totalAmount) {
-      return false;
+    if (orderDateRange && orderDateRange.length === 2) {
+      const orderDate = dayjs(order.orderDate);
+      if (orderDate.isBefore(orderDateRange[0]) || orderDate.isAfter(orderDateRange[1])) {
+        return false;
+      }
     }
-    if (orderDate && (dayjs(order.orderDate).isBefore(orderDate[0]) || dayjs(order.orderDate).isAfter(orderDate[1]))) {
+    if (expectedDeliveryDateRange && expectedDeliveryDateRange.length === 2) {
+      const expectedDeliveryDate = dayjs(order.expectedDeliveryDate);
+      if (expectedDeliveryDate.isBefore(expectedDeliveryDateRange[0]) || expectedDeliveryDate.isAfter(expectedDeliveryDateRange[1])) {
+        return false;
+      }
+    }
+    if (createdAtRange && createdAtRange.length === 2) {
+      const createdAt = dayjs(order.createdAt);
+      if (createdAt.isBefore(createdAtRange[0]) || createdAt.isAfter(createdAtRange[1])) {
+        return false;
+      }
+    }
+    if (updatedAtRange && updatedAtRange.length === 2) {
+      const updatedAt = dayjs(order.updatedAt);
+      if (updatedAt.isBefore(updatedAtRange[0]) || updatedAt.isAfter(updatedAtRange[1])) {
+        return false;
+      }
+    }
+    if (totalAmountRange && totalAmountRange.length === 2) {
+      const [minAmount, maxAmount] = totalAmountRange;
+      if ((minAmount && order.totalAmount < minAmount) || (maxAmount && order.totalAmount > maxAmount)) {
+        return false;
+      }
+    }
+    if (remarks && order.remarks && !order.remarks.includes(remarks)) {
       return false;
     }
     return true;

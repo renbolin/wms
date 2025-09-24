@@ -27,7 +27,10 @@ interface ReceivingRecord {
   items: ReceivingItem[];
   attachments: string[];
   remarks: string;
-  qualityCheck: QualityCheck;
+  // 入库处理信息
+  operator?: string; // 操作员
+  operationDate?: string; // 操作日期
+  inboundRemarks?: string; // 入库备注
 }
 
 // 入库项目接口
@@ -37,26 +40,22 @@ interface ReceivingItem {
   specification: string;
   unit: string;
   orderedQuantity: number;
-  receivedQuantity: number;
+  receivedQuantity: number; // 实收数量，与订购数量保持一致
+  inboundQuantity?: number; // 入库数量，可编辑
+  afterInboundStock?: number; // 入库后库存，自动计算
+  inboundWarehouseId?: string; // 入库仓库ID
+  inboundWarehouseName?: string; // 入库仓库名称
   unitPrice: number;
   totalPrice: number;
-  qualityStatus: 'pass' | 'fail' | 'pending';
   remarks: string;
   currentStock?: number; // 当前库存数量
-  warehouseId?: string; // 入库仓库ID
-  warehouseName?: string; // 入库仓库名称
+  warehouseId?: string; // 入库仓库ID（保留兼容性）
+  warehouseName?: string; // 入库仓库名称（保留兼容性）
   lastInboundDate?: string; // 最近一次入库时间
   lastInboundWarehouse?: string; // 最近一次入库仓库
 }
 
-// 质检信息接口
-interface QualityCheck {
-  checker: string;
-  checkDate: string;
-  checkResult: 'pass' | 'fail' | 'partial' | 'pending';
-  checkRemarks: string;
-  attachments: string[];
-}
+
 
 // 采购订单接口（用于选择）
 interface PurchaseOrder {
@@ -78,24 +77,12 @@ const WarehouseReceiving: React.FC = () => {
   const [editingRecord, _setEditingRecord] = useState<ReceivingRecord | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<ReceivingRecord | null>(null);
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
-  const [itemWarehouses, setItemWarehouses] = useState<Record<string, string>>({});
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [receivingForm] = Form.useForm();
   const [filterForm] = Form.useForm();
 
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-
-  // 获取仓库名称的辅助函数
-  const getWarehouseName = (warehouseId: string) => {
-    const warehouseMap: Record<string, string> = {
-      'warehouse1': '主仓库',
-      'warehouse2': '分仓库A',
-      'warehouse3': '分仓库B',
-      'warehouse4': '临时仓库'
-    };
-    return warehouseMap[warehouseId] || '未知仓库';
-  };
 
   // 模拟采购订单数据
   const purchaseOrders: PurchaseOrder[] = [
@@ -131,7 +118,6 @@ const WarehouseReceiving: React.FC = () => {
           receivedQuantity: 5,
           unitPrice: 3800,
           totalPrice: 19000,
-          qualityStatus: 'pass',
           remarks: '设备完好',
           batchNo: 'B20240125001'
         },
@@ -145,7 +131,6 @@ const WarehouseReceiving: React.FC = () => {
           receivedQuantity: 2,
           unitPrice: 2000,
           totalPrice: 4000,
-          qualityStatus: 'pass',
           remarks: '包装完整',
           batchNo: 'B20240125002'
         }
@@ -160,13 +145,6 @@ const WarehouseReceiving: React.FC = () => {
         driverPhone: '13900139001',
         estimatedArrival: '2024-01-25 10:00',
         actualArrival: '2024-01-25 09:45'
-      },
-      qualityCheck: {
-        checker: '质检员小李',
-        checkDate: '2024-01-25',
-        checkResult: 'pass',
-        checkRemarks: '所有物品质量合格',
-        attachments: ['quality_check_report.pdf']
       }
     },
     {
@@ -194,7 +172,6 @@ const WarehouseReceiving: React.FC = () => {
           receivedQuantity: 15,
           unitPrice: 800,
           totalPrice: 12000,
-          qualityStatus: 'pass',
           remarks: '设备完好',
           batchNo: 'B20240130001'
         }
@@ -209,13 +186,6 @@ const WarehouseReceiving: React.FC = () => {
         driverPhone: '13900139003',
         estimatedArrival: '2024-01-30 16:00',
         actualArrival: '2024-01-30 15:30'
-      },
-      qualityCheck: {
-        checker: '质检员小王',
-        checkDate: '2024-01-30',
-        checkResult: 'pass',
-        checkRemarks: '设备质量合格',
-        attachments: ['quality_check_report.pdf']
       }
     }
   ];
@@ -245,7 +215,6 @@ const WarehouseReceiving: React.FC = () => {
           receivedQuantity: 10,
           unitPrice: 3800,
           totalPrice: 38000,
-          qualityStatus: 'pass',
           remarks: '外观完好，功能正常',
           currentStock: 15, // 当前库存15台
           warehouseName: '主仓库', // 入库仓库名称
@@ -261,7 +230,6 @@ const WarehouseReceiving: React.FC = () => {
           receivedQuantity: 2,
           unitPrice: 2500,
           totalPrice: 5000,
-          qualityStatus: 'pass',
           remarks: '包装完整，测试正常',
           currentStock: 5, // 当前库存5台
           warehouseName: '分仓库A', // 入库仓库名称
@@ -269,15 +237,8 @@ const WarehouseReceiving: React.FC = () => {
           lastInboundWarehouse: '分仓库A' // 最近一次入库仓库
         },
       ],
-      attachments: ['入库单.pdf', '质检报告.pdf'],
-      remarks: '货物按时到达，质量符合要求',
-      qualityCheck: {
-        checker: '李四',
-        checkDate: '2024-01-25',
-        checkResult: 'pass',
-        checkRemarks: '所有货物质量检查合格',
-        attachments: ['质检照片1.jpg', '质检照片2.jpg']
-      }
+      attachments: ['入库单.pdf'],
+      remarks: '货物按时到达，符合要求'
     },
     {
       id: '2',
@@ -302,21 +263,13 @@ const WarehouseReceiving: React.FC = () => {
           receivedQuantity: 0,
           unitPrice: 480000,
           totalPrice: 480000,
-          qualityStatus: 'pending',
           remarks: '设备需要专业安装',
           currentStock: 0, // 当前库存0台
           warehouseName: '分仓库A' // 入库仓库名称
         },
       ],
       attachments: [],
-      remarks: '设备延期交货，预计下周到达',
-      qualityCheck: {
-        checker: '',
-        checkDate: '',
-        checkResult: 'pending',
-        checkRemarks: '',
-        attachments: []
-      }
+      remarks: '设备延期交货，预计下周到达'
     },
     {
       id: '3',
@@ -341,21 +294,13 @@ const WarehouseReceiving: React.FC = () => {
           receivedQuantity: 0,
           unitPrice: 1250,
           totalPrice: 25000,
-          qualityStatus: 'fail',
-          remarks: '产品质量不符合要求',
+          remarks: '产品不符合要求',
           currentStock: 8, // 当前库存8个
           warehouseName: undefined // 入库仓库名称（已拒绝）
         },
       ],
       attachments: ['拒收通知.pdf'],
-      remarks: '产品质量问题，已通知供应商重新发货',
-      qualityCheck: {
-        checker: '李四',
-        checkDate: '2024-01-30',
-        checkResult: 'fail',
-        checkRemarks: '产品外观有明显瑕疵，功能测试不通过',
-        attachments: ['质量问题照片1.jpg', '质量问题照片2.jpg']
-      }
+      remarks: '产品问题，已通知供应商重新发货'
     },
     {
       id: '4',
@@ -378,21 +323,13 @@ const WarehouseReceiving: React.FC = () => {
           receivedQuantity: 20,
           unitPrice: 750,
           totalPrice: 15000,
-          qualityStatus: 'pending',
-          remarks: '待质检',
+          remarks: '待处理',
           currentStock: 0, // 当前库存0把
           warehouseName: '主仓库' // 入库仓库名称
         },
       ],
       attachments: ['送货单.pdf'],
-      remarks: '货物已到达，等待质检',
-      qualityCheck: {
-        checker: '',
-        checkDate: '',
-        checkResult: 'pending',
-        checkRemarks: '',
-        attachments: []
-      }
+      remarks: '货物已到达，等待处理'
     },
   ];
 
@@ -417,28 +354,27 @@ const WarehouseReceiving: React.FC = () => {
       status: 'pending',
       statusText: '待处理',
       totalAmount: deliveryNote.totalAmount,
-      items: deliveryNote.items.map(item => ({
-          id: `item_${Date.now()}_${Math.random()}`,
-          itemName: item.itemName,
-          specification: item.specification,
-          unit: item.unit,
-          orderedQuantity: item.orderedQuantity,
-          receivedQuantity: 0,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice,
-          qualityStatus: 'pending' as const,
-          remarks: '',
-          currentStock: Math.floor(Math.random() * 50) + 10 // 模拟当前库存
-        })),
+      items: deliveryNote.items.map(item => {
+          const currentStock = Math.floor(Math.random() * 50) + 10; // 模拟当前库存
+          return {
+            id: `item_${Date.now()}_${Math.random()}`,
+            itemName: item.itemName,
+            specification: item.specification,
+            unit: item.unit,
+            orderedQuantity: item.orderedQuantity,
+            receivedQuantity: item.orderedQuantity, // 实收数量与订购数量保持一致
+            inboundQuantity: item.orderedQuantity, // 默认入库数量等于订购数量
+            afterInboundStock: currentStock + item.orderedQuantity, // 入库后库存 = 当前库存 + 入库数量
+            inboundWarehouseId: 'warehouse_001', // 入库仓库ID，默认主仓库
+            inboundWarehouseName: '主仓库', // 入库仓库名称，默认主仓库
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            remarks: '',
+            currentStock: currentStock
+          };
+        }),
       attachments: [],
-      remarks: `基于到货单 ${deliveryNote.deliveryNo} 创建`,
-      qualityCheck: {
-        checker: '',
-        checkDate: '',
-        checkResult: 'pending',
-        checkRemarks: '',
-        attachments: []
-      }
+      remarks: `基于到货单 ${deliveryNote.deliveryNo} 创建`
     };
 
     const updatedData = [...data, newReceivingRecord];
@@ -455,10 +391,20 @@ const WarehouseReceiving: React.FC = () => {
   };
 
   const handleReceiving = (record: ReceivingRecord) => {
-    setSelectedRecord(record);
+    // 为每个物品初始化默认的入库仓库信息
+    const updatedItems = record.items.map(item => ({
+      ...item,
+      inboundQuantity: item.inboundQuantity || item.receivedQuantity,
+      inboundWarehouseId: item.inboundWarehouseId || 'warehouse_001',
+      inboundWarehouseName: item.inboundWarehouseName || '主仓库',
+      afterInboundStock: item.afterInboundStock || ((item.currentStock || 0) + (item.inboundQuantity || item.receivedQuantity))
+    }));
+    
+    setSelectedRecord({
+      ...record,
+      items: updatedItems
+    });
     receivingForm.resetFields();
-    // 重置物品仓库选择状态
-    setItemWarehouses({});
     setIsReceivingModalVisible(true);
   };
 
@@ -477,14 +423,7 @@ const WarehouseReceiving: React.FC = () => {
         status: editingRecord?.status || 'pending',
         statusText: editingRecord?.statusText || '待处理',
         items: editingRecord?.items || [],
-        attachments: fileList.map(file => file.name),
-        qualityCheck: editingRecord?.qualityCheck || {
-          checker: '',
-          checkDate: '',
-          checkResult: 'pending',
-          checkRemarks: '',
-          attachments: []
-        }
+        attachments: fileList.map(file => file.name)
       };
 
       if (editingRecord) {
@@ -521,7 +460,7 @@ const WarehouseReceiving: React.FC = () => {
       if (!selectedRecord) return;
 
       // 检查是否所有物品都选择了入库仓库
-      const missingWarehouses = selectedRecord.items?.filter(item => !itemWarehouses[item.id]);
+      const missingWarehouses = selectedRecord.items?.filter(item => !item.inboundWarehouseId);
       if (missingWarehouses && missingWarehouses.length > 0) {
         message.warning('请为所有物品选择入库仓库');
         return;
@@ -530,25 +469,21 @@ const WarehouseReceiving: React.FC = () => {
       // 更新物品信息，包含入库仓库信息
       const updatedItems = selectedRecord.items?.map(item => ({
         ...item,
-        warehouseId: itemWarehouses[item.id],
-        warehouseName: getWarehouseName(itemWarehouses[item.id])
+        warehouseId: item.inboundWarehouseId,
+        warehouseName: item.inboundWarehouseName
       }));
 
       const updatedRecord = {
         ...selectedRecord,
         items: updatedItems,
-        status: values.qualityStatus === 'passed' ? 'completed' as const : 
-                values.qualityStatus === 'failed' ? 'rejected' as const : 'partial' as const,
-        statusText: values.qualityStatus === 'passed' ? '已完成' : 
-                   values.qualityStatus === 'failed' ? '待处理' : '待处理',
-        qualityCheck: {
-          ...selectedRecord.qualityCheck,
-          checker: values.operator,
-          checkDate: new Date().toISOString().split('T')[0],
-          checkResult: (values.qualityStatus === 'passed' ? 'pass' : 
-                      values.qualityStatus === 'failed' ? 'fail' : 'pending') as 'pass' | 'fail' | 'partial' | 'pending',
-          checkRemarks: values.remarks || ''
-        }
+        status: 'completed' as const,
+        statusText: '已完成',
+        receivingDate: values.operationDate ? values.operationDate.format('YYYY-MM-DD') : new Date().toISOString().split('T')[0],
+        receiver: values.operator,
+        // 保存入库处理信息
+        operator: values.operator,
+        operationDate: values.operationDate ? values.operationDate.format('YYYY-MM-DD') : new Date().toISOString().split('T')[0],
+        inboundRemarks: values.remarks || ''
       };
 
       const updatedData = data.map(item => 
@@ -575,14 +510,7 @@ const WarehouseReceiving: React.FC = () => {
         const updatedRecord = {
           ...record,
           status: 'rejected' as const,
-          statusText: '待处理',
-          qualityCheck: {
-            ...record.qualityCheck,
-            checkResult: 'fail' as const,
-            checkRemarks: record.qualityCheck.checkRemarks || '入库被拒绝',
-            checkDate: record.qualityCheck.checkDate || new Date().toISOString().split('T')[0],
-            checker: record.qualityCheck.checker || '系统操作'
-          }
+          statusText: '待处理'
         };
 
         const updatedData = data.map(item => 
@@ -622,11 +550,6 @@ const WarehouseReceiving: React.FC = () => {
       );
     }
 
-    // 按状态筛选
-    if (values.status) {
-      filtered = filtered.filter(item => item.status === values.status);
-    }
-
     // 按收货人筛选
     if (values.receiver) {
       filtered = filtered.filter(item => 
@@ -634,14 +557,79 @@ const WarehouseReceiving: React.FC = () => {
       );
     }
 
-    // 按日期范围筛选
-    if (values.dateRange && values.dateRange.length === 2) {
-      const [startDate, endDate] = values.dateRange;
+    // 按部门筛选
+    if (values.department) {
+      filtered = filtered.filter(item => 
+        item.department && item.department.toLowerCase().includes(values.department.toLowerCase())
+      );
+    }
+
+    // 按仓库筛选
+    if (values.warehouse) {
+      filtered = filtered.filter(item => 
+        (item.warehouse && item.warehouse.toLowerCase().includes(values.warehouse.toLowerCase())) ||
+        (item.warehouseName && item.warehouseName.toLowerCase().includes(values.warehouse.toLowerCase()))
+      );
+    }
+
+    // 按操作员筛选
+    if (values.operator) {
+      filtered = filtered.filter(item => 
+        item.operator && item.operator.toLowerCase().includes(values.operator.toLowerCase())
+      );
+    }
+
+    // 按状态筛选
+    if (values.status) {
+      filtered = filtered.filter(item => item.status === values.status);
+    }
+
+    // 按入库日期范围筛选
+    if (values.receivingDateRange && values.receivingDateRange.length === 2) {
+      const [startDate, endDate] = values.receivingDateRange;
       filtered = filtered.filter(item => {
         if (!item.receivingDate) return false;
         const itemDate = new Date(item.receivingDate);
         return itemDate >= startDate.toDate() && itemDate <= endDate.toDate();
       });
+    }
+
+    // 按操作日期范围筛选
+    if (values.operationDateRange && values.operationDateRange.length === 2) {
+      const [startDate, endDate] = values.operationDateRange;
+      filtered = filtered.filter(item => {
+        if (!item.operationDate) return false;
+        const itemDate = new Date(item.operationDate);
+        return itemDate >= startDate.toDate() && itemDate <= endDate.toDate();
+      });
+    }
+
+    // 按总金额范围筛选
+    if (values.totalAmountRange) {
+      const minAmount = parseFloat(values.totalAmountRange[0]);
+      const maxAmount = parseFloat(values.totalAmountRange[1]);
+      
+      if (!isNaN(minAmount)) {
+        filtered = filtered.filter(item => item.totalAmount >= minAmount);
+      }
+      
+      if (!isNaN(maxAmount)) {
+        filtered = filtered.filter(item => item.totalAmount <= maxAmount);
+      }
+    }
+
+    // 按备注筛选
+    if (values.remarks) {
+      filtered = filtered.filter(item => 
+        item.remarks && item.remarks.toLowerCase().includes(values.remarks.toLowerCase())
+      );
+    }
+
+    // 按入库备注筛选
+    if (values.inboundRemarks) {
+      filtered = filtered.filter(item => 
+        item.inboundRemarks && item.inboundRemarks.toLowerCase().includes(values.inboundRemarks.toLowerCase())
+      );
     }
 
     setFilteredData(filtered);
@@ -778,33 +766,90 @@ const WarehouseReceiving: React.FC = () => {
           </div>
           <Form form={filterForm} layout="inline">
             <Row gutter={[16, 16]} className="w-full">
-              <Col span={4}>
+              <Col span={6}>
                 <Form.Item name="receivingNo" label="入库单号">
                   <Input placeholder="请输入入库单号" />
                 </Form.Item>
               </Col>
-              <Col span={4}>
+              <Col span={6}>
+                <Form.Item name="purchaseOrderNo" label="采购订单号">
+                  <Input placeholder="请输入采购订单号" />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
                 <Form.Item name="supplierName" label="供应商">
                   <Input placeholder="请输入供应商名称" />
                 </Form.Item>
               </Col>
-              <Col span={4}>
+              <Col span={6}>
+                <Form.Item name="receiver" label="收货人">
+                  <Input placeholder="请输入收货人" />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="department" label="部门">
+                  <Input placeholder="请输入部门" />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="warehouse" label="仓库">
+                  <Input placeholder="请输入仓库名称" />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="operator" label="操作员">
+                  <Input placeholder="请输入操作员" />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
                 <Form.Item name="status" label="状态">
                   <Select placeholder="请选择状态" allowClear>
                     <Option value="pending">待处理</Option>
+                    <Option value="partial">部分入库</Option>
                     <Option value="completed">已完成</Option>
                     <Option value="rejected">已拒绝</Option>
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={4}>
-                <Form.Item name="receiver" label="收货人">
-                  <Input placeholder="请输入收货人" />
+              <Col span={8}>
+                <Form.Item name="receivingDateRange" label="入库日期">
+                  <DatePicker.RangePicker placeholder={['开始日期', '结束日期']} />
                 </Form.Item>
               </Col>
-              <Col span={4}>
-                <Form.Item name="dateRange" label="入库日期">
+              <Col span={8}>
+                <Form.Item name="operationDateRange" label="操作日期">
                   <DatePicker.RangePicker placeholder={['开始日期', '结束日期']} />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="totalAmountRange" label="总金额范围">
+                  <Input.Group compact>
+                    <Input
+                      style={{ width: '45%' }}
+                      placeholder="最小金额"
+                      type="number"
+                    />
+                    <Input
+                      style={{ width: '10%', textAlign: 'center', pointerEvents: 'none' }}
+                      placeholder="~"
+                      disabled
+                    />
+                    <Input
+                      style={{ width: '45%' }}
+                      placeholder="最大金额"
+                      type="number"
+                    />
+                  </Input.Group>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="remarks" label="备注">
+                  <Input placeholder="请输入备注关键词" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="inboundRemarks" label="入库备注">
+                  <Input placeholder="请输入入库备注关键词" />
                 </Form.Item>
               </Col>
               <Col span={24} className="text-right">
@@ -922,7 +967,7 @@ const WarehouseReceiving: React.FC = () => {
         open={isDetailModalVisible}
         onCancel={() => setIsDetailModalVisible(false)}
         footer={null}
-        width={1000}
+        width={1300}
       >
         {selectedRecord && (
           <div>
@@ -1010,19 +1055,29 @@ const WarehouseReceiving: React.FC = () => {
                     { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
                     { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80 },
                     { title: '实收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80 },
+                    { title: '入库数量', dataIndex: 'inboundQuantity', key: 'inboundQuantity', width: 80, render: (value, record) => value || record.receivedQuantity },
                     { title: '入库前库存', dataIndex: 'currentStock', key: 'currentStock', width: 90, render: (value) => `${value || 0}` },
-                    { 
-                      title: '入库后库存', 
-                      key: 'afterStock', 
-                      width: 90,
-                      render: (_, record) => `${(record.currentStock || 0) + (record.receivedQuantity || 0)}`
-                    },
+                    { title: '入库后库存', dataIndex: 'afterInboundStock', key: 'afterInboundStock', width: 90, render: (value, record) => `${value || ((record.currentStock || 0) + (record.inboundQuantity || record.receivedQuantity || 0))}` },
+                    { title: '入库仓库', dataIndex: 'inboundWarehouseName', key: 'inboundWarehouseName', width: 120, render: (value) => value || '主仓库' },
                     { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 100, render: (value) => `¥${value}` },
                     { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (value) => `¥${value}` },
-                    { title: '入库仓库', dataIndex: 'warehouseName', key: 'warehouseName', width: 100, render: (value) => value || '主仓库' },
                     { title: '备注', dataIndex: 'remarks', key: 'remarks' },
                   ]}
                 />
+              </div>
+            )}
+
+
+
+            {/* 入库处理信息 */}
+            {selectedRecord.status === 'completed' && (
+              <div className="mt-4">
+                <Descriptions title="入库处理信息" bordered size="small" column={2}>
+                  <Descriptions.Item label="操作员">{selectedRecord.operator || selectedRecord.receiver || '未记录'}</Descriptions.Item>
+                  <Descriptions.Item label="操作日期">{selectedRecord.operationDate || selectedRecord.receivingDate || '未记录'}</Descriptions.Item>
+                  <Descriptions.Item label="入库备注" span={2}>{selectedRecord.inboundRemarks || '无'}</Descriptions.Item>
+                  <Descriptions.Item label="原始备注" span={2}>{selectedRecord.remarks || '无'}</Descriptions.Item>
+                </Descriptions>
               </div>
             )}
 
@@ -1079,7 +1134,74 @@ const WarehouseReceiving: React.FC = () => {
                   { title: '单位', dataIndex: 'unit', key: 'unit', width: 60, align: 'center' },
                   { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80, align: 'center' },
                   { title: '实收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80, align: 'center' },
+                  { 
+                    title: '入库数量', 
+                    dataIndex: 'inboundQuantity', 
+                    key: 'inboundQuantity', 
+                    width: 80, 
+                    align: 'center',
+                    render: (_, record, index) => (
+                      <Input
+                        type="number"
+                        min={0}
+                        max={record.receivedQuantity}
+                        value={record.inboundQuantity || record.receivedQuantity}
+                        style={{ width: '80px' }}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value) || 0;
+                          const updatedItems = [...selectedRecord!.items];
+                          updatedItems[index] = {
+                            ...updatedItems[index],
+                            inboundQuantity: newValue,
+                            afterInboundStock: (updatedItems[index].currentStock || 0) + newValue
+                          };
+                          setSelectedRecord({
+                            ...selectedRecord!,
+                            items: updatedItems
+                          });
+                        }}
+                      />
+                    )
+                  },
                   { title: '入库前库存', dataIndex: 'currentStock', key: 'currentStock', width: 90, align: 'center', render: (value) => `${value || 0}` },
+                  { 
+                    title: '入库后库存', 
+                    dataIndex: 'afterInboundStock', 
+                    key: 'afterInboundStock', 
+                    width: 90, 
+                    align: 'center', 
+                    render: (value, record) => `${value || ((record.currentStock || 0) + (record.inboundQuantity || record.receivedQuantity || 0))}`
+                  },
+                  { 
+                    title: '入库仓库', 
+                    dataIndex: 'inboundWarehouseName', 
+                    key: 'inboundWarehouseName', 
+                    width: 120, 
+                    align: 'center',
+                    render: (_, record, index) => (
+                      <Select
+                        value={record.inboundWarehouseId || 'warehouse_001'}
+                        style={{ width: '120px' }}
+                        onChange={(selectedValue, option: any) => {
+                          const updatedItems = [...selectedRecord!.items];
+                          updatedItems[index] = {
+                            ...updatedItems[index],
+                            inboundWarehouseId: selectedValue,
+                            inboundWarehouseName: option.children
+                          };
+                          setSelectedRecord({
+                            ...selectedRecord!,
+                            items: updatedItems
+                          });
+                        }}
+                      >
+                        <Option value="warehouse_001">主仓库</Option>
+                        <Option value="warehouse_002">副仓库</Option>
+                        <Option value="warehouse_003">临时仓库</Option>
+                        <Option value="warehouse_004">冷藏仓库</Option>
+                      </Select>
+                    )
+                  },
                   { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, align: 'right', render: (price: number) => `¥${price.toLocaleString()}` },
                   { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, align: 'right', render: (price: number) => `¥${price.toLocaleString()}` },
                   { title: '备注', dataIndex: 'remarks', key: 'remarks', width: 120, ellipsis: true }

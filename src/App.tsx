@@ -27,6 +27,8 @@ import InventoryTransfer from '@/pages/inventory/InventoryTransfer';
 import InventoryScrap from '@/pages/inventory/InventoryScrap';
 import InventoryAlert from '@/pages/inventory/InventoryAlert';
 import MobileScan from '@/pages/inventory/MobileScan';
+import AgeAnalysis from '@/pages/inventory/AgeAnalysis';
+import BatchManagement from '@/pages/inventory/BatchManagement';
 
 // 固定资产管理模块
 import AssetRegister from '@/pages/asset/AssetRegister';
@@ -36,6 +38,7 @@ import AssetRetirement from '@/pages/asset/AssetRetirement';
 import AssetBorrow from '@/pages/asset/AssetBorrow';
 import AssetInventory from '@/pages/asset/AssetInventory';
 import AssetReport from '@/pages/asset/AssetReport';
+import WarehouseManagement from '@/pages/asset/WarehouseManagement';
 
 function App() {
   return (
@@ -73,11 +76,14 @@ function App() {
             <Route path="scrap" element={<InventoryScrap />} />
             <Route path="alert" element={<InventoryAlert />} />
             <Route path="mobile-scan" element={<MobileScan />} />
+            <Route path="age-analysis" element={<AgeAnalysis />} />
+            <Route path="batch-management" element={<BatchManagement />} />
           </Route>
           
           {/* 固定资产管理路由 */}
           <Route path="asset">
             <Route path="register" element={<AssetRegister />} />
+            <Route path="warehouse" element={<WarehouseManagement />} />
             <Route path="transfer" element={<AssetTransfer />} />
             <Route path="maintenance" element={<AssetMaintenance />} />
             <Route path="retirement" element={<AssetRetirement />} />

@@ -49,6 +49,20 @@ body {
   margin-bottom: 16px;
 }
 
+/* 设备类型树操作按钮样式 */
+.ant-tree-node-content-wrapper {
+  position: relative;
+}
+
+.tree-actions {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ant-tree-node-content-wrapper:hover .tree-actions {
+  opacity: 1;
+}
+
 .ant-layout-sider {
   box-shadow: 2px 0 8px 0 rgba(29, 35, 41, 0.05);
 }

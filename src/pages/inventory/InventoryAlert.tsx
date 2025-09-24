@@ -763,11 +763,184 @@ const InventoryAlert: React.FC = () => {
         title="预警设置"
         open={isSettingModalVisible}
         onCancel={() => setIsSettingModalVisible(false)}
-        footer={null}
-        width={800}
+        footer={[
+          <Button key="cancel" onClick={() => setIsSettingModalVisible(false)}>
+            取消
+          </Button>,
+          <Button key="submit" type="primary" onClick={() => {
+            message.success('预警设置保存成功');
+            setIsSettingModalVisible(false);
+          }}>
+            保存设置
+          </Button>
+        ]}
+        width={1000}
       >
         <div>
-          <p>预警设置功能开发中...</p>
+          <Alert
+            message="预警设置说明"
+            description="设置各物料的安全库存、最大库存和预警规则。系统将根据这些设置自动监控库存状态并生成预警。"
+            type="info"
+            showIcon
+            className="mb-4"
+          />
+          
+          <Table
+            columns={[
+              {
+                title: '物料编码',
+                dataIndex: 'itemCode',
+                key: 'itemCode',
+                width: 100,
+              },
+              {
+                title: '物料名称',
+                dataIndex: 'itemName',
+                key: 'itemName',
+                width: 150,
+              },
+              {
+                title: '安全库存',
+                dataIndex: 'safetyStock',
+                key: 'safetyStock',
+                width: 100,
+                render: (value, record, index) => (
+                  <Input
+                    type="number"
+                    value={value}
+                    onChange={(e) => {
+                      const newSettings = [...mockAlertSettings];
+                      newSettings[index].safetyStock = Number(e.target.value);
+                      setAlertSettings(newSettings);
+                    }}
+                    style={{ width: '80px' }}
+                  />
+                ),
+              },
+              {
+                title: '最大库存',
+                dataIndex: 'maxStock',
+                key: 'maxStock',
+                width: 100,
+                render: (value, record, index) => (
+                  <Input
+                    type="number"
+                    value={value}
+                    onChange={(e) => {
+                      const newSettings = [...mockAlertSettings];
+                      newSettings[index].maxStock = Number(e.target.value);
+                      setAlertSettings(newSettings);
+                    }}
+                    style={{ width: '80px' }}
+                  />
+                ),
+              },
+              {
+                title: '库存不足预警',
+                dataIndex: 'lowStockAlert',
+                key: 'lowStockAlert',
+                width: 120,
+                render: (value, record, index) => (
+                  <Select
+                    value={value}
+                    onChange={(val) => {
+                      const newSettings = [...mockAlertSettings];
+                      newSettings[index].lowStockAlert = val;
+                      setAlertSettings(newSettings);
+                    }}
+                    style={{ width: '80px' }}
+                  >
+                    <Option value={true}>启用</Option>
+                    <Option value={false}>禁用</Option>
+                  </Select>
+                ),
+              },
+              {
+                title: '缺货预警',
+                dataIndex: 'outStockAlert',
+                key: 'outStockAlert',
+                width: 100,
+                render: (value, record, index) => (
+                  <Select
+                    value={value}
+                    onChange={(val) => {
+                      const newSettings = [...mockAlertSettings];
+                      newSettings[index].outStockAlert = val;
+                      setAlertSettings(newSettings);
+                    }}
+                    style={{ width: '80px' }}
+                  >
+                    <Option value={true}>启用</Option>
+                    <Option value={false}>禁用</Option>
+                  </Select>
+                ),
+              },
+              {
+                title: '库存过量预警',
+                dataIndex: 'excessStockAlert',
+                key: 'excessStockAlert',
+                width: 120,
+                render: (value, record, index) => (
+                  <Select
+                    value={value}
+                    onChange={(val) => {
+                      const newSettings = [...mockAlertSettings];
+                      newSettings[index].excessStockAlert = val;
+                      setAlertSettings(newSettings);
+                    }}
+                    style={{ width: '80px' }}
+                  >
+                    <Option value={true}>启用</Option>
+                    <Option value={false}>禁用</Option>
+                  </Select>
+                ),
+              },
+              {
+                title: '临期预警',
+                dataIndex: 'expiryAlert',
+                key: 'expiryAlert',
+                width: 100,
+                render: (value, record, index) => (
+                  <Select
+                    value={value}
+                    onChange={(val) => {
+                      const newSettings = [...mockAlertSettings];
+                      newSettings[index].expiryAlert = val;
+                      setAlertSettings(newSettings);
+                    }}
+                    style={{ width: '80px' }}
+                  >
+                    <Option value={true}>启用</Option>
+                    <Option value={false}>禁用</Option>
+                  </Select>
+                ),
+              },
+              {
+                title: '临期天数',
+                dataIndex: 'expiryDays',
+                key: 'expiryDays',
+                width: 100,
+                render: (value, record, index) => (
+                  <Input
+                    type="number"
+                    value={value}
+                    onChange={(e) => {
+                      const newSettings = [...mockAlertSettings];
+                      newSettings[index].expiryDays = Number(e.target.value);
+                      setAlertSettings(newSettings);
+                    }}
+                    style={{ width: '80px' }}
+                    disabled={!record.expiryAlert}
+                  />
+                ),
+              },
+            ]}
+            dataSource={mockAlertSettings}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            scroll={{ x: 900 }}
+          />
         </div>
       </Modal>
     </div>

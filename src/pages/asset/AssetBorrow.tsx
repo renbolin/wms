@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, Space, message, DatePicker, Row, Col, Descriptions, Tag } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Modal, Form, Input, Select, Space, message, DatePicker, Row, Col, Descriptions, Tag, Radio } from 'antd';
+import { PlusOutlined, EditOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -65,7 +65,7 @@ const AssetBorrow: React.FC = () => {
   const [isApproveModalVisible, setIsApproveModalVisible] = useState(false);
   const [isReturnModalVisible, setIsReturnModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AssetBorrow | null>(null);
-  const [selectedRecord, _setSelectedRecord] = useState<AssetBorrow | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<AssetBorrow | null>(null);
   const [assetList, setAssetList] = useState<AssetInfo[]>([]);
   const [form] = Form.useForm();
   const [searchForm] = Form.useForm();
@@ -260,18 +260,7 @@ const AssetBorrow: React.FC = () => {
     });
   };
 
-  const handleDelete = (record: AssetBorrow) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除借用申请 ${record.borrowNo} 吗？`,
-      onOk: () => {
-        const newData = data.filter(item => item.id !== record.id);
-        setData(newData);
-        setFilteredData(newData);
-        message.success('删除成功');
-      },
-    });
-  };
+
 
   const handleSubmit = async () => {
     try {
@@ -381,28 +370,110 @@ const AssetBorrow: React.FC = () => {
     return colors[status as keyof typeof colors] || 'default';
   };
 
+  const handleApprove = (record: AssetBorrow) => {
+    setSelectedRecord(record);
+    setIsApproveModalVisible(true);
+    approveForm.resetFields();
+  };
+
+  const handleReturn = (record: AssetBorrow) => {
+    setSelectedRecord(record);
+    setIsReturnModalVisible(true);
+    returnForm.setFieldsValue({
+      actualReturnDate: dayjs(),
+    });
+  };
+
   const handleApproveSubmit = async () => {
     try {
-      await approveForm.validateFields();
-      // 处理审批逻辑
-      message.success('审批成功');
+      const values = await approveForm.validateFields();
+      if (!selectedRecord) return;
+
+      const isApproved = values.action === 'approve';
+      const updatedRecord: AssetBorrow = {
+        ...selectedRecord,
+        status: isApproved ? 'approved' : 'rejected',
+        statusText: isApproved ? '已审批' : '已拒绝',
+        approver: '当前用户',
+        approveDate: dayjs().format('YYYY-MM-DD'),
+        approveRemark: values.approveRemark,
+        rejectReason: isApproved ? undefined : values.rejectReason,
+        updateUser: '当前用户',
+        updateDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      };
+
+      const newData = data.map(item => 
+        item.id === selectedRecord.id ? updatedRecord : item
+      );
+      setData(newData);
+      setFilteredData(newData);
+      
+      message.success(isApproved ? '审批通过' : '审批拒绝');
       setIsApproveModalVisible(false);
       approveForm.resetFields();
+      setSelectedRecord(null);
     } catch (error) {
       console.error('审批失败:', error);
     }
   };
 
+  const handleBorrow = (record: AssetBorrow) => {
+    Modal.confirm({
+      title: '确认借出',
+      content: `确定要将资产 ${record.assetName} 借出给 ${record.borrower} 吗？`,
+      onOk: () => {
+        const updatedRecord: AssetBorrow = {
+          ...record,
+          status: 'borrowed',
+          statusText: '已借出',
+          updateUser: '当前用户',
+          updateDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        };
+
+        const newData = data.map(item => 
+          item.id === record.id ? updatedRecord : item
+        );
+        setData(newData);
+        setFilteredData(newData);
+        message.success('借出成功');
+      },
+    });
+  };
+
   const handleReturnSubmit = async () => {
     try {
-      await returnForm.validateFields();
-      // 处理归还逻辑
+      const values = await returnForm.validateFields();
+      if (!selectedRecord) return;
+
+      const updatedRecord: AssetBorrow = {
+        ...selectedRecord,
+        status: 'returned',
+        statusText: '已归还',
+        actualReturnDate: values.actualReturnDate.format('YYYY-MM-DD'),
+        returnCondition: values.returnCondition,
+        returnRemark: values.returnRemark,
+        updateUser: '当前用户',
+        updateDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      };
+
+      const newData = data.map(item => 
+        item.id === selectedRecord.id ? updatedRecord : item
+      );
+      setData(newData);
+      setFilteredData(newData);
+      
       message.success('归还成功');
       setIsReturnModalVisible(false);
       returnForm.resetFields();
+      setSelectedRecord(null);
     } catch (error) {
       console.error('归还失败:', error);
     }
+  };
+
+  const handleDetail = (record: AssetBorrow) => {
+    setSelectedRecord(record);
+    setIsDetailModalVisible(true);
   };
 
   const columns: ColumnsType<AssetBorrow> = [
@@ -486,12 +557,26 @@ const AssetBorrow: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 250,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
+          <Button 
+            type="link" 
+            size="small"
+            onClick={() => handleDetail(record)}
+          >
+            详情
+          </Button>
           {record.status === 'pending' && (
             <>
+              <Button 
+                type="link" 
+                size="small"
+                onClick={() => handleApprove(record)}
+              >
+                审批
+              </Button>
               <Button
                 type="link"
                 size="small"
@@ -500,16 +585,25 @@ const AssetBorrow: React.FC = () => {
               >
                 编辑
               </Button>
-              <Button
-                type="link"
-                size="small"
-                icon={<DeleteOutlined />}
-                onClick={() => handleDelete(record)}
-                danger
-              >
-                删除
-              </Button>
             </>
+          )}
+          {record.status === 'approved' && (
+            <Button 
+              type="link" 
+              size="small"
+              onClick={() => handleBorrow(record)}
+            >
+              借出
+            </Button>
+          )}
+          {record.status === 'borrowed' && (
+            <Button 
+              type="link" 
+              size="small"
+              onClick={() => handleReturn(record)}
+            >
+              归还
+            </Button>
           )}
         </Space>
       ),
@@ -791,29 +885,50 @@ const AssetBorrow: React.FC = () => {
         title="审批借用申请"
         open={isApproveModalVisible}
         onOk={handleApproveSubmit}
-        onCancel={() => setIsApproveModalVisible(false)}
+        onCancel={() => {
+          setIsApproveModalVisible(false);
+          approveForm.resetFields();
+          setSelectedRecord(null);
+        }}
         width={600}
       >
         <Form form={approveForm} layout="vertical">
-          <Form.Item 
-            name="action" 
-            label="审批结果" 
-            rules={[{ required: true, message: '请选择审批结果' }]}
+          <Form.Item
+            name="action"
+            label="审批动作"
+            rules={[{ required: true, message: '请选择审批动作' }]}
           >
-            <Select placeholder="请选择审批结果">
-              <Option value="approve">同意</Option>
-              <Option value="reject">拒绝</Option>
-            </Select>
+            <Radio.Group>
+              <Radio value="approve">通过</Radio>
+              <Radio value="reject">拒绝</Radio>
+            </Radio.Group>
           </Form.Item>
-          <Form.Item 
-            name="approveRemark" 
-            label="审批备注"
-            rules={[{ required: true, message: '请输入审批备注' }]}
+          
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => 
+              prevValues.action !== currentValues.action
+            }
           >
-            <TextArea rows={3} placeholder="请输入审批备注" />
-          </Form.Item>
-          <Form.Item name="rejectReason" label="拒绝原因">
-            <TextArea rows={3} placeholder="如果拒绝，请输入拒绝原因" />
+            {({ getFieldValue }) => {
+              const action = getFieldValue('action');
+              return action === 'approve' ? (
+                <Form.Item
+                  name="approveRemark"
+                  label="审批备注"
+                >
+                  <TextArea rows={3} placeholder="请输入审批备注（可选）" />
+                </Form.Item>
+              ) : action === 'reject' ? (
+                <Form.Item
+                  name="rejectReason"
+                  label="拒绝原因"
+                  rules={[{ required: true, message: '请输入拒绝原因' }]}
+                >
+                  <TextArea rows={3} placeholder="请输入拒绝原因" />
+                </Form.Item>
+              ) : null;
+            }}
           </Form.Item>
         </Form>
       </Modal>

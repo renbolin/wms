@@ -1,9 +1,23 @@
 import React, { useState } from 'react';
-import { Button, Table, Modal, Form, Input, Select, Card, Space, Row, Col, Switch } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Select, Card, Space, Row, Col, Switch, DatePicker, InputNumber } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { TableProps } from 'antd';
 
 const { Option } = Select;
+const { RangePicker } = DatePicker;
+
+// 筛选条件接口
+interface FilterParams {
+  workflowName?: string;
+  applicableType?: string;
+  status?: string;
+  createdDateRange?: [string, string];
+  updatedDateRange?: [string, string];
+  stepCountRange?: [number, number];
+  description?: string;
+  approverType?: string;
+  approver?: string;
+}
 
 // 审批步骤接口
 interface ApprovalStep {
@@ -100,13 +114,127 @@ const ApprovalWorkflowManagement: React.FC = () => {
   const [currentWorkflowSteps, setCurrentWorkflowSteps] = useState<ApprovalStep[]>([]);
   const [form] = Form.useForm();
   const [stepForm] = Form.useForm();
+  const [filterForm] = Form.useForm();
+  const [filters, setFilters] = useState<FilterParams>({});
 
   // 模拟用户和角色数据
   const users = ['张总', '李经理', '王主管', '赵总监'];
   const roles = ['部门经理', '财务经理', '采购经理', '总经理'];
   const departments = ['财务部', '采购部', '行政部', 'IT部'];
 
+  // 筛选逻辑
+  const filteredWorkflows = workflows.filter(workflow => {
+    // 流程名称筛选
+    if (filters.workflowName && !workflow.workflowName.toLowerCase().includes(filters.workflowName.toLowerCase())) {
+      return false;
+    }
+
+    // 适用类型筛选
+    if (filters.applicableType && workflow.applicableType !== filters.applicableType) {
+      return false;
+    }
+
+    // 状态筛选
+    if (filters.status && workflow.status !== filters.status) {
+      return false;
+    }
+
+    // 描述筛选
+    if (filters.description && !workflow.description.toLowerCase().includes(filters.description.toLowerCase())) {
+      return false;
+    }
+
+    // 创建时间范围筛选
+    if (filters.createdDateRange && filters.createdDateRange.length === 2) {
+      const [startDate, endDate] = filters.createdDateRange;
+      if (workflow.createdAt < startDate || workflow.createdAt > endDate) {
+        return false;
+      }
+    }
+
+    // 更新时间范围筛选
+    if (filters.updatedDateRange && filters.updatedDateRange.length === 2) {
+      const [startDate, endDate] = filters.updatedDateRange;
+      if (workflow.updatedAt < startDate || workflow.updatedAt > endDate) {
+        return false;
+      }
+    }
+
+    // 步骤数量范围筛选
+    if (filters.stepCountRange && filters.stepCountRange.length === 2) {
+      const [minCount, maxCount] = filters.stepCountRange;
+      const stepCount = workflow.steps.length;
+      if (stepCount < minCount || stepCount > maxCount) {
+        return false;
+      }
+    }
+
+    // 审批人类型筛选
+    if (filters.approverType) {
+      const hasApproverType = workflow.steps.some(step => step.approverType === filters.approverType);
+      if (!hasApproverType) {
+        return false;
+      }
+    }
+
+    // 审批人筛选
+    if (filters.approver) {
+      const hasApprover = workflow.steps.some(step => 
+        step.approvers.some(approver => 
+          approver.toLowerCase().includes(filters.approver!.toLowerCase())
+        )
+      );
+      if (!hasApprover) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // 处理筛选
+  const handleFilter = (values: FilterParams) => {
+    const processedFilters = { ...values };
+    
+    // 处理日期范围
+    if (values.createdDateRange) {
+      processedFilters.createdDateRange = [
+        values.createdDateRange[0],
+        values.createdDateRange[1]
+      ];
+    }
+    
+    if (values.updatedDateRange) {
+      processedFilters.updatedDateRange = [
+        values.updatedDateRange[0],
+        values.updatedDateRange[1]
+      ];
+    }
+
+    // 处理步骤数量范围
+    if (values.stepCountRange) {
+      processedFilters.stepCountRange = [
+        values.stepCountRange[0] || 0,
+        values.stepCountRange[1] || 999
+      ];
+    }
+
+    setFilters(processedFilters);
+  };
+
+  // 重置筛选
+  const handleResetFilter = () => {
+    filterForm.resetFields();
+    setFilters({});
+  };
+
   const columns: TableProps<ApprovalWorkflow>['columns'] = [
+    {
+      title: '序号',
+      key: 'index',
+      width: 60,
+      render: (_, __, index) => index + 1,
+    },
     {
       title: '流程名称',
       dataIndex: 'workflowName',
@@ -320,6 +448,92 @@ const ApprovalWorkflowManagement: React.FC = () => {
 
   return (
     <div>
+      {/* 筛选条件 */}
+      <Card style={{ marginBottom: 16 }}>
+        <Form
+          form={filterForm}
+          layout="inline"
+          onFinish={handleFilter}
+          style={{ marginBottom: 16 }}
+        >
+          <Row gutter={[16, 16]} style={{ width: '100%' }}>
+            <Col span={6}>
+              <Form.Item name="workflowName" label="流程名称">
+                <Input placeholder="请输入流程名称" allowClear />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="applicableType" label="适用类型">
+                <Select placeholder="请选择适用类型" allowClear>
+                  <Option value="normal">正常采购</Option>
+                  <Option value="emergency">应急采购</Option>
+                  <Option value="all">全部类型</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="status" label="状态">
+                <Select placeholder="请选择状态" allowClear>
+                  <Option value="active">启用</Option>
+                  <Option value="inactive">禁用</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="description" label="流程描述">
+                <Input placeholder="请输入描述关键词" allowClear />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="approverType" label="审批人类型">
+                <Select placeholder="请选择审批人类型" allowClear>
+                  <Option value="user">指定用户</Option>
+                  <Option value="role">角色</Option>
+                  <Option value="department">部门</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="approver" label="审批人">
+                <Input placeholder="请输入审批人" allowClear />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="createdDateRange" label="创建时间">
+                <RangePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="updatedDateRange" label="更新时间">
+                <RangePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item label="步骤数量">
+                <Input.Group compact>
+                  <Form.Item name={['stepCountRange', 0]} noStyle>
+                    <InputNumber placeholder="最小" style={{ width: '50%' }} min={0} />
+                  </Form.Item>
+                  <Form.Item name={['stepCountRange', 1]} noStyle>
+                    <InputNumber placeholder="最大" style={{ width: '50%' }} min={0} />
+                  </Form.Item>
+                </Input.Group>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Space>
+                <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
+                  查询
+                </Button>
+                <Button onClick={handleResetFilter} icon={<ReloadOutlined />}>
+                  重置
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        </Form>
+      </Card>
+
       <div style={{ marginBottom: 16 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
           新增审批流程
@@ -328,7 +542,7 @@ const ApprovalWorkflowManagement: React.FC = () => {
       
       <Table
         columns={columns}
-        dataSource={workflows}
+        dataSource={filteredWorkflows}
         rowKey="id"
         pagination={{
           pageSize: 10,

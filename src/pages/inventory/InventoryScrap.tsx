@@ -601,6 +601,56 @@ const InventoryScrap: React.FC = () => {
 
   return (
     <div className="p-6">
+      {/* 统计卡片 */}
+      <Row gutter={16} className="mb-6">
+        <Col span={4}>
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{data.length}</div>
+            <div className="text-gray-500">总单据</div>
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-orange-500">
+              {data.filter(item => item.status === 'pending').length}
+            </div>
+            <div className="text-gray-500">待审批</div>
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {data.filter(item => item.status === 'approved').length}
+            </div>
+            <div className="text-gray-500">已审批</div>
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-purple-600">
+              {data.filter(item => item.status === 'processed').length}
+            </div>
+            <div className="text-gray-500">已处理</div>
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-yellow-600">
+              {data.filter(item => item.type === 'damage').length}
+            </div>
+            <div className="text-gray-500">报损单</div>
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-red-600">
+              {data.filter(item => item.type === 'scrap').length}
+            </div>
+            <div className="text-gray-500">报废单</div>
+          </Card>
+        </Col>
+      </Row>
+
       <Card>
         {/* 搜索表单 */}
         <Form form={searchForm} layout="inline" className="mb-4">
