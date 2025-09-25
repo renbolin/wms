@@ -253,7 +253,7 @@ const AgeAnalysis: React.FC = () => {
   const totalValue = filteredData.reduce((sum, item) => sum + item.totalValue, 0);
   const freshItems = filteredData.filter(item => item.ageCategory === 'fresh').length;
   const stagnantItems = filteredData.filter(item => item.ageCategory === 'stagnant').length;
-  const avgTurnoverRate = filteredData.reduce((sum, item) => sum + item.turnoverRate, 0) / totalItems || 0;
+  const avgTurnoverRate = totalItems > 0 ? filteredData.reduce((sum, item) => sum + (item.turnoverRate || 0), 0) / totalItems : 0;
 
   // 图表配置
   const barConfig = {

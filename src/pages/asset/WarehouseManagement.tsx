@@ -711,7 +711,7 @@ const WarehouseManagement: React.FC = () => {
       key: 'usage',
       width: 100,
       render: (_, record) => {
-        const usage = (record.currentStock / record.capacity * 100).toFixed(1);
+        const usage = record.capacity > 0 ? (record.currentStock / record.capacity * 100).toFixed(1) : '0.0';
         const color = parseFloat(usage) > 80 ? 'red' : parseFloat(usage) > 60 ? 'orange' : 'green';
         return <Tag color={color}>{usage}%</Tag>;
       },
@@ -1026,7 +1026,7 @@ const WarehouseManagement: React.FC = () => {
             <Descriptions.Item label="容量">{selectedWarehouse.capacity.toLocaleString()}</Descriptions.Item>
             <Descriptions.Item label="当前库存">{selectedWarehouse.currentStock.toLocaleString()}</Descriptions.Item>
             <Descriptions.Item label="使用率">
-              {(selectedWarehouse.currentStock / selectedWarehouse.capacity * 100).toFixed(1)}%
+              {selectedWarehouse.capacity > 0 ? (selectedWarehouse.currentStock / selectedWarehouse.capacity * 100).toFixed(1) : '0.0'}%
             </Descriptions.Item>
             <Descriptions.Item label="负责人">{selectedWarehouse.manager}</Descriptions.Item>
             <Descriptions.Item label="联系方式">{selectedWarehouse.contact}</Descriptions.Item>

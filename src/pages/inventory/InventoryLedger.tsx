@@ -328,7 +328,7 @@ const InventoryLedger: React.FC = () => {
   };
 
   // 计算统计数据
-  const totalValue = filteredData.reduce((sum, item) => sum + item.totalValue, 0);
+  const totalValue = filteredData.reduce((sum, item) => sum + (item.totalValue || 0), 0);
   const totalItems = filteredData.length;
   const lowStockItems = filteredData.filter(item => item.status === 'low' || item.status === 'out').length;
   const excessStockItems = filteredData.filter(item => item.status === 'excess').length;

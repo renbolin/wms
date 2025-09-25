@@ -973,16 +973,56 @@ const AssetRegister: React.FC = () => {
   };
 
   return (
-    <div className="asset-register">
+    <div className="asset-register" style={{ padding: '0 4px', maxWidth: '100%', overflow: 'hidden' }}>
       <style>{`
         .tree-node:hover .tree-actions {
           display: block !important;
         }
+        .asset-register {
+          width: 100%;
+          max-width: 100vw;
+          box-sizing: border-box;
+        }
+        .asset-register .ant-row {
+          margin: 0 !important;
+          width: 100%;
+        }
+        .asset-register .ant-col {
+          padding: 0 4px !important;
+        }
+        .asset-register .ant-card {
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .asset-register .ant-table-wrapper {
+          width: 100%;
+          overflow: auto;
+        }
+        @media (max-width: 1400px) {
+          .asset-register .ant-col[flex="280px"] {
+            flex: 0 0 260px !important;
+          }
+        }
+        @media (max-width: 1200px) {
+          .asset-register .ant-col[flex="280px"] {
+            flex: 0 0 240px !important;
+          }
+        }
+        @media (max-width: 992px) {
+          .asset-register .ant-col[flex="280px"] {
+            flex: 0 0 220px !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .asset-register .ant-col[flex="280px"] {
+            flex: 0 0 200px !important;
+          }
+        }
       `}</style>
       
-      <Row gutter={16}>
+      <Row gutter={[8, 8]} style={{ margin: 0, width: '100%' }}>
         {/* 左侧设备类型树 */}
-        <Col flex="300px">
+        <Col flex="280px" style={{ minWidth: '240px' }}>
           <Card 
             title="设备类型" 
             size="small"
@@ -996,6 +1036,8 @@ const AssetRegister: React.FC = () => {
                 添加类型
               </Button>
             }
+            style={{ height: 'calc(100vh - 200px)' }}
+            styles={{ body: { padding: '12px', height: 'calc(100vh - 260px)', overflow: 'auto' } }}
           >
             <div style={{ marginBottom: 8 }}>
               <Input.Search
@@ -1010,7 +1052,7 @@ const AssetRegister: React.FC = () => {
               showLine
               selectedKeys={selectedTypeKey ? [selectedTypeKey] : []}
               onSelect={handleTypeSelect}
-              style={{ minHeight: 400 }}
+              style={{ minHeight: 300 }}
             >
               {filteredTypeTree.map(node => renderTreeNode(node))}
             </Tree>
@@ -1018,29 +1060,32 @@ const AssetRegister: React.FC = () => {
         </Col>
 
         {/* 右侧资产列表 */}
-        <Col flex="auto">
-          <Card>
+        <Col flex="auto" style={{ minWidth: 0, width: 0 }}>
+          <Card 
+             style={{ height: 'calc(100vh - 200px)', width: '100%' }} 
+             styles={{ body: { padding: '12px', height: 'calc(100vh - 260px)', overflow: 'auto' } }}
+           >
             <div style={{ marginBottom: 16 }}>
               <Form form={searchForm} layout="vertical" onFinish={handleSearch}>
-                <Row gutter={16}>
-                  <Col span={6}>
-                    <Form.Item name="assetCode" label="资产编号">
-                      <Input placeholder="请输入资产编号" />
+                <Row gutter={[8, 6]}>
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="assetCode" label="资产编号" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入资产编号" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="assetName" label="资产名称">
-                      <Input placeholder="请输入资产名称" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="assetName" label="资产名称" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入资产名称" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="deviceTypeName" label="设备类型">
-                      <Input placeholder="请输入设备类型" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="deviceTypeName" label="设备类型" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入设备类型" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="deviceType" label="设备分类">
-                      <Select placeholder="请选择设备分类" allowClear>
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="deviceType" label="设备分类" style={{ marginBottom: 8 }}>
+                      <Select placeholder="请选择设备分类" allowClear size="small">
                         <Option value="main">主设备</Option>
                         <Option value="auxiliary">附属设备</Option>
                         <Option value="spare">备品备件</Option>
@@ -1050,93 +1095,82 @@ const AssetRegister: React.FC = () => {
                     </Form.Item>
                   </Col>
                 </Row>
-                <Row gutter={16}>
-                  <Col span={6}>
-                    <Form.Item name="specification" label="规格型号">
-                      <Input placeholder="请输入规格型号" />
+                <Row gutter={[8, 6]}>
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="specification" label="规格型号" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入规格型号" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="model" label="型号">
-                      <Input placeholder="请输入型号" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="brand" label="品牌" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入品牌" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="brand" label="品牌">
-                      <Input placeholder="请输入品牌" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="model" label="型号" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入型号" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="manufacturer" label="生产厂商">
-                      <Input placeholder="请输入生产厂商" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="manufacturer" label="生产厂商" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入生产厂商" size="small" />
                     </Form.Item>
                   </Col>
-                </Row>
-                <Row gutter={16}>
-                  <Col span={6}>
-                    <Form.Item name="supplier" label="供应商">
-                      <Input placeholder="请输入供应商" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="supplier" label="供应商" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入供应商" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="serialNumber" label="序列号">
-                      <Input placeholder="请输入序列号" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="location" label="存放位置" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入存放位置" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="location" label="存放位置">
-                      <Input placeholder="请输入存放位置" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="maintenanceCycle" label="检修周期" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入检修周期" size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="maintenanceCycle" label="检修周期">
-                      <Input placeholder="请输入检修周期" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="usageYears" label="使用年限" style={{ marginBottom: 8 }}>
+                      <InputNumber placeholder="请输入使用年限" style={{ width: '100%' }} min={0} size="small" />
                     </Form.Item>
                   </Col>
-                </Row>
-                <Row gutter={16}>
-                  <Col span={6}>
-                    <Form.Item name="usageYears" label="使用年限">
-                      <InputNumber placeholder="请输入使用年限" style={{ width: '100%' }} min={0} />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="warrantyYears" label="保修年限" style={{ marginBottom: 8 }}>
+                      <InputNumber placeholder="请输入保修年限" style={{ width: '100%' }} min={0} size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="warrantyYears" label="保修年限">
-                      <InputNumber placeholder="请输入保修年限" style={{ width: '100%' }} min={0} />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="storageDate" label="入库日期" style={{ marginBottom: 8 }}>
+                      <DatePicker.RangePicker style={{ width: '100%' }} size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="storageDate" label="入库日期">
-                      <DatePicker.RangePicker style={{ width: '100%' }} />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="warrantyExpiry" label="保修到期" style={{ marginBottom: 8 }}>
+                      <DatePicker.RangePicker style={{ width: '100%' }} size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="warrantyExpiry" label="保修到期">
-                      <DatePicker.RangePicker style={{ width: '100%' }} />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="createUser" label="创建人" style={{ marginBottom: 8 }}>
+                      <Input placeholder="请输入创建人" size="small" />
                     </Form.Item>
                   </Col>
-                </Row>
-                <Row gutter={16}>
-                  <Col span={6}>
-                    <Form.Item name="createUser" label="创建人">
-                      <Input placeholder="请输入创建人" />
+                  <Col xs={24} sm={12} md={8} lg={6} xl={6}>
+                    <Form.Item name="createDate" label="创建时间" style={{ marginBottom: 8 }}>
+                      <DatePicker.RangePicker style={{ width: '100%' }} size="small" />
                     </Form.Item>
                   </Col>
-                  <Col span={6}>
-                    <Form.Item name="createDate" label="创建时间">
-                      <DatePicker.RangePicker style={{ width: '100%' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item>
+                  <Col xs={24} sm={24} md={16} lg={12} xl={12}>
+                    <Form.Item style={{ marginBottom: 8 }}>
                       <Space>
-                        <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
+                        <Button type="primary" htmlType="submit" icon={<SearchOutlined />} size="small">
                           搜索
                         </Button>
                         <Button onClick={() => {
                           searchForm.resetFields();
                           setFilteredData(assetData);
-                        }}>
+                        }} size="small">
                           重置
                         </Button>
                       </Space>
@@ -1148,13 +1182,13 @@ const AssetRegister: React.FC = () => {
 
             <div style={{ marginBottom: 16 }}>
               <Space>
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} size="small">
                   新增资产
                 </Button>
-                <Button icon={<ExportOutlined />}>
+                <Button icon={<ExportOutlined />} size="small">
                   导出Excel
                 </Button>
-                <Button icon={<ImportOutlined />}>
+                <Button icon={<ImportOutlined />} size="small">
                   导入Excel
                 </Button>
               </Space>
@@ -1171,8 +1205,11 @@ const AssetRegister: React.FC = () => {
                 showSizeChanger: true,
                 showQuickJumper: true,
                 showTotal: (total) => `共 ${total} 条记录`,
+                size: 'small',
               }}
-              scroll={{ x: 1000 }}
+              scroll={{ x: 'max-content', y: 'calc(100vh - 450px)' }}
+              size="small"
+              style={{ width: '100%' }}
             />
           </Card>
         </Col>

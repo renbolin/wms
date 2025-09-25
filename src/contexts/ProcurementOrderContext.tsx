@@ -64,6 +64,15 @@ interface ProcurementOrderContextType {
   deleteOrder: (id: string) => void;
   getOrderById: (id: string) => ProcurementOrder | undefined;
   getOrdersByStatus: (status: ProcurementOrder['status']) => ProcurementOrder[];
+  // 新增：从询价结果创建采购订单
+  createOrderFromQuotation: (quotationData: {
+    applicationId?: string;
+    inquiryId: string;
+    quotationId: string;
+    quotationRequestNo: string;
+    selectedQuotation: any;
+    quotationComparison?: any;
+  }) => void;
 }
 
 const ProcurementOrderContext = createContext<ProcurementOrderContextType | undefined>(undefined);
@@ -330,13 +339,66 @@ export const ProcurementOrderProvider: React.FC<ProcurementOrderProviderProps> =
     return orders.filter(order => order.status === status);
   };
 
+  // 从询价结果创建采购订单
+  const createOrderFromQuotation = (quotationData: {
+    applicationId?: string;
+    inquiryId: string;
+    quotationId: string;
+    quotationRequestNo: string;
+    selectedQuotation: any;
+    quotationComparison?: any;
+  }) => {
+    const now = new Date().toISOString();
+    const newOrder: ProcurementOrder = {
+      id: Date.now().toString(),
+      orderNumber: `PO${Date.now().toString().slice(-6)}`,
+      title: `基于询价单${quotationData.quotationRequestNo}的采购订单`,
+      supplier: quotationData.selectedQuotation.supplierName,
+      supplierContact: '联系人',
+      supplierPhone: '联系电话',
+      orderDate: now.split('T')[0],
+      expectedDeliveryDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      totalAmount: quotationData.selectedQuotation.totalAmount,
+      status: 'draft',
+      statusText: '草稿',
+      creator: '系统用户',
+      department: '采购部',
+      deliveryAddress: '默认收货地址',
+      recipient: '默认收货人',
+      recipientPhone: '默认联系电话',
+      items: quotationData.selectedQuotation.items.map((item: any) => ({
+        id: item.itemId || item.id,
+        name: item.name || '未知物品',
+        specification: item.specification || '未知规格',
+        unit: item.unit || '个',
+        quantity: item.quantity || 1,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        deliveryTime: item.deliveryTime || '7个工作日',
+        remarks: item.remarks
+      })),
+      // 关联信息
+      quotationRequestId: quotationData.inquiryId,
+      quotationRequestNo: quotationData.quotationRequestNo,
+      selectedQuotationId: quotationData.quotationId,
+      contractFiles: [],
+      attachmentFiles: [],
+      remarks: `基于询价单 ${quotationData.quotationRequestNo} 创建的采购订单`,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    setOrders(prev => [...prev, newOrder]);
+  };
+
   const value: ProcurementOrderContextType = {
     orders,
     addOrder,
     updateOrder,
     deleteOrder,
     getOrderById,
-    getOrdersByStatus
+    getOrdersByStatus,
+    createOrderFromQuotation
   };
 
   return (

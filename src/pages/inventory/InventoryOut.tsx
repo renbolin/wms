@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, InputNumber, Tabs, Upload, Progress, Statistic, Divider } from 'antd';
-import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, CloseOutlined, UploadOutlined, DownloadOutlined, PrinterOutlined, FileExcelOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, InputNumber, Tabs, Upload, Progress, Statistic, Divider, Tooltip, Alert } from 'antd';
+import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, CloseOutlined, UploadOutlined, DownloadOutlined, PrinterOutlined, FileExcelOutlined, UnorderedListOutlined, ThunderboltOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { selectBatchesByFIFO, getMockBatchesForItem, getBatchStatus, calculateBatchAge, type BatchInfo, type FIFOResult } from '../../utils/fifoUtils';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -68,6 +69,24 @@ interface OutboundItem {
   picker?: string; // 拣货员
   supplier?: string; // 供应商
   remarks: string;
+  // FIFO相关字段
+  batchAllocations?: BatchAllocation[]; // 批次分配详情
+  fifoRecommended?: boolean; // 是否为FIFO推荐
+  inboundDate?: string; // 入库日期
+  batchAge?: number; // 批次库龄
+}
+
+// 批次分配接口
+interface BatchAllocation {
+  batchNo: string;
+  batchId: string;
+  allocatedQuantity: number;
+  remainingQuantity: number;
+  unitPrice: number;
+  location: string;
+  inboundDate: string;
+  expiryDate?: string;
+  isRecommended: boolean;
 }
 
 const InventoryOut: React.FC = () => {
@@ -78,13 +97,18 @@ const InventoryOut: React.FC = () => {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isItemModalVisible, setIsItemModalVisible] = useState(false);
   const [isBatchModalVisible, setIsBatchModalVisible] = useState(false);
+  const [isFifoModalVisible, setIsFifoModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<OutboundOrder | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<OutboundOrder | null>(null);
   const [selectedItems, setSelectedItems] = useState<OutboundItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<OutboundItem | null>(null);
   const [batchUploadProgress, setBatchUploadProgress] = useState(0);
+  const [fifoResult, setFifoResult] = useState<FIFOResult | null>(null);
+  const [availableBatches, setAvailableBatches] = useState<BatchInfo[]>([]);
   const [form] = Form.useForm();
   const [searchForm] = Form.useForm();
   const [itemForm] = Form.useForm();
+  const [fifoForm] = Form.useForm();
   const [activeTab, setActiveTab] = useState('all');
 
   // 模拟数据
@@ -429,6 +453,108 @@ const InventoryOut: React.FC = () => {
     setSelectedRecord(record);
     setSelectedItems(record.items);
     setIsItemModalVisible(true);
+  };
+
+  // FIFO批次选择
+  const handleFifoSelection = (item: OutboundItem) => {
+    setSelectedItem(item);
+    
+    // 获取该物料的可用批次
+    const batches = getMockBatchesForItem(item.itemCode, selectedRecord?.warehouse || 'WH001');
+    setAvailableBatches(batches);
+    
+    // 执行FIFO选择
+    const result = selectBatchesByFIFO(
+      item.itemCode,
+      selectedRecord?.warehouse || 'WH001',
+      item.requestQuantity,
+      batches
+    );
+    
+    setFifoResult(result);
+    setIsFifoModalVisible(true);
+    
+    // 设置表单初始值
+    fifoForm.setFieldsValue({
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      requestQuantity: item.requestQuantity,
+      allocations: result.allocations
+    });
+  };
+
+  // 确认FIFO批次分配
+  const handleConfirmFifoAllocation = () => {
+    if (!selectedItem || !fifoResult) return;
+    
+    const values = fifoForm.getFieldsValue();
+    const allocations = values.allocations || [];
+    
+    // 更新出库明细的批次信息
+    const updatedItems = selectedItems.map(item => {
+      if (item.id === selectedItem.id) {
+        return {
+          ...item,
+          batchAllocations: allocations,
+          fifoRecommended: true,
+          batchNo: allocations[0]?.batchNo || '',
+          location: allocations[0]?.location || '',
+          inboundDate: allocations[0]?.inboundDate || '',
+          expiryDate: allocations[0]?.expiryDate || '',
+          batchAge: allocations[0]?.inboundDate ? calculateBatchAge(allocations[0].inboundDate) : 0,
+          unitPrice: allocations[0]?.unitPrice || item.unitPrice,
+          totalAmount: allocations.reduce((sum: number, alloc: any) => sum + (alloc.allocatedQuantity * alloc.unitPrice), 0)
+        };
+      }
+      return item;
+    });
+    
+    setSelectedItems(updatedItems);
+    
+    // 更新主数据中的出库单
+    if (selectedRecord) {
+      const updatedData = data.map(order => {
+        if (order.id === selectedRecord.id) {
+          return {
+            ...order,
+            items: updatedItems
+          };
+        }
+        return order;
+      });
+      
+      setData(updatedData);
+      setFilteredData(updatedData);
+    }
+    
+    setIsFifoModalVisible(false);
+    message.success('FIFO批次分配成功');
+  };
+
+  // 手动调整批次分配
+  const handleAdjustBatchAllocation = (index: number, field: string, value: any) => {
+    if (!fifoResult) return;
+    
+    const newAllocations = [...fifoResult.allocations];
+    newAllocations[index] = {
+      ...newAllocations[index],
+      [field]: value
+    };
+    
+    // 重新计算总分配数量
+    const totalAllocated = newAllocations.reduce((sum, alloc) => sum + alloc.allocatedQuantity, 0);
+    const shortageQuantity = (selectedItem?.requestQuantity || 0) - totalAllocated;
+    
+    const updatedResult: FIFOResult = {
+      ...fifoResult,
+      allocations: newAllocations,
+      totalAllocated,
+      shortageQuantity,
+      success: shortageQuantity === 0
+    };
+    
+    setFifoResult(updatedResult);
+    fifoForm.setFieldsValue({ allocations: newAllocations });
   };
 
   // 处理批量上传
@@ -1185,9 +1311,52 @@ const InventoryOut: React.FC = () => {
                   ),
                 },
                 {
+                  title: '入库日期',
+                  dataIndex: 'inboundDate',
+                  width: 120,
+                  render: (date: string) => date || '-',
+                },
+                {
+                  title: '批次天数',
+                  dataIndex: 'batchAge',
+                  width: 100,
+                  render: (age: number) => age ? `${age}天` : '-',
+                },
+                {
+                  title: 'FIFO状态',
+                  dataIndex: 'fifoRecommended',
+                  width: 100,
+                  render: (recommended: boolean) => (
+                    <Tag color={recommended ? 'green' : 'default'} icon={recommended ? <ThunderboltOutlined /> : undefined}>
+                      {recommended ? 'FIFO推荐' : '手动选择'}
+                    </Tag>
+                  ),
+                },
+                {
                   title: '备注',
                   dataIndex: 'remarks',
                   width: 150,
+                },
+                {
+                  title: '操作',
+                  key: 'action',
+                  width: 120,
+                  fixed: 'right',
+                  render: (_, record: OutboundItem) => (
+                    <Space size="small">
+                      <Tooltip title="FIFO批次选择">
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<ThunderboltOutlined />}
+                          onClick={() => handleFifoSelection(record)}
+                          disabled={selectedRecord?.status === 'completed'}
+                        >
+                          FIFO
+                        </Button>
+                      </Tooltip>
+                    </Space>
+                  ),
                 },
               ]}
             />
@@ -1260,6 +1429,199 @@ const InventoryOut: React.FC = () => {
             </Space>
           </div>
         </div>
+      </Modal>
+
+      {/* FIFO批次选择模态框 */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ThunderboltOutlined style={{ color: '#1890ff' }} />
+            FIFO批次自动选择
+          </div>
+        }
+        open={isFifoModalVisible}
+        onCancel={() => setIsFifoModalVisible(false)}
+        width={1000}
+        footer={[
+          <Button key="cancel" onClick={() => setIsFifoModalVisible(false)}>
+            取消
+          </Button>,
+          <Button key="confirm" type="primary" onClick={handleConfirmFifoAllocation}>
+            确认分配
+          </Button>,
+        ]}
+      >
+        {selectedItem && fifoResult && (
+          <div>
+            {/* 物料信息 */}
+            <Descriptions bordered column={2} style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="物料编码">{selectedItem.itemCode}</Descriptions.Item>
+              <Descriptions.Item label="物料名称">{selectedItem.itemName}</Descriptions.Item>
+              <Descriptions.Item label="申请数量">{selectedItem.requestQuantity}</Descriptions.Item>
+              <Descriptions.Item label="单位">{selectedItem.unit}</Descriptions.Item>
+            </Descriptions>
+
+            {/* FIFO分配结果 */}
+            <div style={{ marginBottom: 16 }}>
+              <Alert
+                type={fifoResult.success ? 'success' : 'warning'}
+                message={
+                  <div>
+                    <div>
+                      <strong>FIFO分配结果：</strong>
+                      总分配数量 {fifoResult.totalAllocated}，
+                      {fifoResult.success ? '分配完成' : `缺货 ${fifoResult.shortageQuantity}`}
+                    </div>
+                    {!fifoResult.success && (
+                      <div style={{ marginTop: 4, fontSize: '12px' }}>
+                        建议：联系采购部门补充库存或调整出库数量
+                      </div>
+                    )}
+                  </div>
+                }
+                showIcon
+              />
+            </div>
+
+            {/* 批次分配表格 */}
+            <Form form={fifoForm} layout="vertical">
+              <Form.Item label="批次分配详情">
+                <Table
+                  dataSource={fifoResult.allocations}
+                  rowKey="batchNo"
+                  pagination={false}
+                  size="small"
+                  scroll={{ x: 800 }}
+                  columns={[
+                    {
+                      title: '批次号',
+                      dataIndex: 'batchNo',
+                      width: 120,
+                      render: (batchNo: string, record: any) => {
+                        const batchStatus = getBatchStatus(record);
+                        return (
+                          <div>
+                            <div>{batchNo}</div>
+                            <Tag color={batchStatus.color}>
+                              {batchStatus.statusText}
+                            </Tag>
+                          </div>
+                        );
+                      },
+                    },
+                    {
+                      title: '库位',
+                      dataIndex: 'location',
+                      width: 100,
+                    },
+                    {
+                      title: '入库日期',
+                      dataIndex: 'inboundDate',
+                      width: 120,
+                      render: (date: string) => (
+                        <div>
+                          <div>{date}</div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            {calculateBatchAge(date)}天
+                          </div>
+                        </div>
+                      ),
+                    },
+                    {
+                      title: '有效期',
+                      dataIndex: 'expiryDate',
+                      width: 120,
+                    },
+                    {
+                      title: '库存数量',
+                      dataIndex: 'availableQuantity',
+                      width: 100,
+                    },
+                    {
+                      title: '分配数量',
+                      dataIndex: 'allocatedQuantity',
+                      width: 120,
+                      render: (quantity: number, record: any, index: number) => (
+                        <InputNumber
+                          min={0}
+                          max={record.availableQuantity}
+                          value={quantity}
+                          onChange={(value) => handleAdjustBatchAllocation(index, 'allocatedQuantity', value || 0)}
+                          style={{ width: '100%' }}
+                        />
+                      ),
+                    },
+                    {
+                      title: '单价',
+                      dataIndex: 'unitPrice',
+                      width: 100,
+                      render: (price: number) => `¥${price.toFixed(2)}`,
+                    },
+                    {
+                      title: '金额',
+                      width: 100,
+                      render: (_, record: any) => `¥${(record.allocatedQuantity * record.unitPrice).toFixed(2)}`,
+                    },
+                  ]}
+                />
+              </Form.Item>
+            </Form>
+
+            {/* 可用批次信息 */}
+            <div style={{ marginTop: 16 }}>
+              <h4>
+                <InfoCircleOutlined style={{ marginRight: 8 }} />
+                所有可用批次
+              </h4>
+              <Table
+                dataSource={availableBatches}
+                rowKey="batchNo"
+                pagination={false}
+                size="small"
+                scroll={{ x: 600 }}
+                columns={[
+                  {
+                    title: '批次号',
+                    dataIndex: 'batchNo',
+                    width: 120,
+                  },
+                  {
+                    title: '库位',
+                    dataIndex: 'location',
+                    width: 100,
+                  },
+                  {
+                    title: '入库日期',
+                    dataIndex: 'inboundDate',
+                    width: 120,
+                  },
+                  {
+                    title: '有效期',
+                    dataIndex: 'expiryDate',
+                    width: 120,
+                  },
+                  {
+                    title: '库存数量',
+                    dataIndex: 'availableQuantity',
+                    width: 100,
+                  },
+                  {
+                    title: '状态',
+                    width: 100,
+                    render: (_, record: BatchInfo) => {
+                      const batchStatus = getBatchStatus(record);
+                      return (
+                        <Tag color={batchStatus.color}>
+                          {batchStatus.statusText}
+                        </Tag>
+                      );
+                    },
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

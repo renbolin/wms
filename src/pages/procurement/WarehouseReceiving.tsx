@@ -15,7 +15,11 @@ interface ReceivingRecord {
   id: string;
   receivingNo: string;
   purchaseOrderNo: string;
+  purchaseOrderId?: string; // 采购订单ID
+  deliveryNo?: string; // 到货单号
+  deliveryNoteId?: string; // 到货单ID
   supplierName: string;
+  supplierId?: string; // 供应商ID
   receivingDate: string | null;
   receiver: string | null;
   department: string | null;
@@ -31,6 +35,8 @@ interface ReceivingRecord {
   operator?: string; // 操作员
   operationDate?: string; // 操作日期
   inboundRemarks?: string; // 入库备注
+  qualityCheckPassed?: boolean; // 质量检查是否通过
+  batchManagement?: boolean; // 是否启用批次管理
 }
 
 // 入库项目接口
@@ -97,7 +103,9 @@ const WarehouseReceiving: React.FC = () => {
       id: '1',
       deliveryNo: 'DN202401001',
       purchaseOrderNo: 'PO202401001',
+      purchaseOrderId: 'po_001',
       supplierName: '北京科技有限公司',
+      supplierId: 'supplier_001',
       supplierContact: '张经理',
       supplierPhone: '13800138001',
       deliveryDate: '2024-01-25',
@@ -151,7 +159,9 @@ const WarehouseReceiving: React.FC = () => {
       id: '2',
       deliveryNo: 'DN202401003',
       purchaseOrderNo: 'PO202401003',
+      purchaseOrderId: 'po_003',
       supplierName: '广州电子科技',
+      supplierId: 'supplier_003',
       supplierContact: '黄经理',
       supplierPhone: '13800138003',
       deliveryDate: '2024-01-30',
@@ -345,7 +355,11 @@ const WarehouseReceiving: React.FC = () => {
       id: `WR${Date.now()}`,
       receivingNo: `WR${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
       purchaseOrderNo: deliveryNote.purchaseOrderNo,
+      purchaseOrderId: deliveryNote.purchaseOrderId,
+      deliveryNo: deliveryNote.deliveryNo,
+      deliveryNoteId: deliveryNote.id,
       supplierName: deliveryNote.supplierName,
+      supplierId: deliveryNote.supplierId,
       receivingDate: null,
       receiver: null,
       department: null,
@@ -354,6 +368,8 @@ const WarehouseReceiving: React.FC = () => {
       status: 'pending',
       statusText: '待处理',
       totalAmount: deliveryNote.totalAmount,
+      qualityCheckPassed: deliveryNote.qualityCheckStatus === 'passed',
+      batchManagement: true,
       items: deliveryNote.items.map(item => {
           const currentStock = Math.floor(Math.random() * 50) + 10; // 模拟当前库存
           return {
@@ -1105,7 +1121,10 @@ const WarehouseReceiving: React.FC = () => {
             <Descriptions title="入库单基本信息" bordered size="small" column={2} style={{ marginBottom: 16 }}>
               <Descriptions.Item label="入库单号">{selectedRecord.receivingNo}</Descriptions.Item>
               <Descriptions.Item label="采购订单号">{selectedRecord.purchaseOrderNo}</Descriptions.Item>
+              <Descriptions.Item label="采购订单ID">{selectedRecord.purchaseOrderId || '未关联'}</Descriptions.Item>
+              <Descriptions.Item label="到货单号">{selectedRecord.deliveryNo || '未关联'}</Descriptions.Item>
               <Descriptions.Item label="供应商">{selectedRecord.supplierName}</Descriptions.Item>
+              <Descriptions.Item label="供应商ID">{selectedRecord.supplierId || '未关联'}</Descriptions.Item>
               <Descriptions.Item label="入库日期">{selectedRecord.receivingDate || '待确定'}</Descriptions.Item>
               <Descriptions.Item label="收货人">{selectedRecord.receiver || '待确定'}</Descriptions.Item>
               <Descriptions.Item label="收货部门">{selectedRecord.department || '待确定'}</Descriptions.Item>
@@ -1113,6 +1132,16 @@ const WarehouseReceiving: React.FC = () => {
               <Descriptions.Item label="状态">
                 <Tag color={selectedRecord.status === 'pending' ? 'orange' : selectedRecord.status === 'completed' ? 'green' : 'red'}>
                   {selectedRecord.statusText}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="质量检查">
+                <Tag color={selectedRecord.qualityCheckPassed ? 'success' : 'warning'}>
+                  {selectedRecord.qualityCheckPassed ? '已通过' : '待检查'}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="批次管理">
+                <Tag color={selectedRecord.batchManagement ? 'processing' : 'default'}>
+                  {selectedRecord.batchManagement ? '启用' : '未启用'}
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="备注" span={2}>{selectedRecord.remarks || '无'}</Descriptions.Item>

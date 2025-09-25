@@ -14,7 +14,8 @@ const routeConfig: Record<string, { title: string; icon?: React.ReactNode }> = {
   
   // 采购管理
   '/procurement': { title: '采购管理', icon: <ShoppingOutlined /> },
-  '/procurement/requisition': { title: '采购申请', icon: <FileTextOutlined /> },
+  '/procurement/application': { title: '采购申请', icon: <FileTextOutlined /> },
+  '/procurement/requisition': { title: '采购需求', icon: <FormOutlined /> },
   '/procurement/order': { title: '采购订单', icon: <ShoppingCartOutlined /> },
   '/procurement/delivery-notes': { title: '到货单管理', icon: <InboxOutlined /> },
   '/procurement/receiving': { title: '入库处理', icon: <ImportOutlined /> },

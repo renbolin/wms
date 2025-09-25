@@ -14,7 +14,7 @@ const TopSuppliers: React.FC<TopSuppliersProps> = ({ suppliers, totalAmount }) =
   };
 
   const getPercentage = (amount: number) => {
-    return ((amount / totalAmount) * 100).toFixed(1);
+    return totalAmount > 0 ? ((amount / totalAmount) * 100).toFixed(1) : '0.0';
   };
 
   const getAvatarColor = (index: number) => {

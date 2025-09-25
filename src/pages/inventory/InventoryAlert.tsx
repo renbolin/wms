@@ -373,7 +373,7 @@ const InventoryAlert: React.FC = () => {
   };
 
   const getStockProgress = (current: number, safety: number, max: number) => {
-    const percent = (current / max) * 100;
+    const percent = max > 0 ? (current / max) * 100 : 0;
     let status: 'success' | 'exception' | 'active' | 'normal' = 'normal';
     
     if (current === 0) {

@@ -36,8 +36,12 @@ const MainLayout: React.FC = () => {
           label: '采购管理',
           children: [
             {
-              key: '/procurement/requisition',
+              key: '/procurement/application',
               label: '采购申请',
+            },
+            {
+              key: '/procurement/requisition',
+              label: '采购需求',
             },
             {
               key: '/procurement/quotation',
@@ -229,18 +233,32 @@ const MainLayout: React.FC = () => {
         collapsible 
         collapsed={collapsed}
         className="h-screen fixed left-0 top-0 z-10"
+        style={{ 
+          overflowY: 'auto',
+          overflowX: 'hidden'
+        }}
       >
         <div className="logo">
           {collapsed ? 'RA' : 'React Admin'}
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={getSelectedKeys()}
-          defaultOpenKeys={['/system']}
-          items={menuItems}
-          onClick={handleMenuClick}
-        />
+        <div style={{ 
+          height: 'calc(100vh - 64px)', 
+          overflowY: 'auto',
+          overflowX: 'hidden'
+        }}>
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={getSelectedKeys()}
+            defaultOpenKeys={['/system']}
+            items={menuItems}
+            onClick={handleMenuClick}
+            style={{ 
+              border: 'none',
+              height: '100%'
+            }}
+          />
+        </div>
       </Sider>
       <Layout className={cn("transition-all duration-300", collapsed ? "ml-[80px]" : "ml-[200px]")}>
         <Header className="bg-white p-0 flex justify-between items-center px-4">

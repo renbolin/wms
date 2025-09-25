@@ -6,6 +6,7 @@ export const mockProcurementOrders: ProcurementOrder[] = [
     id: '1',
     orderNumber: 'PO-2024-001',
     supplierName: '华为技术有限公司',
+    supplierId: '1',
     items: [
       {
         id: '1',
@@ -29,6 +30,7 @@ export const mockProcurementOrders: ProcurementOrder[] = [
     id: '2',
     orderNumber: 'PO-2024-002',
     supplierName: '联想集团',
+    supplierId: '2',
     items: [
       {
         id: '2',
@@ -49,6 +51,7 @@ export const mockProcurementOrders: ProcurementOrder[] = [
     id: '3',
     orderNumber: 'PO-2024-003',
     supplierName: '得力集团',
+    supplierId: '3',
     items: [
       {
         id: '3',
@@ -70,6 +73,7 @@ export const mockProcurementOrders: ProcurementOrder[] = [
     id: '4',
     orderNumber: 'PO-2024-004',
     supplierName: '海康威视',
+    supplierId: '4',
     items: [
       {
         id: '4',

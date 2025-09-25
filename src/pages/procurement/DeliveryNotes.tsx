@@ -31,7 +31,9 @@ const DeliveryNotes: React.FC = () => {
       id: '1',
       deliveryNo: 'DN202401001',
       purchaseOrderNo: 'PO202401001',
+      purchaseOrderId: 'po_001',
       supplierName: '北京科技有限公司',
+      supplierId: 'supplier_001',
       supplierContact: '张经理',
       supplierPhone: '13800138001',
       deliveryDate: '2024-01-25',
@@ -41,6 +43,8 @@ const DeliveryNotes: React.FC = () => {
       status: 'completed',
       statusText: '已完成',
       totalAmount: 45800,
+      qualityCheckRequired: true,
+      qualityCheckStatus: 'passed',
       items: [
         {
           id: '1',
@@ -137,13 +141,16 @@ const DeliveryNotes: React.FC = () => {
       id: '2',
       deliveryNo: 'DN202401002',
       purchaseOrderNo: 'PO2024005',
+      purchaseOrderId: 'po_002',
       supplierName: '上海设备制造厂',
+      supplierId: 'supplier_002',
       supplierContact: '陈总',
       supplierPhone: '13800138002',
       deliveryDate: '2024-01-28',
       status: 'pending',
       statusText: '待接收',
       totalAmount: 1229000,
+      qualityCheckRequired: true,
       items: [
         {
           id: '4',
@@ -226,13 +233,16 @@ const DeliveryNotes: React.FC = () => {
       id: '3',
       deliveryNo: 'DN202401003',
       purchaseOrderNo: 'PO202401003',
+      purchaseOrderId: 'po_003',
       supplierName: '广州电子科技',
+      supplierId: 'supplier_003',
       supplierContact: '黄经理',
       supplierPhone: '13800138003',
       deliveryDate: '2024-01-30',
       status: 'partial',
       statusText: '部分接收',
       totalAmount: 58500,
+      qualityCheckRequired: false,
       items: [
         {
           id: '5',
@@ -923,7 +933,9 @@ const DeliveryNotes: React.FC = () => {
             <Descriptions title="基本信息" bordered size="small" style={{ marginBottom: 16 }}>
               <Descriptions.Item label="到货单号">{selectedRecord.deliveryNo}</Descriptions.Item>
               <Descriptions.Item label="采购订单号">{selectedRecord.purchaseOrderNo}</Descriptions.Item>
+              <Descriptions.Item label="采购订单ID">{selectedRecord.purchaseOrderId || '未关联'}</Descriptions.Item>
               <Descriptions.Item label="供应商">{selectedRecord.supplierName}</Descriptions.Item>
+              <Descriptions.Item label="供应商ID">{selectedRecord.supplierId || '未关联'}</Descriptions.Item>
               <Descriptions.Item label="联系人">{selectedRecord.supplierContact}</Descriptions.Item>
               <Descriptions.Item label="联系电话">{selectedRecord.supplierPhone}</Descriptions.Item>
               <Descriptions.Item label="到货日期">{selectedRecord.deliveryDate}</Descriptions.Item>
@@ -931,6 +943,21 @@ const DeliveryNotes: React.FC = () => {
               <Descriptions.Item label="接收人">{selectedRecord.receiver || '未接收'}</Descriptions.Item>
               <Descriptions.Item label="状态">
                 <Tag color={getStatusColor(selectedRecord.status)}>{selectedRecord.statusText}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="质量检查">
+                {selectedRecord.qualityCheckRequired ? (
+                  <Tag color={
+                    selectedRecord.qualityCheckStatus === 'passed' ? 'success' :
+                    selectedRecord.qualityCheckStatus === 'failed' ? 'error' :
+                    selectedRecord.qualityCheckStatus === 'waived' ? 'warning' : 'processing'
+                  }>
+                    {selectedRecord.qualityCheckStatus === 'passed' ? '已通过' :
+                     selectedRecord.qualityCheckStatus === 'failed' ? '未通过' :
+                     selectedRecord.qualityCheckStatus === 'waived' ? '已免检' : '待检查'}
+                  </Tag>
+                ) : (
+                  <Tag color="default">无需检查</Tag>
+                )}
               </Descriptions.Item>
             </Descriptions>
 

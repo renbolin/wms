@@ -137,7 +137,7 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
 };
 
 const ProcurementOrder: React.FC = () => {
-  const { orders, addOrder, updateOrder, deleteOrder: _deleteOrder } = useProcurementOrder();
+  const { orders, addOrder, updateOrder, deleteOrder, createOrderFromQuotation } = useProcurementOrder();
   const { quotationRequests } = useInquiry();
   const location = useLocation();
   const navigate = useNavigate();
@@ -169,6 +169,51 @@ const ProcurementOrder: React.FC = () => {
     setSelectedQuotationId('');
     form.resetFields();
     setIsModalVisible(true);
+  };
+
+  const handleCreateFromQuotation = (quotationRequestId: string, selectedQuotationId: string) => {
+    form.validateFields().then((values) => {
+      // 如果是从询价单生成，使用新的createOrderFromQuotation方法
+      if (quotationRequestId && selectedQuotationId) {
+        const quotationRequest = quotationRequests.find(q => q.id === quotationRequestId);
+        if (quotationRequest) {
+          const selectedQuotation = quotationRequest.quotations?.find((q: any) => q.status === 'selected');
+          if (selectedQuotation) {
+            createOrderFromQuotation({
+              inquiryId: quotationRequest.id,
+              quotationId: selectedQuotation.id,
+              quotationRequestNo: quotationRequest.requestNo,
+              selectedQuotation: selectedQuotation,
+              quotationComparison: null // comparisonResult属性不存在，暂时设为null
+            });
+            message.success('从询价结果创建采购订单成功');
+            setIsModalVisible(false);
+            return;
+          }
+        }
+      }
+
+      // 普通添加订单
+      const orderData = {
+        ...values,
+        id: Date.now().toString(),
+        orderNumber: `PO${Date.now().toString().slice(-6)}`,
+        orderDate: values.orderDate.format('YYYY-MM-DD'),
+        expectedDeliveryDate: values.expectedDeliveryDate.format('YYYY-MM-DD'),
+        status: 'draft',
+        statusText: '草稿',
+        creator: '系统用户',
+        department: '采购部',
+        contractFiles: [],
+        attachmentFiles: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      addOrder(orderData);
+      message.success('添加成功');
+      setIsModalVisible(false);
+    });
   };
 
   // 处理从询价台账页面跳转过来的情况
@@ -244,36 +289,10 @@ const ProcurementOrder: React.FC = () => {
           updatedAt: new Date().toISOString()
         };
 
-        // 如果是从询价单生成订单
+        // 如果是从询价单生成订单，使用新的createOrderFromQuotation方法
         if (isFromQuotation && selectedQuotationId) {
-          const quotationRequest = quotationRequests.find(q => q.id === selectedQuotationId);
-          if (quotationRequest) {
-            const selectedQuotation = quotationRequest.quotations?.find((q: any) => q.status === 'selected');
-            if (selectedQuotation) {
-              orderData = {
-                ...orderData,
-                title: quotationRequest.title,
-                supplier: selectedQuotation.supplierName,
-                supplierContact: '联系人',
-                supplierPhone: '联系电话',
-                totalAmount: selectedQuotation.totalAmount,
-                quotationRequestId: quotationRequest.id,
-                quotationRequestNo: quotationRequest.requestNo,
-                selectedQuotationId: selectedQuotation.id,
-                items: selectedQuotation.items.map((item: any) => ({
-                  id: item.itemId || item.id,
-                  name: item.name || '未知物品',
-                  specification: item.specification || '未知规格',
-                  unit: item.unit || '个',
-                  quantity: item.quantity || 1,
-                  unitPrice: item.unitPrice,
-                  totalPrice: item.totalPrice,
-                  deliveryTime: item.deliveryTime,
-                  remarks: item.remarks
-                }))
-              };
-            }
-          }
+          handleCreateFromQuotation(selectedQuotationId, selectedQuotationId);
+          return;
         }
 
         addOrder(orderData);

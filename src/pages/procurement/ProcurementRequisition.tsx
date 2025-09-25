@@ -4,30 +4,12 @@ import { EyeOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutli
 import type { TableProps } from 'antd';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { useInquiry, QuotationRequest } from '@/contexts/InquiryContext';
+import { useInquiry, QuotationRequest, ProcurementRequisition as ProcurementRequisitionType } from '@/contexts/InquiryContext';
+import { ProcurementApplication, ProcurementApplicationItem, ApprovalRecord } from '@/types/procurement';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { TextArea } = Input;
-
-interface ProcurementRequisition {
-  id: number;
-  requisitionNumber: string;
-  applicant: string;
-  department: string;
-  applicationDate: string;
-  status: string;
-  type: string; // 申请类型：应急采购、正常采购
-  description: string; // 采购描述
-  totalAmount?: number; // 总金额
-  approvalStatus: string; // 审批状态
-  processStatus: string; // 流程状态：draft(草稿)、submitted(已提交审批)、approved(审批通过)、rejected(已拒绝)
-  currentApprover?: string; // 当前审批人
-  rejectionReason?: string; // 拒绝原因
-  rejectedBy?: string; // 拒绝人
-  rejectedDate?: string; // 拒绝日期
-  inquiryStatus?: string; // 询价状态：未开始、询价中、已完成
-}
 
 
 
@@ -166,16 +148,16 @@ const ProcurementRequisition: React.FC = () => {
   const [form] = Form.useForm();
   const [inquiryForm] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<ProcurementRequisition | null>(null);
+  const [editingRecord, setEditingRecord] = useState<ProcurementApplication | null>(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [viewingRecord, setViewingRecord] = useState<ProcurementRequisition | null>(null);
+  const [viewingRecord, setViewingRecord] = useState<ProcurementApplication | null>(null);
   const [isProgressModalVisible, setIsProgressModalVisible] = useState(false);
-  const [progressRecord, setProgressRecord] = useState<ProcurementRequisition | null>(null);
+  const [progressRecord, setProgressRecord] = useState<ProcurementApplication | null>(null);
   const [isInquiryModalVisible, setIsInquiryModalVisible] = useState(false);
-  const [inquiryRecord, setInquiryRecord] = useState<ProcurementRequisition | null>(null);
+  const [inquiryRecord, setInquiryRecord] = useState<ProcurementApplication | null>(null);
   const [isInquiryDetailModalVisible, setIsInquiryDetailModalVisible] = useState(false);
   const [selectedQuotationRequest, setSelectedQuotationRequest] = useState<any>(null);
-  const [filteredData, setFilteredData] = useState<ProcurementRequisition[]>([]);
+  const [filteredData, setFilteredData] = useState<ProcurementApplication[]>([]);
   
   // 路由导航
   const navigate = useNavigate();
@@ -192,29 +174,72 @@ const ProcurementRequisition: React.FC = () => {
   ];
 
   // 模拟数据
-  const mockData: ProcurementRequisition[] = [
+  const mockData: ProcurementApplication[] = [
     {
-      id: 1,
-      requisitionNumber: 'PR2024001',
+      id: '1',
+      applicationNo: 'PR2024001',
+      title: '办公用品紧急采购',
       applicant: '张三',
+      applicantId: 'user001',
       department: '行政部',
       applicationDate: '2024-01-15',
-      status: 'pending',
-      type: 'emergency',
-      description: '办公用品紧急采购',
-      totalAmount: 15000,
-      approvalStatus: '审批中',
-      processStatus: 'submitted', // 已提交审批
-      currentApprover: '李经理',
-      inquiryStatus: 'not_started'
+      requiredDate: '2024-01-25',
+      urgencyLevel: 'urgent',
+      reason: '办公用品库存不足，急需补充',
+      items: [
+        {
+          id: '1-1',
+          itemName: '打印纸',
+          description: 'A4复印纸',
+          category: '办公用品',
+          specifications: '70g/m² 500张/包',
+          quantity: 100,
+          unit: '包',
+          estimatedUnitPrice: 15,
+          estimatedTotalPrice: 1500,
+          suggestedSuppliers: ['上海办公用品公司'],
+          purpose: '日常办公使用'
+        }
+      ],
+      totalEstimatedAmount: 15000,
+      status: 'submitted',
+      approvalHistory: [
+        {
+          id: 'approval-1',
+          approver: '李经理',
+          approverId: 'manager001',
+          approverRole: '部门经理',
+          action: 'approve',
+          comments: '同意采购申请',
+          timestamp: '2024-01-16 10:00:00',
+          level: 1
+        }
+      ],
+      attachments: [],
+      notes: '紧急采购，请优先处理',
+      createdAt: '2024-01-15 09:00:00',
+      updatedAt: '2024-01-16 10:00:00'
     },
     {
-      id: 2,
-      requisitionNumber: 'PR2024002',
+      id: '2',
+      applicationNo: 'APP2024002',
+      title: '服务器设备采购申请',
       applicant: '李四',
+      applicantId: 'EMP002',
       department: 'IT部',
       applicationDate: '2024-01-16',
-      status: 'approved',
+      requiredDate: '2024-02-15',
+      urgencyLevel: 'medium' as const,
+      reason: '服务器设备采购需求',
+      items: [],
+      totalEstimatedAmount: 50000,
+      status: 'approved' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-16T00:00:00Z',
+      updatedAt: '2024-01-16T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024002',
       type: 'normal',
       description: '服务器设备采购',
       totalAmount: 50000,
@@ -224,12 +249,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: '已完成'
     },
     {
-      id: 3,
-      requisitionNumber: 'PR2024003',
+      id: '3',
+      applicationNo: 'APP2024003',
+      title: '生产原材料采购申请',
       applicant: '王五',
+      applicantId: 'EMP003',
       department: '生产部',
       applicationDate: '2024-01-17',
-      status: 'rejected',
+      requiredDate: '2024-02-10',
+      urgencyLevel: 'medium' as const,
+      reason: '生产原材料采购需求',
+      items: [],
+      totalEstimatedAmount: 30000,
+      status: 'rejected' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-17T00:00:00Z',
+      updatedAt: '2024-01-18T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024003',
       type: 'normal',
       description: '生产原材料采购',
       totalAmount: 30000,
@@ -242,12 +280,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: '未开始'
     },
     {
-      id: 4,
-      requisitionNumber: 'PR2024004',
+      id: '4',
+      applicationNo: 'APP2024004',
+      title: '营销物料采购申请',
       applicant: '赵六',
+      applicantId: 'EMP004',
       department: '市场部',
       applicationDate: '2024-01-18',
-      status: 'approved',
+      requiredDate: '2024-02-20',
+      urgencyLevel: 'medium' as const,
+      reason: '营销物料采购需求',
+      items: [],
+      totalEstimatedAmount: 25000,
+      status: 'approved' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-18T00:00:00Z',
+      updatedAt: '2024-01-18T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024004',
       type: 'normal',
       description: '营销物料采购',
       totalAmount: 25000,
@@ -257,12 +308,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: '询价中'
     },
     {
-      id: 5,
-      requisitionNumber: 'PR2024005',
+      id: '5',
+      applicationNo: 'APP2024005',
+      title: '实验设备采购申请',
       applicant: '孙七',
+      applicantId: 'EMP005',
       department: '研发部',
       applicationDate: '2024-01-19',
-      status: 'approved',
+      requiredDate: '2024-02-05',
+      urgencyLevel: 'urgent' as const,
+      reason: '实验设备采购需求',
+      items: [],
+      totalEstimatedAmount: 80000,
+      status: 'approved' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-19T00:00:00Z',
+      updatedAt: '2024-01-19T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024005',
       type: 'emergency',
       description: '实验设备采购',
       totalAmount: 80000,
@@ -272,12 +336,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: '询价中'
     },
     {
-      id: 6,
-      requisitionNumber: 'PR2024006',
+      id: '6',
+      applicationNo: 'APP2024006',
+      title: '财务软件采购申请',
       applicant: '周八',
+      applicantId: 'EMP006',
       department: '财务部',
       applicationDate: '2024-01-20',
-      status: 'approved',
+      requiredDate: '2024-02-25',
+      urgencyLevel: 'medium' as const,
+      reason: '财务软件采购需求',
+      items: [],
+      totalEstimatedAmount: 35000,
+      status: 'approved' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-20T00:00:00Z',
+      updatedAt: '2024-01-20T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024006',
       type: 'normal',
       description: '财务软件采购',
       totalAmount: 35000,
@@ -287,12 +364,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: 'not_started'
     },
     {
-      id: 7,
-      requisitionNumber: 'PR2024007',
+      id: '7',
+      applicationNo: 'APP2024007',
+      title: '办公家具采购申请',
       applicant: '吴九',
+      applicantId: 'EMP007',
       department: '人事部',
       applicationDate: '2024-01-21',
-      status: 'approved',
+      requiredDate: '2024-02-15',
+      urgencyLevel: 'medium' as const,
+      reason: '办公家具采购需求',
+      items: [],
+      totalEstimatedAmount: 45000,
+      status: 'approved' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-21T00:00:00Z',
+      updatedAt: '2024-01-21T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024007',
       type: 'normal',
       description: '办公家具采购',
       totalAmount: 45000,
@@ -302,12 +392,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: 'not_started'
     },
     {
-      id: 8,
-      requisitionNumber: 'PR2024008',
+      id: '8',
+      applicationNo: 'APP2024008',
+      title: '仓储设备采购申请',
       applicant: '郑十',
+      applicantId: 'EMP008',
       department: '采购部',
       applicationDate: '2024-01-22',
-      status: 'approved',
+      requiredDate: '2024-02-20',
+      urgencyLevel: 'medium' as const,
+      reason: '仓储设备采购需求',
+      items: [],
+      totalEstimatedAmount: 60000,
+      status: 'approved' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-22T00:00:00Z',
+      updatedAt: '2024-01-22T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024008',
       type: 'normal',
       description: '仓储设备采购',
       totalAmount: 60000,
@@ -317,12 +420,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: 'not_started'
     },
     {
-      id: 9,
-      requisitionNumber: 'PR2024009',
+      id: '9',
+      applicationNo: 'APP2024009',
+      title: '检测设备采购申请',
       applicant: '钱十一',
+      applicantId: 'EMP009',
       department: '质量部',
       applicationDate: '2024-01-23',
-      status: 'pending',
+      requiredDate: '2024-02-10',
+      urgencyLevel: 'urgent' as const,
+      reason: '检测设备采购需求',
+      items: [],
+      totalEstimatedAmount: 120000,
+      status: 'submitted' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-23T00:00:00Z',
+      updatedAt: '2024-01-23T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024009',
       type: 'emergency',
       description: '检测设备采购',
       totalAmount: 120000,
@@ -332,12 +448,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: 'not_started'
     },
     {
-      id: 10,
-      requisitionNumber: 'PR2024010',
+      id: '10',
+      applicationNo: 'APP2024010',
+      title: '安防设备采购申请',
       applicant: '孙十二',
+      applicantId: 'EMP010',
       department: '安全部',
       applicationDate: '2024-01-24',
-      status: 'approved',
+      requiredDate: '2024-02-18',
+      urgencyLevel: 'medium' as const,
+      reason: '安防设备采购需求',
+      items: [],
+      totalEstimatedAmount: 40000,
+      status: 'approved' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-24T00:00:00Z',
+      updatedAt: '2024-01-24T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024010',
       type: 'normal',
       description: '安防设备采购',
       totalAmount: 40000,
@@ -347,12 +476,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: '已报价'
     },
     {
-      id: 11,
-      requisitionNumber: 'PR2024011',
+      id: '11',
+      applicationNo: 'APP2024011',
+      title: '开发工具软件采购申请',
       applicant: '陈十三',
+      applicantId: 'EMP011',
       department: '技术部',
       applicationDate: '2024-01-25',
-      status: 'inquiring',
+      requiredDate: '2024-02-10',
+      urgencyLevel: 'medium' as const,
+      reason: '开发工具软件采购需求',
+      items: [],
+      totalEstimatedAmount: 18000,
+      status: 'draft' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-25T00:00:00Z',
+      updatedAt: '2024-01-25T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024011',
       type: 'normal',
       description: '开发工具软件采购',
       totalAmount: 18000,
@@ -362,12 +504,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: 'not_started'
     },
     {
-      id: 12,
-      requisitionNumber: 'PR2024012',
+      id: '12',
+      applicationNo: 'APP2024012',
+      title: '紧急维修材料采购申请',
       applicant: '刘十四',
+      applicantId: 'EMP012',
       department: '运营部',
       applicationDate: '2024-01-26',
-      status: 'inquiring',
+      requiredDate: '2024-02-05',
+      urgencyLevel: 'urgent' as const,
+      reason: '紧急维修材料采购需求',
+      items: [],
+      totalEstimatedAmount: 8500,
+      status: 'draft' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-26T00:00:00Z',
+      updatedAt: '2024-01-26T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024012',
       type: 'emergency',
       description: '紧急维修材料采购',
       totalAmount: 8500,
@@ -377,12 +532,25 @@ const ProcurementRequisition: React.FC = () => {
       inquiryStatus: 'not_started'
     },
     {
-      id: 13,
-      requisitionNumber: 'PR2024013',
+      id: '13',
+      applicationNo: 'APP2024013',
+      title: '客户礼品采购申请',
       applicant: '黄十五',
+      applicantId: 'EMP013',
       department: '销售部',
       applicationDate: '2024-01-27',
-      status: 'pending',
+      requiredDate: '2024-02-15',
+      urgencyLevel: 'medium' as const,
+      reason: '客户礼品采购需求',
+      items: [],
+      totalEstimatedAmount: 12000,
+      status: 'submitted' as const,
+      approvalHistory: [],
+      attachments: [],
+      createdAt: '2024-01-27T00:00:00Z',
+      updatedAt: '2024-01-27T00:00:00Z',
+      // 扩展属性
+      requisitionNumber: 'PR2024013',
       type: 'normal',
       description: '客户礼品采购',
       totalAmount: 12000,
@@ -395,11 +563,19 @@ const ProcurementRequisition: React.FC = () => {
 
   React.useEffect(() => {
     setFilteredData(mockData);
-    // 同步数据到全局状态
-    setProcurementRequisitions(mockData);
+    // 同步数据到全局状态，转换为ProcurementRequisition格式
+    const procurementRequisitions = mockData.map(item => ({
+      id: parseInt(item.id),
+      requisitionNumber: item.requisitionNumber || '',
+      applicant: item.applicant,
+      department: item.department,
+      applicationDate: item.applicationDate,
+      description: item.description || ''
+    }));
+    setProcurementRequisitions(procurementRequisitions);
   }, [setProcurementRequisitions]);
 
-  const columns: TableProps<ProcurementRequisition>['columns'] = [
+  const columns: TableProps<ProcurementApplication>['columns'] = [
     {
       title: '序号',
       key: 'index',
@@ -447,9 +623,9 @@ const ProcurementRequisition: React.FC = () => {
       title: '询价比价状态',
       dataIndex: 'inquiryStatus',
       key: 'inquiryStatus',
-      render: (inquiryStatus: string, record: ProcurementRequisition) => {
+      render: (inquiryStatus: string, record: ProcurementApplication) => {
         // 从全局状态获取该采购申请的询价单
-        const relatedQuotations = getQuotationRequestsByProcurementId(record.id);
+        const relatedQuotations = getQuotationRequestsByProcurementId(parseInt(record.id));
         let currentStatus = inquiryStatus || 'not_started';
         
         // 如果有关联的询价单，根据询价单状态更新显示
@@ -499,7 +675,7 @@ const ProcurementRequisition: React.FC = () => {
       dataIndex: 'rejectionReason',
       key: 'rejectionReason',
       ellipsis: true,
-      render: (rejectionReason: string, record: ProcurementRequisition) => {
+      render: (rejectionReason: string, record: ProcurementApplication) => {
         if (record.status === 'rejected' && rejectionReason) {
           return (
             <div style={{ color: '#ff4d4f', maxWidth: '200px' }}>
@@ -528,7 +704,7 @@ const ProcurementRequisition: React.FC = () => {
           )}
           {/* 只有草稿状态的申请才能删除 */}
           {record.processStatus === 'draft' && (
-            <Button type="link" danger onClick={() => handleDelete(record.id)}>
+            <Button type="link" danger onClick={() => handleDelete(parseInt(record.id))}>
               删除
             </Button>
           )}
@@ -578,17 +754,17 @@ const ProcurementRequisition: React.FC = () => {
     },
   ];
 
-  const handleView = (record: ProcurementRequisition) => {
+  const handleView = (record: ProcurementApplication) => {
     setViewingRecord(record);
     setIsDetailModalVisible(true);
   };
 
-  const handleViewProgress = (record: ProcurementRequisition) => {
+  const handleViewProgress = (record: ProcurementApplication) => {
     setProgressRecord(record);
     setIsProgressModalVisible(true);
   };
 
-  const handleReapply = (record: ProcurementRequisition) => {
+  const handleReapply = (record: ProcurementApplication) => {
     // 复制原申请数据，重置状态相关字段
     const reapplyData = {
       ...record,
@@ -611,7 +787,7 @@ const ProcurementRequisition: React.FC = () => {
     setIsModalVisible(true);
   };
 
-  const handleEdit = (record: ProcurementRequisition) => {
+  const handleEdit = (record: ProcurementApplication) => {
     setEditingRecord(record);
     form.setFieldsValue({
       ...record,
@@ -621,11 +797,11 @@ const ProcurementRequisition: React.FC = () => {
   };
 
   const handleDelete = (id: number) => {
-    const newData = filteredData.filter(item => item.id !== id);
+    const newData = filteredData.filter(item => parseInt(item.id) !== id);
     setFilteredData(newData);
   };
 
-  const handleInquiry = (record: ProcurementRequisition) => {
+  const handleInquiry = (record: ProcurementApplication) => {
     console.log('handleInquiry called with record:', record);
     console.log('quotationRequests:', quotationRequests);
     setInquiryRecord(record);
@@ -639,19 +815,31 @@ const ProcurementRequisition: React.FC = () => {
         deadline: dayjs().add(7, 'day'),
         description: `基于采购申请 ${record.requisitionNumber} 创建的询价单`,
         items: [{
-          name: record.description.includes('办公用品') ? '办公桌椅' :
-                record.description.includes('设备') ? '生产设备' :
-                record.description.includes('材料') ? '原材料' : '物品',
-          specification: record.description.includes('办公用品') ? '标准办公桌椅套装' :
-                        record.description.includes('设备') ? '工业级生产设备' :
-                        record.description.includes('材料') ? '优质原材料' : '标准规格',
+          id: '1',
+          name: (record.description || '').includes('办公用品') ? '办公桌椅' : 
+                (record.description || '').includes('设备') ? '生产设备' :
+                (record.description || '').includes('材料') ? '原材料' : '物品',
+          specification: (record.description || '').includes('办公用品') ? '标准办公桌椅套装' :
+                        (record.description || '').includes('设备') ? '工业级生产设备' :
+                        (record.description || '').includes('材料') ? '优质原材料' : '标准规格',
           unit: '套',
           quantity: 1,
-          estimatedPrice: record.description.includes('办公用品') ? 2000 :
-                         record.description.includes('设备') ? 50000 :
-                         record.description.includes('材料') ? 5000 : 1000
+          estimatedPrice: (record.description || '').includes('办公用品') ? 2000 :
+                         (record.description || '').includes('设备') ? 50000 :
+                         (record.description || '').includes('材料') ? 5000 : 1000
         }],
-        suppliers: []
+        suppliers: ['供应商A', '供应商B', '供应商C'],
+        status: (record.inquiryStatus as string) === 'completed' ? 'completed' : 'inquiring',
+        statusText: ((record.inquiryStatus as string) === 'completed' || (record.inquiryStatus as string) === '已完成') ? '已完成' : '询价中',
+        quotations: [],
+        procurementRequisition: {
+          id: parseInt(record.id),
+          requisitionNumber: record.requisitionNumber || '',
+          applicant: record.applicant,
+          department: record.department,
+          applicationDate: record.applicationDate,
+          description: record.description || ''
+        }
       });
       setIsInquiryModalVisible(true);
     } else {
@@ -675,37 +863,37 @@ const ProcurementRequisition: React.FC = () => {
       // 其他情况使用模拟数据
       const mockQuotationRequest: QuotationRequest = {
         id: `mock-${record.id}`,
-        requestNo: `RFQ${record.requisitionNumber.slice(-6)}`,
-        title: `${record.description} - 询价单`,
+        requestNo: `RFQ${(record.requisitionNumber || '').slice(-6)}`,
+        title: `${record.description || ''} - 询价单`,
         department: record.department,
         requestDate: record.applicationDate,
         deadline: dayjs(record.applicationDate).add(7, 'day').format('YYYY-MM-DD'),
-        description: `基于采购申请 ${record.requisitionNumber} 创建的询价单`,
+        description: `基于采购申请 ${record.requisitionNumber || ''} 创建的询价单`,
         items: [{
           id: '1',
-          name: record.description.includes('办公用品') ? '办公桌椅' : 
-                record.description.includes('设备') ? '生产设备' :
-                record.description.includes('材料') ? '原材料' : '物品',
-          specification: record.description.includes('办公用品') ? '标准办公桌椅套装' :
-                        record.description.includes('设备') ? '工业级生产设备' :
-                        record.description.includes('材料') ? '优质原材料' : '标准规格',
+          name: (record.description || '').includes('办公用品') ? '办公桌椅' : 
+                (record.description || '').includes('设备') ? '生产设备' :
+                (record.description || '').includes('材料') ? '原材料' : '物品',
+          specification: (record.description || '').includes('办公用品') ? '标准办公桌椅套装' :
+                        (record.description || '').includes('设备') ? '工业级生产设备' :
+                        (record.description || '').includes('材料') ? '优质原材料' : '标准规格',
           unit: '套',
           quantity: 1,
-          estimatedPrice: record.description.includes('办公用品') ? 2000 :
-                         record.description.includes('设备') ? 50000 :
-                         record.description.includes('材料') ? 5000 : 1000
+          estimatedPrice: (record.description || '').includes('办公用品') ? 2000 :
+                         (record.description || '').includes('设备') ? 50000 :
+                         (record.description || '').includes('材料') ? 5000 : 1000
         }],
         suppliers: ['供应商A', '供应商B', '供应商C'],
-        status: record.inquiryStatus === '已完成' ? 'completed' : 'inquiring',
-        statusText: record.inquiryStatus === '已完成' ? '已完成' : '询价中',
+        status: (record.inquiryStatus as string) === '已完成' ? 'completed' : 'inquiring',
+        statusText: (record.inquiryStatus as string) === '已完成' ? '已完成' : '询价中',
         quotations: [],
         procurementRequisition: {
-          id: record.id,
-          requisitionNumber: record.requisitionNumber,
+          id: parseInt(record.id),
+          requisitionNumber: record.requisitionNumber || '',
           applicant: record.applicant,
           department: record.department,
           applicationDate: record.applicationDate,
-          description: record.description
+          description: record.description || ''
         }
       };
       
@@ -735,12 +923,12 @@ const ProcurementRequisition: React.FC = () => {
          statusText: '草稿',
          quotations: [],
          procurementRequisition: inquiryRecord ? {
-           id: inquiryRecord.id,
-           requisitionNumber: inquiryRecord.requisitionNumber,
+           id: parseInt(inquiryRecord.id),
+           requisitionNumber: inquiryRecord.requisitionNumber || '',
            applicant: inquiryRecord.applicant,
            department: inquiryRecord.department,
            applicationDate: inquiryRecord.applicationDate,
-           description: inquiryRecord.description
+           description: inquiryRecord.description || ''
          } : undefined
        };
       
@@ -753,7 +941,7 @@ const ProcurementRequisition: React.FC = () => {
       if (inquiryRecord) {
         const updatedData = filteredData.map(item => 
           item.id === inquiryRecord.id 
-            ? { ...item, inquiryStatus: 'in_progress' }
+            ? { ...item, inquiryStatus: 'in_progress' as const }
             : item
         );
         setFilteredData(updatedData);
@@ -773,7 +961,7 @@ const ProcurementRequisition: React.FC = () => {
     inquiryForm.resetFields();
   };
 
-  const handleComparison = (record: ProcurementRequisition) => {
+  const handleComparison = (record: ProcurementApplication) => {
     // 跳转到询价详情页面进行比价，传递申请单号参数
     navigate('/procurement/quotation', { 
       state: { 
@@ -894,7 +1082,7 @@ const ProcurementRequisition: React.FC = () => {
     
     if (values.requisitionNumber) {
       filtered = filtered.filter(item => 
-        item.requisitionNumber.includes(values.requisitionNumber)
+        item.requisitionNumber?.includes(values.requisitionNumber)
       );
     }
     
@@ -1079,7 +1267,7 @@ const ProcurementRequisition: React.FC = () => {
               {viewingRecord.totalAmount ? `¥${viewingRecord.totalAmount.toLocaleString()}` : '-'}
             </Descriptions.Item>
             <Descriptions.Item label="状态">
-              {viewingRecord.status === 'pending' ? '待审批' : 
+              {viewingRecord.status === 'submitted' ? '待审批' : 
                viewingRecord.status === 'approved' ? '审批通过' : '已拒绝'}
             </Descriptions.Item>
             <Descriptions.Item label="审批状态" span={2}>{viewingRecord.approvalStatus}</Descriptions.Item>
@@ -1486,8 +1674,8 @@ const ProcurementRequisition: React.FC = () => {
 };
 
 // 辅助函数
-const getProgressCurrentStep = (record: ProcurementRequisition) => {
-  if (record.status === 'pending') {
+const getProgressCurrentStep = (record: ProcurementApplication) => {
+  if (record.status === 'submitted') {
     return 0; // 当前在第一步
   } else if (record.status === 'approved') {
     return 3; // 全部完成
@@ -1496,7 +1684,7 @@ const getProgressCurrentStep = (record: ProcurementRequisition) => {
   }
 };
 
-const getStepDescription = (record: ProcurementRequisition, stepIndex: number) => {
+const getStepDescription = (record: ProcurementApplication, stepIndex: number) => {
   const stepNames = ['张主管', '李财务', '王总经理'];
 
   
@@ -1504,19 +1692,20 @@ const getStepDescription = (record: ProcurementRequisition, stepIndex: number) =
     return `${stepNames[stepIndex]} 已同意`;
   } else if (record.status === 'rejected' && stepIndex === 0) {
     return `${stepNames[stepIndex]} 已拒绝`;
-  } else if (record.status === 'pending' && stepIndex === 0) {
+  } else if (record.status === 'submitted' && stepIndex === 0) {
     return `等待 ${stepNames[stepIndex]} 审批`;
   } else {
     return `等待 ${stepNames[stepIndex]} 审批`;
   }
 };
 
-const getProgressHistory = (record: ProcurementRequisition) => {
+const getProgressHistory = (record: ProcurementApplication) => {
   const baseHistory = [
     {
       stepName: '申请提交',
       approver: record.applicant,
-      approverRole: '申请人',
+      approverId: 'manager001',
+      approverRole: '部门经理',
       action: 'submitted',
       processTime: record.applicationDate,
       duration: '-',
@@ -1529,6 +1718,7 @@ const getProgressHistory = (record: ProcurementRequisition) => {
       {
         stepName: '部门主管审批',
         approver: '张主管',
+        approverId: 'supervisor001',
         approverRole: '部门主管',
         action: 'approved',
         processTime: '2024-01-16 10:30:00',
@@ -1538,6 +1728,7 @@ const getProgressHistory = (record: ProcurementRequisition) => {
       {
         stepName: '财务审批',
         approver: '李财务',
+        approverId: 'finance001',
         approverRole: '财务经理',
         action: 'approved',
         processTime: '2024-01-16 14:20:00',
@@ -1547,6 +1738,7 @@ const getProgressHistory = (record: ProcurementRequisition) => {
       {
         stepName: '总经理审批',
         approver: '王总经理',
+        approverId: 'ceo001',
         approverRole: '总经理',
         action: 'approved',
         processTime: '2024-01-17 09:15:00',
@@ -1558,6 +1750,7 @@ const getProgressHistory = (record: ProcurementRequisition) => {
     baseHistory.push({
       stepName: '部门主管审批',
       approver: '张主管',
+      approverId: 'supervisor001',
       approverRole: '部门主管',
       action: 'rejected',
       processTime: '2024-01-16 10:30:00',
@@ -1568,6 +1761,7 @@ const getProgressHistory = (record: ProcurementRequisition) => {
     baseHistory.push({
       stepName: '部门主管审批',
       approver: '张主管',
+      approverId: 'supervisor001',
       approverRole: '部门主管',
       action: 'pending',
       processTime: '-',
