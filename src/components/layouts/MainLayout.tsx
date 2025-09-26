@@ -35,13 +35,10 @@ const MainLayout: React.FC = () => {
           icon: <ShoppingOutlined />,
           label: '采购管理',
           children: [
-            {
-              key: '/procurement/application',
-              label: '采购申请',
-            },
+            
             {
               key: '/procurement/requisition',
-              label: '采购需求',
+              label: '采购申请',
             },
             {
               key: '/procurement/quotation',

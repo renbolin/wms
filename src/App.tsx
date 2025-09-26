@@ -9,7 +9,7 @@ import PermissionManagement from '@/pages/system/PermissionManagement';
 import NotFound from '@/pages/NotFound';
 
 // 采购管理模块
-import ProcurementApplication from '@/pages/procurement/ProcurementApplication';
+
 import ProcurementRequisition from '@/pages/procurement/ProcurementRequisition';
 import ProcurementOrder from '@/pages/procurement/ProcurementOrder';
 import SupplierManagement from '@/pages/procurement/SupplierManagement';
@@ -57,7 +57,7 @@ function App() {
           
           {/* 采购管理路由 */}
           <Route path="procurement">
-            <Route path="application" element={<ProcurementApplication />} />
+            
             <Route path="requisition" element={<ProcurementRequisition />} />
             <Route path="order" element={<ProcurementOrder />} />
             <Route path="supplier" element={<SupplierManagement />} />
