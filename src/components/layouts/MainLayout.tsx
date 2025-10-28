@@ -11,7 +11,8 @@ import {
   ShoppingOutlined,
   InboxOutlined,
   AppstoreOutlined,
-  DatabaseOutlined
+  DatabaseOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,14 @@ const MainLayout: React.FC = () => {
         {
           key: '/basic-info/equipment-type',
           label: '设备类型管理',
+        },
+        {
+          key: '/basic-info/equipment-model',
+          label: '设备型号管理',
+        },
+        {
+          key: '/basic-info/brand',
+          label: '品牌管理',
         },
       ],
     },
@@ -139,7 +148,7 @@ const MainLayout: React.FC = () => {
       children: [
         {
           key: '/asset/register',
-          label: '资产建档',
+          label: '资产档案',
         },
         {
           key: '/asset/borrow',
@@ -166,6 +175,11 @@ const MainLayout: React.FC = () => {
           label: '资产报表',
         },
       ],
+    },
+    {
+      key: '/equipment-archive',
+      icon: <FileTextOutlined />,
+      label: '设备档案',
     },
     {
       key: '/system',

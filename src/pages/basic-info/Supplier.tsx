@@ -13,6 +13,7 @@ import {
   Descriptions,
   Row,
   Col,
+  Tree,
 } from 'antd';
 import {
   PlusOutlined,
@@ -32,6 +33,7 @@ interface SupplierInfo {
   code: string;
   name: string;
   type: string;
+  deviceTypeCategory?: string; // 左侧设备类型树关联（主设备/附属设备/特种设备/非特种设备）
   contact: string;
   phone: string;
   email: string;
@@ -49,6 +51,7 @@ const Supplier: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [supplierData, setSupplierData] = useState<SupplierInfo[]>([]);
   const [filteredData, setFilteredData] = useState<SupplierInfo[]>([]);
+  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<SupplierInfo | null>(null);
@@ -73,6 +76,7 @@ const Supplier: React.FC = () => {
         code: 'SP001',
         name: '上海电子设备有限公司',
         type: '电子设备',
+        deviceTypeCategory: '主设备',
         contact: '张三',
         phone: '13800138001',
         email: 'zhangsan@example.com',
@@ -90,6 +94,7 @@ const Supplier: React.FC = () => {
         code: 'SP002',
         name: '北京办公用品有限公司',
         type: '办公用品',
+        deviceTypeCategory: '附属设备',
         contact: '李四',
         phone: '13800138002',
         email: 'lisi@example.com',
@@ -109,6 +114,28 @@ const Supplier: React.FC = () => {
     setFilteredData(mockSupplierData);
     setLoading(false);
   };
+
+  // 设备类型树数据
+  const equipmentTypes = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('equipment_types');
+      if (raw) {
+        return (JSON.parse(raw) as { id: string; name: string }[]);
+      }
+    } catch {}
+    return [
+      { id: '1', name: '主设备' },
+      { id: '2', name: '附属设备' },
+      { id: '3', name: '特种设备' },
+      { id: '4', name: '非特种设备' },
+    ];
+  }, []);
+
+  const typeIdToNameMap = React.useMemo(() => {
+    const m: Record<string, string> = {};
+    equipmentTypes.forEach(t => { m[t.id] = t.name; });
+    return m;
+  }, [equipmentTypes]);
 
   // 表格列配置
   const columns: ColumnsType<SupplierInfo> = [
@@ -241,7 +268,24 @@ const Supplier: React.FC = () => {
   };
 
   return (
-    <div>
+    <Row gutter={16}>
+      <Col span={6}>
+        <Card title="设备类型目录" size="small">
+          <Tree
+            defaultExpandAll
+            selectedKeys={selectedTypeId ? [selectedTypeId] : []}
+            onSelect={(keys) => {
+              const k = (keys as React.Key[])[0] as string;
+              setSelectedTypeId(k === 'root' ? null : k);
+            }}
+            treeData={[
+              { title: '设备类型目录', key: 'root', children: equipmentTypes.map(t => ({ title: t.name, key: t.id })) }
+            ]}
+          />
+        </Card>
+      </Col>
+      <Col span={18}>
+      <div>
       <Card title="供应商管理">
         {/* 搜索表单 */}
         <Form
@@ -299,7 +343,7 @@ const Supplier: React.FC = () => {
         {/* 供应商数据表格 */}
         <Table
           columns={columns}
-          dataSource={filteredData}
+          dataSource={selectedTypeId ? filteredData.filter(d => (d.deviceTypeCategory || '') === typeIdToNameMap[selectedTypeId!]) : filteredData}
           loading={loading}
           rowKey="id"
           scroll={{ x: 1500 }}
@@ -458,7 +502,9 @@ const Supplier: React.FC = () => {
           </Form>
         </Modal>
       </Card>
-    </div>
+      </div>
+      </Col>
+    </Row>
   );
 };
 

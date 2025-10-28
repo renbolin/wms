@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { useProcurementOrder } from '@/contexts/ProcurementOrderContext';
 import { useInquiry } from '@/contexts/InquiryContext';
 import { useLocation, useNavigate } from 'react-router-dom';
+import BrandSelect from '@/components/BrandSelect';
 
 const { Option } = Select;
 
@@ -137,6 +138,29 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
 };
 
 const ProcurementOrder: React.FC = () => {
+  const [selectedBrandCode, setSelectedBrandCode] = useState<string | undefined>(undefined);
+  const [brandSuppliers, setBrandSuppliers] = useState<string[]>([]);
+
+  const handleBrandChange = (code?: string) => {
+    setSelectedBrandCode(code);
+    try {
+      const raw = localStorage.getItem('basic_brand_dict');
+      if (!raw) {
+        setBrandSuppliers([]);
+        return;
+      }
+      const arr = JSON.parse(raw) as any[];
+      const found = arr.find(b => b.brandCode === code);
+      setBrandSuppliers(found?.suppliers || []);
+      // 如果当前供应商不在新品牌供应商列表中，清空供应商字段，避免脏值
+      const currentSupplier = form.getFieldValue('supplier');
+      if (currentSupplier && found?.suppliers && !found.suppliers.includes(currentSupplier)) {
+        form.setFieldsValue({ supplier: undefined });
+      }
+    } catch {
+      setBrandSuppliers([]);
+    }
+  };
   const { orders, addOrder, updateOrder, deleteOrder, createOrderFromQuotation } = useProcurementOrder();
   const { quotationRequests } = useInquiry();
   const location = useLocation();
@@ -511,7 +535,31 @@ const ProcurementOrder: React.FC = () => {
             </Col>
             <Col span={12}>
               <Form.Item label="供应商" name="supplier" rules={[{ required: true, message: '请输入供应商！' }]}>
-                <Input />
+                {brandSuppliers.length > 0 ? (
+                  <Select
+                    showSearch
+                    allowClear
+                    placeholder="请选择供应商"
+                    filterOption={(input, option) => {
+                      const label = String(option?.children ?? option?.value ?? '');
+                      return label.toLowerCase().includes(input.toLowerCase());
+                    }}
+                  >
+                    {brandSuppliers.map(name => (
+                      <Option key={name} value={name}>{name}</Option>
+                    ))}
+                  </Select>
+                ) : (
+                  <Input placeholder="请输入供应商" />
+                )}
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="品牌" name="brand">
+                <BrandSelect onChange={(code) => handleBrandChange(code)} placeholder="请选择品牌" />
               </Form.Item>
             </Col>
           </Row>

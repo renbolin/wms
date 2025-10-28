@@ -18,6 +18,8 @@ const routeConfig: Record<string, { title: string; icon?: React.ReactNode }> = {
   '/basic-info/warehouse': { title: '仓库管理', icon: <DatabaseOutlined /> },
   '/basic-info/supplier': { title: '供应商管理', icon: <TeamOutlined /> },
   '/basic-info/equipment-type': { title: '设备类型管理', icon: <AppstoreOutlined /> },
+  '/basic-info/equipment-model': { title: '设备型号管理', icon: <TagOutlined /> },
+  '/basic-info/brand': { title: '品牌管理', icon: <TagOutlined /> },
   
   // 采购管理
   '/procurement': { title: '采购管理', icon: <ShoppingOutlined /> },
@@ -36,10 +38,13 @@ const routeConfig: Record<string, { title: string; icon?: React.ReactNode }> = {
   
   // 固定资产管理
   '/asset': { title: '固定资产', icon: <AppstoreOutlined /> },
-  '/asset/register': { title: '资产登记', icon: <FormOutlined /> },
+  '/asset/register': { title: '资产档案', icon: <FormOutlined /> },
   '/asset/transfer': { title: '资产调拨', icon: <SwapOutlined /> },
   '/asset/maintenance': { title: '资产维护', icon: <ToolOutlined /> },
   '/asset/retirement': { title: '资产报废', icon: <DeleteOutlined /> },
+  
+  // 设备档案（顶级菜单）
+  '/equipment-archive': { title: '设备档案', icon: <FileTextOutlined /> },
   
   // 系统管理
   '/system': { title: '系统管理', icon: <SettingOutlined /> },

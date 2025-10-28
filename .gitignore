@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Windows reserved device names (avoid git indexing errors)
+NUL
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

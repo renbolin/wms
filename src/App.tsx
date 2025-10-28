@@ -16,14 +16,14 @@ import QuotationComparison from '@/pages/procurement/QuotationComparison';
 import WarehouseReceiving from '@/pages/procurement/WarehouseReceiving';
 import DeliveryNotes from '@/pages/procurement/DeliveryNotes';
 
-// 库存管理模块
-import InventoryIn from '@/pages/inventory/InventoryIn';
+  // 库存管理模块
+  import InventoryIn from '@/pages/inventory/InventoryIn';
 import InventoryOut from '@/pages/inventory/InventoryOut';
 import InventoryStock from '@/pages/inventory/InventoryStock';
 import InventoryCheck from '@/pages/inventory/InventoryCheck';
 import InventoryLedger from '@/pages/inventory/InventoryLedger';
 import InventoryTransfer from '@/pages/inventory/InventoryTransfer';
-import InventoryScrap from '@/pages/inventory/InventoryScrap';
+  import InventoryScrap from '@/pages/inventory/InventoryScrap';
 import InventoryAlert from '@/pages/inventory/InventoryAlert';
 import MobileScan from '@/pages/inventory/MobileScan';
 import AgeAnalysis from '@/pages/inventory/AgeAnalysis';
@@ -37,11 +37,13 @@ import AssetRetirement from '@/pages/asset/AssetRetirement';
 import AssetBorrow from '@/pages/asset/AssetBorrow';
 import AssetInventory from '@/pages/asset/AssetInventory';
 import AssetReport from '@/pages/asset/AssetReport';
+import EquipmentArchive from '@/pages/asset/EquipmentArchive';
 
 // 基础信息管理模块
 import WarehouseManagement from './pages/basic-info/Warehouse';
 import SupplierManagement from './pages/basic-info/Supplier';
 import EquipmentType from './pages/basic-info/EquipmentType';
+import EquipmentModel from './pages/basic-info/EquipmentModel';
 
 function App() {
   return (
@@ -56,6 +58,9 @@ function App() {
         >
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<Dashboard />} />
+          
+          {/* 设备档案（顶级） */}
+          <Route path="equipment-archive" element={<EquipmentArchive />} />
           
           {/* 采购管理路由 */}
           <Route path="procurement">
@@ -97,6 +102,8 @@ function App() {
           <Route path="/basic-info/warehouse" element={<WarehouseManagement />} />
           <Route path="/basic-info/supplier" element={<SupplierManagement />} />
           <Route path="/basic-info/equipment-type" element={<EquipmentType />} />
+          <Route path="/basic-info/equipment-model" element={<EquipmentModel />} />
+          <Route path="/basic-info/brand" element={<BrandManagement />} />
           
           {/* 系统管理路由 */}
           <Route path="system">
@@ -106,6 +113,8 @@ function App() {
           </Route>
         </Route>
         
+          {/* 兼容错误拼写路径，重定向到资产档案 */}
+          <Route path="/asset/registe" element={<Navigate to="/asset/register" replace />} />
           {/* 404页面 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -116,3 +125,5 @@ function App() {
 }
 
 export default App;
+  // 基础信息：品牌管理
+  import BrandManagement from '@/pages/basic-info/BrandManagement';

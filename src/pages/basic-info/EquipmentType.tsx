@@ -17,6 +17,7 @@ import {
   Badge,
   Drawer,
   Tag,
+  Tree,
 } from 'antd';
 import {
   PlusOutlined,
@@ -34,6 +35,7 @@ interface EquipmentAttribute {
   unit: string;
   valueType: 'input' | 'select';
   remarks: string;
+  options?: { label: string; value: string }[];
 }
 
 interface EquipmentType {
@@ -44,6 +46,7 @@ interface EquipmentType {
   isAsset: boolean;
   attributes: EquipmentAttribute[];
   assetCount: number; // 添加资产数量字段
+  specialCategory?: '普通设备' | '特种设备';
 }
 
 // 资产信息接口
@@ -321,6 +324,7 @@ const EquipmentTypePage: React.FC = () => {
   const [assetDrawerVisible, setAssetDrawerVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<EquipmentType | null>(null);
   const [attributeDrawerVisible, setAttributeDrawerVisible] = useState(false);
+  const [attrRefresh, setAttrRefresh] = useState(0); // 触发表格联动刷新
 
   // 初始化时从 localStorage 加载设备类型数据
   useEffect(() => {
@@ -464,7 +468,7 @@ const EquipmentTypePage: React.FC = () => {
   // 表格列定义
   const columns: ColumnsType<EquipmentType> = [
     {
-      title: '设备类型',
+      title: '设备类型名称',
       dataIndex: 'name',
       key: 'name',
     },
@@ -477,6 +481,11 @@ const EquipmentTypePage: React.FC = () => {
       title: '设备形态',
       dataIndex: 'form',
       key: 'form',
+    },
+    {
+      title: '是否特种设备',
+      dataIndex: 'specialCategory',
+      key: 'specialCategory',
     },
     {
       title: '是否资产',
@@ -580,7 +589,21 @@ const EquipmentTypePage: React.FC = () => {
           rules={[{ required: true, message: '请选择属性值类型' }]}
           style={{ margin: 0 }}
         >
-          <Select>
+          <Select
+            onChange={(val) => {
+              const attrs = form.getFieldValue('attributes') || [];
+              const curr = attrs[index] || {};
+              if (val === 'select') {
+                const initOpts = curr.options && curr.options.length > 0 ? curr.options : [{ label: '', value: '' }];
+                attrs[index] = { ...curr, valueType: 'select', options: initOpts };
+              } else {
+                if (curr.options) delete curr.options;
+                attrs[index] = { ...curr, valueType: 'input' };
+              }
+              form.setFieldsValue({ attributes: attrs });
+              setAttrRefresh((k) => k + 1);
+            }}
+          >
             <Select.Option value="input">输入框</Select.Option>
             <Select.Option value="select">下拉选择框</Select.Option>
           </Select>
@@ -588,10 +611,67 @@ const EquipmentTypePage: React.FC = () => {
       ),
     },
     {
+      title: '下拉选项',
+      key: 'options',
+      width: '25%',
+      render: (_, __, index) => (
+        <Form.Item noStyle shouldUpdate={(prev, curr) =>
+          prev?.attributes?.[index]?.valueType !== curr?.attributes?.[index]?.valueType
+        }>
+          {({ getFieldValue }) => {
+            const vt = getFieldValue(['attributes', index, 'valueType']);
+            if (vt !== 'select') {
+              return <span style={{ color: '#999' }}>仅下拉类型可编辑</span>;
+            }
+            const move = (from: number, to: number) => {
+              const attrs = getFieldValue('attributes') || [];
+              const opts = attrs[index]?.options || [];
+              if (from < 0 || to < 0 || from >= opts.length || to >= opts.length) return;
+              const newOpts = [...opts];
+              const [m] = newOpts.splice(from, 1);
+              newOpts.splice(to, 0, m);
+              attrs[index] = { ...attrs[index], options: newOpts };
+              form.setFieldsValue({ attributes: attrs });
+            };
+            return (
+              <Form.List name={['attributes', index, 'options']}>
+                {(optFields, { add, remove }) => (
+                  <div>
+                    {optFields.map((field, i) => (
+                      <Space key={field.key} align="baseline" style={{ marginBottom: 8 }}>
+                        <Form.Item
+                          name={[field.name, 'label']}
+                          rules={[{ required: true, message: '请输入显示文本' }]}
+                          style={{ margin: 0 }}
+                        >
+                          <Input placeholder="显示文本" style={{ width: 120 }} />
+                        </Form.Item>
+                        <Form.Item
+                          name={[field.name, 'value']}
+                          rules={[{ required: true, message: '请输入对应值' }]}
+                          style={{ margin: 0 }}
+                        >
+                          <Input placeholder="对应值" style={{ width: 120 }} />
+                        </Form.Item>
+                        <Button size="small" onClick={() => move(i, i - 1)} disabled={i === 0}>上移</Button>
+                        <Button size="small" onClick={() => move(i, i + 1)} disabled={i === optFields.length - 1}>下移</Button>
+                        <Button size="small" danger onClick={() => remove(field.name)}>删除</Button>
+                      </Space>
+                    ))}
+                    <Button type="dashed" size="small" onClick={() => add({ label: '', value: '' })}>添加选项</Button>
+                  </div>
+                )}
+              </Form.List>
+            );
+          }}
+        </Form.Item>
+      ),
+    },
+    {
       title: '备注',
       dataIndex: 'remarks',
       key: 'remarks',
-      width: '25%',
+      width: '20%',
       render: (_, __, index) => (
         <Form.Item
           name={['attributes', index, 'remarks']}
@@ -625,6 +705,7 @@ const EquipmentTypePage: React.FC = () => {
     setEditingId(null);
     form.resetFields();
     form.setFieldsValue({
+      specialCategory: '普通设备',
       attributes: [{ key: Date.now().toString() }],
     });
     setModalVisible(true);
@@ -691,12 +772,36 @@ const EquipmentTypePage: React.FC = () => {
     setAttributeDrawerVisible(true);
   };
 
+  // 左侧设备类型树与筛选
+  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
+  const treeData = React.useMemo(() => {
+    const nodes = data?.length ? data : mockData;
+    return [
+      { title: '设备类型目录', key: 'root', children: nodes.map(n => ({ title: n.name, key: n.id })) }
+    ];
+  }, [data]);
+
   return (
-    <div>
+    <Row gutter={16}>
+      <Col span={6}>
+        <Card title="设备类型目录" size="small">
+          <Tree
+            defaultExpandAll
+            selectedKeys={selectedTypeId ? [selectedTypeId] : []}
+            onSelect={(keys) => {
+              const k = (keys as React.Key[])[0] as string;
+              setSelectedTypeId(k === 'root' ? null : k);
+            }}
+            treeData={treeData as any}
+          />
+        </Card>
+      </Col>
+      <Col span={18}>
+      <div>
       <Card>
         <Form form={searchForm} layout="inline" style={{ marginBottom: 16 }}>
-          <Form.Item name="name" label="设备类型">
-            <Input placeholder="请输入设备类型" />
+          <Form.Item name="name" label="设备类型名称">
+            <Input placeholder="请输入设备类型名称" maxLength={50} />
           </Form.Item>
           <Form.Item name="category" label="设备类别">
             <Select style={{ width: 160 }} allowClear>
@@ -729,7 +834,7 @@ const EquipmentTypePage: React.FC = () => {
 
         <Table
           columns={columns}
-          dataSource={data}
+          dataSource={selectedTypeId ? data.filter(d => d.id === selectedTypeId) : data}
           rowKey="id"
           pagination={{
             showSizeChanger: true,
@@ -752,6 +857,7 @@ const EquipmentTypePage: React.FC = () => {
           layout="vertical"
           initialValues={{
             isAsset: true,
+            specialCategory: '普通设备',
             attributes: [{ key: Date.now().toString() }],
           }}
         >
@@ -759,15 +865,13 @@ const EquipmentTypePage: React.FC = () => {
             <Col span={8}>
               <Form.Item
                 name="name"
-                label="设备类型"
-                rules={[{ required: true, message: '请选择设备类型' }]}
+                label="设备类型名称"
+                rules={[
+                  { required: true, message: '请输入设备类型名称' },
+                  { max: 50, message: '不超过50个字符' },
+                ]}
               >
-                <Select placeholder="请选择设备类型">
-                  <Select.Option value="主设备">主设备</Select.Option>
-                  <Select.Option value="附属设备">附属设备</Select.Option>
-                  <Select.Option value="特种设备">特种设备</Select.Option>
-                  <Select.Option value="非特种设备">非特种设备</Select.Option>
-                </Select>
+                <Input placeholder="请输入设备类型名称" maxLength={50} />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -792,6 +896,20 @@ const EquipmentTypePage: React.FC = () => {
                   <Radio value="独立设备">独立设备</Radio>
                   <Radio value="附属设备">附属设备</Radio>
                 </Radio.Group>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item
+                name="specialCategory"
+                label="是否特种设备"
+                rules={[{ required: true, message: '请选择是否特种设备' }]}
+              >
+                <Select placeholder="请选择">
+                  <Select.Option value="普通设备">普通设备</Select.Option>
+                  <Select.Option value="特种设备">特种设备</Select.Option>
+                </Select>
               </Form.Item>
             </Col>
           </Row>
@@ -869,7 +987,9 @@ const EquipmentTypePage: React.FC = () => {
           pagination={false}
         />
       </Drawer>
-    </div>
+      </div>
+      </Col>
+    </Row>
   );
 };
 

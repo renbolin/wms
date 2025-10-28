@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { useInquiry, QuotationRequest, ProcurementRequisition as ProcurementRequisitionType } from '@/contexts/InquiryContext';
 import { ProcurementApplication, ProcurementApplicationItem, ApprovalRecord } from '@/types/procurement';
+import BrandSelect from '@/components/BrandSelect';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -158,6 +159,60 @@ const ProcurementRequisition: React.FC = () => {
   const [isInquiryDetailModalVisible, setIsInquiryDetailModalVisible] = useState(false);
   const [selectedQuotationRequest, setSelectedQuotationRequest] = useState<any>(null);
   const [filteredData, setFilteredData] = useState<ProcurementApplication[]>([]);
+  const [selectedInquiryBrandCode, setSelectedInquiryBrandCode] = useState<string | undefined>(undefined);
+  const [brandSuppliers, setBrandSuppliers] = useState<string[]>([]);
+
+  // 设备类型与型号下拉数据（本地缓存读取）
+  const equipmentTypes = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('equipment_types');
+      if (raw) {
+        return (JSON.parse(raw) as { id: string; name: string }[]);
+      }
+    } catch {}
+    return [
+      { id: '1', name: '主设备' },
+      { id: '2', name: '附属设备' },
+      { id: '3', name: '特种设备' },
+      { id: '4', name: '非特种设备' },
+    ];
+  }, []);
+
+  type EquipmentModelItem = { id: string; modelCode: string; modelName: string; typeId?: string };
+  const equipmentModels: EquipmentModelItem[] = React.useMemo(() => {
+    try {
+      const raw = localStorage.getItem('equipment_models');
+      if (raw) {
+        return JSON.parse(raw) as EquipmentModelItem[];
+      }
+    } catch {}
+    return [];
+  }, []);
+
+  // 已移除顶部单条“采购明细”联动字段，保留表格明细
+
+  const handleInquiryBrandChange = (code?: string) => {
+    setSelectedInquiryBrandCode(code);
+    try {
+      const raw = localStorage.getItem('basic_brand_dict');
+      if (!raw) {
+        setBrandSuppliers([]);
+        return;
+      }
+      const arr = JSON.parse(raw) as any[];
+      const found = arr.find(b => b.brandCode === code);
+      const suppliers = found?.suppliers || [];
+      setBrandSuppliers(suppliers);
+      // 过滤已选择的供应商，保留交集
+      const current = inquiryForm.getFieldValue('suppliers') as string[] | undefined;
+      if (current && current.length) {
+        const filtered = current.filter(s => suppliers.includes(s));
+        inquiryForm.setFieldsValue({ suppliers: filtered });
+      }
+    } catch {
+      setBrandSuppliers([]);
+    }
+  };
   
   // 路由导航
   const navigate = useNavigate();
@@ -1222,23 +1277,94 @@ const ProcurementRequisition: React.FC = () => {
               </Form.Item>
             </Col>
           </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="totalAmount"
-                label="总金额"
-              >
-                <InputNumber
-                  style={{ width: '100%' }}
-                  placeholder="请输入总金额"
-                  min={0}
-                  precision={2}
-                  formatter={value => `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => (Number(value!.replace(/¥\s?|(,*)/g, '')) || 0) as any}
+          {/* 采购明细改为表格展示，删除了顶部单条明细字段 */}
+          <Divider>采购明细</Divider>
+          <Form.List name="items">
+            {(fields, { add, remove }) => (
+              <>
+                <Table
+                  dataSource={fields}
+                  pagination={false}
+                  rowKey="key"
+                  size="small"
+                  columns={[
+                    {
+                      title: '设备类型',
+                      dataIndex: 'itemTypeId',
+                      render: (_: any, field: any) => (
+                        <Form.Item name={[field.name, 'itemTypeId']} rules={[{ required: true, message: '请选择设备类型' }]}>
+                          <Select placeholder="请选择设备类型" allowClear>
+                            {equipmentTypes.map(t => (
+                              <Option key={t.id} value={t.id}>{t.name}</Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      )
+                    },
+                    {
+                      title: '品牌',
+                      dataIndex: 'brandCode',
+                      render: (_: any, field: any) => (
+                        <Form.Item name={[field.name, 'brandCode']} rules={[{ required: true, message: '请选择品牌' }]}>
+                          <BrandSelect placeholder="请选择品牌" />
+                        </Form.Item>
+                      )
+                    },
+                    {
+                      title: '型号',
+                      dataIndex: 'model',
+                      render: (_: any, field: any) => (
+                        <Form.Item name={[field.name, 'model']} rules={[{ required: true, message: '请输入型号' }]}>
+                          <Input placeholder="请输入型号" />
+                        </Form.Item>
+                      )
+                    },
+                    {
+                      title: '参数要求',
+                      dataIndex: 'parameterRequirement',
+                      width: 200,
+                      render: (_: any, field: any) => (
+                        <Form.Item name={[field.name, 'parameterRequirement']}>
+                          <Input placeholder="请输入参数或技术要求" />
+                        </Form.Item>
+                      )
+                    },
+                    {
+                      title: '数量',
+                      dataIndex: 'quantity',
+                      width: 100,
+                      render: (_: any, field: any) => (
+                        <Form.Item name={[field.name, 'quantity']} rules={[{ required: true, message: '请输入数量' }]}> 
+                          <InputNumber min={1} style={{ width: '100%' }} placeholder="数量" />
+                        </Form.Item>
+                      )
+                    },
+                    {
+                      title: '采购描述',
+                      dataIndex: 'itemDescription',
+                      width: 200,
+                      render: (_: any, field: any) => (
+                        <Form.Item name={[field.name, 'itemDescription']}>
+                          <Input placeholder="请输入采购明细描述" />
+                        </Form.Item>
+                      )
+                    },
+                    {
+                      title: '操作',
+                      key: 'action',
+                      width: 80,
+                      render: (_: any, field: any) => (
+                        <Button type="link" danger onClick={() => remove(field.name)} disabled={fields.length === 1}>删除</Button>
+                      )
+                    }
+                  ]}
                 />
-              </Form.Item>
-            </Col>
-          </Row>
+                <div style={{ marginTop: 12 }}>
+                  <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>添加明细</Button>
+                </div>
+              </>
+            )}
+          </Form.List>
         </Form>
       </Modal>
 
@@ -1263,9 +1389,7 @@ const ProcurementRequisition: React.FC = () => {
             <Descriptions.Item label="申请类型">
               {viewingRecord.type === 'emergency' ? '应急采购' : '正常采购'}
             </Descriptions.Item>
-            <Descriptions.Item label="总金额">
-              {viewingRecord.totalAmount ? `¥${viewingRecord.totalAmount.toLocaleString()}` : '-'}
-            </Descriptions.Item>
+            {/* 移除总金额显示 */}
             <Descriptions.Item label="状态">
               {viewingRecord.status === 'submitted' ? '待审批' : 
                viewingRecord.status === 'approved' ? '审批通过' : '已拒绝'}
@@ -1569,6 +1693,10 @@ const ProcurementRequisition: React.FC = () => {
           </Form.List>
           
           <Divider>供应商选择</Divider>
+
+          <Form.Item name="brand" label="品牌">
+            <BrandSelect onChange={(code) => handleInquiryBrandChange(code)} placeholder="请选择品牌以过滤供应商" />
+          </Form.Item>
           
           <Form.Item
             name="suppliers"
@@ -1579,10 +1707,15 @@ const ProcurementRequisition: React.FC = () => {
               mode="multiple"
               placeholder="请选择供应商"
               style={{ width: '100%' }}
+              showSearch
+              filterOption={(input, option) => {
+                const label = String(option?.children ?? option?.value ?? '');
+                return label.toLowerCase().includes(input.toLowerCase());
+              }}
             >
-              {suppliers.map(supplier => (
-                <Option key={supplier.id} value={supplier.id}>
-                  {supplier.name} - {supplier.contact} ({supplier.phone})
+              {(brandSuppliers.length > 0 ? brandSuppliers : suppliers.map(s => s.name)).map(name => (
+                <Option key={name} value={name}>
+                  {name}
                 </Option>
               ))}
             </Select>

@@ -317,10 +317,23 @@ const AssetRegister: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     setTimeout(() => {
-      setAssetData(mockAssetData);
-      setFilteredData(mockAssetData);
+      try {
+        const saved = localStorage.getItem('fixed_asset_archives');
+        if (saved) {
+          const arr = JSON.parse(saved) as AssetRecord[];
+          setAssetData(arr);
+          setFilteredData(arr);
+        } else {
+          setAssetData(mockAssetData);
+          setFilteredData(mockAssetData);
+          localStorage.setItem('fixed_asset_archives', JSON.stringify(mockAssetData));
+        }
+      } catch {
+        setAssetData(mockAssetData);
+        setFilteredData(mockAssetData);
+      }
       setLoading(false);
-    }, 500);
+    }, 300);
   }, []);
 
   const handleSearch = (values: any) => {
@@ -373,6 +386,7 @@ const AssetRegister: React.FC = () => {
     const updated = assetData.filter(a => a.id !== record.id);
     setAssetData(updated);
     setFilteredData(updated);
+    localStorage.setItem('fixed_asset_archives', JSON.stringify(updated));
     message.success('删除成功');
   };
 
@@ -380,9 +394,22 @@ const AssetRegister: React.FC = () => {
     try {
       const values = await assetForm.validateFields();
       if (editingAsset) {
-        const updated = assetData.map(item => (item.id === editingAsset.id ? { ...editingAsset, ...values } : item));
+        const updated = assetData.map(item => (
+          item.id === editingAsset.id 
+            ? { 
+                ...editingAsset, 
+                ...values,
+                updateUser: '管理员',
+                updateDate: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                purchaseDate: values.purchaseDate ? values.purchaseDate.format('YYYY-MM-DD') : undefined,
+                storageDate: values.storageDate ? values.storageDate.format('YYYY-MM-DD') : undefined,
+                warrantyExpiry: values.warrantyExpiry ? values.warrantyExpiry.format('YYYY-MM-DD') : undefined,
+              } 
+            : item
+        ));
         setAssetData(updated);
         setFilteredData(updated);
+        localStorage.setItem('fixed_asset_archives', JSON.stringify(updated));
         message.success('编辑成功');
       } else {
         const newItem: AssetRecord = {
@@ -416,6 +443,7 @@ const AssetRegister: React.FC = () => {
         const updated = [newItem, ...assetData];
         setAssetData(updated);
         setFilteredData(updated);
+        localStorage.setItem('fixed_asset_archives', JSON.stringify(updated));
         message.success('新增成功');
       }
       setIsAssetModalVisible(false);
