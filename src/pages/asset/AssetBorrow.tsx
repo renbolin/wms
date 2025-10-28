@@ -16,6 +16,7 @@ interface AssetBorrow {
   assetName: string;
   assetType: string;
   specification: string;
+  batchNo?: string;
   borrower: string;
   borrowerDept: string;
   borrowerPhone: string;
@@ -55,6 +56,7 @@ interface AssetInfo {
   status: string;
   custodian: string;
   isAvailable: boolean;
+  batchNo?: string;
 }
 
 const AssetBorrow: React.FC = () => {
@@ -88,6 +90,7 @@ const AssetBorrow: React.FC = () => {
       status: '正常',
       custodian: '张三',
       isAvailable: true,
+      batchNo: 'BN-2023-001',
     },
     {
       assetCode: 'FA002',
@@ -103,6 +106,7 @@ const AssetBorrow: React.FC = () => {
       status: '正常',
       custodian: '李四',
       isAvailable: true,
+      batchNo: 'BN-2023-002',
     },
   ];
 
@@ -115,6 +119,7 @@ const AssetBorrow: React.FC = () => {
       assetName: '笔记本电脑',
       assetType: '电子设备',
       specification: 'ThinkPad X1 Carbon',
+      batchNo: 'BN-2023-001',
       borrower: '王五',
       borrowerDept: '市场部',
       borrowerPhone: '13800138001',
@@ -135,6 +140,7 @@ const AssetBorrow: React.FC = () => {
       assetName: '投影仪',
       assetType: '办公设备',
       specification: '4K高清投影仪',
+      batchNo: 'BN-2023-002',
       borrower: '赵六',
       borrowerDept: '销售部',
       borrowerPhone: '13800138002',
@@ -163,6 +169,7 @@ const AssetBorrow: React.FC = () => {
       assetName: '数码相机',
       assetType: '电子设备',
       specification: '佳能EOS R5',
+      batchNo: 'BN-2023-003',
       borrower: '孙七',
       borrowerDept: '宣传部',
       borrowerPhone: '13800138003',
@@ -188,6 +195,7 @@ const AssetBorrow: React.FC = () => {
       assetName: '打印机',
       assetType: '办公设备',
       specification: 'HP LaserJet Pro',
+      batchNo: 'BN-2023-004',
       borrower: '周八',
       borrowerDept: '财务部',
       borrowerPhone: '13800138004',
@@ -213,6 +221,7 @@ const AssetBorrow: React.FC = () => {
       assetName: '平板电脑',
       assetType: '电子设备',
       specification: 'iPad Pro 12.9',
+      batchNo: 'BN-2023-005',
       borrower: '吴九',
       borrowerDept: '技术部',
       borrowerPhone: '13800138005',
@@ -273,6 +282,7 @@ const AssetBorrow: React.FC = () => {
         assetName: values.assetName,
         assetType: values.assetType,
         specification: values.specification,
+        batchNo: values.batchNo,
         borrower: values.borrower,
         borrowerDept: values.borrowerDept,
         borrowerPhone: values.borrowerPhone,
@@ -508,6 +518,13 @@ const AssetBorrow: React.FC = () => {
       width: 100,
     },
     {
+      title: '批次号',
+      dataIndex: 'batchNo',
+      key: 'batchNo',
+      width: 100,
+      render: (text) => (text ? <Tag color="blue">{text}</Tag> : '-'),
+    },
+    {
       title: '借用人',
       dataIndex: 'borrower',
       key: 'borrower',
@@ -681,7 +698,7 @@ const AssetBorrow: React.FC = () => {
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
         width={800}
-        destroyOnClose
+destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>
@@ -704,6 +721,7 @@ const AssetBorrow: React.FC = () => {
                         assetName: asset.assetName,
                         assetType: asset.assetType,
                         specification: asset.specification,
+                        batchNo: asset.batchNo,
                         borrowLocation: asset.location,
                       });
                     }
@@ -719,6 +737,13 @@ const AssetBorrow: React.FC = () => {
             </Col>
             <Col span={12}>
               <Form.Item name="assetName" label="资产名称">
+                <Input disabled />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="batchNo" label="批次号">
                 <Input disabled />
               </Form.Item>
             </Col>
@@ -835,6 +860,7 @@ const AssetBorrow: React.FC = () => {
               <Descriptions.Item label="资产名称">{selectedRecord.assetName}</Descriptions.Item>
               <Descriptions.Item label="资产类型">{selectedRecord.assetType}</Descriptions.Item>
               <Descriptions.Item label="规格型号">{selectedRecord.specification}</Descriptions.Item>
+              <Descriptions.Item label="批次号">{selectedRecord.batchNo || '-'}</Descriptions.Item>
               <Descriptions.Item label="借用人">{selectedRecord.borrower}</Descriptions.Item>
               <Descriptions.Item label="部门">{selectedRecord.borrowerDept}</Descriptions.Item>
               <Descriptions.Item label="联系电话">{selectedRecord.borrowerPhone}</Descriptions.Item>

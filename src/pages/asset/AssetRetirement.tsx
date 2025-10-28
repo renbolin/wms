@@ -97,6 +97,7 @@ interface AssetInfo {
   department: string;
   custodian: string;
   location: string;
+  batchNo?: string;
   status: string;
 }
 
@@ -134,6 +135,7 @@ const AssetRetirement: React.FC = () => {
       department: '技术部',
       custodian: '张三',
       location: '技术部-研发室1',
+      batchNo: 'BN-2021-001',
       status: 'in_use',
     },
     {
@@ -151,6 +153,7 @@ const AssetRetirement: React.FC = () => {
       department: '行政部',
       custodian: '李四',
       location: '行政部-办公室2',
+      batchNo: 'BN-2020-002',
       status: 'in_use',
     },
   ];
@@ -831,6 +834,13 @@ const AssetRetirement: React.FC = () => {
       width: 100,
     },
     {
+      title: '批次号',
+      dataIndex: 'batchNo',
+      key: 'batchNo',
+      width: 100,
+      render: (text) => (text ? <Tag color="blue">{text}</Tag> : '-'),
+    },
+    {
       title: '规格型号',
       dataIndex: 'specification',
       key: 'specification',
@@ -1048,6 +1058,7 @@ const AssetRetirement: React.FC = () => {
         onOk={handleAssetSelect}
         onCancel={() => setIsAssetSelectModalVisible(false)}
         width={1000}
+        destroyOnHidden
       >
         <Table
           columns={assetColumns}
@@ -1061,7 +1072,7 @@ const AssetRetirement: React.FC = () => {
             },
           }}
           pagination={false}
-          scroll={{ x: 800 }}
+          scroll={{ x: 900 }}
         />
       </Modal>
 
@@ -1072,7 +1083,7 @@ const AssetRetirement: React.FC = () => {
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
         width={1000}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Divider orientation="left">资产信息</Divider>
@@ -1222,6 +1233,7 @@ const AssetRetirement: React.FC = () => {
         onCancel={() => setIsDetailModalVisible(false)}
         footer={null}
         width={900}
+        destroyOnHidden
       >
         {selectedRecord && (
           <div>
@@ -1297,6 +1309,7 @@ const AssetRetirement: React.FC = () => {
           approveForm.resetFields();
         }}
         width={600}
+        destroyOnHidden
       >
         <Form form={approveForm} layout="vertical">
           <Form.Item name="action" label="审批动作">

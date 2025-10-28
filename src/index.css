@@ -141,3 +141,42 @@ body {
     height: 100%;
   }
 }
+/* 高亮新入库行（兼容桌面与移动端、浅色与深色模式） */
+.highlight-row td {
+  background-color: #e6f7ff !important; /* 高对比浅蓝（Ant Design 主色系） */
+  transition: background-color 0.3s ease-in-out;
+  border-top: 1px solid #91d5ff; /* 顶部边界强化 */
+  border-bottom: 1px solid #91d5ff; /* 底部边界强化 */
+}
+.highlight-row td:first-child {
+  position: relative;
+}
+.highlight-row td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px; /* 更粗的强调条提高可见性 */
+  background-color: #1890ff; /* 主色蓝强调条 */
+}
+.highlight-row-anim td {
+  animation: highlightPulse 1200ms ease-out 1;
+}
+@keyframes highlightPulse {
+  0% { background-color: #bae7ff; }
+  100% { background-color: #e6f7ff; }
+}
+/* 悬停时保持高亮，不被默认hover样式覆盖 */
+.ant-table-tbody > tr.highlight-row:hover > td {
+  background-color: #f0fbff !important;
+}
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .highlight-row td {
+    background-color: rgba(24, 144, 255, 0.22) !important; /* 深色模式浅蓝 */
+  }
+  .ant-table-tbody > tr.highlight-row:hover > td {
+    background-color: rgba(24, 144, 255, 0.30) !important;
+  }
+}

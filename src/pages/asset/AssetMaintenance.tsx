@@ -808,7 +808,7 @@ const AssetMaintenance: React.FC = () => {
               </Col>
               <Col span={6}>
                  <Form.Item label="预估费用范围">
-                   <Input.Group compact>
+<Space.Compact>
                      <Form.Item name={['estimatedCostRange', 0]} noStyle>
                        <InputNumber
                          style={{ width: '45%' }}
@@ -830,12 +830,12 @@ const AssetMaintenance: React.FC = () => {
                          precision={2}
                        />
                      </Form.Item>
-                   </Input.Group>
+</Space.Compact>
                  </Form.Item>
                </Col>
                <Col span={6}>
                  <Form.Item label="实际费用范围">
-                   <Input.Group compact>
+<Space.Compact>
                      <Form.Item name={['actualCostRange', 0]} noStyle>
                        <InputNumber
                          style={{ width: '45%' }}
@@ -857,7 +857,7 @@ const AssetMaintenance: React.FC = () => {
                          precision={2}
                        />
                      </Form.Item>
-                   </Input.Group>
+</Space.Compact>
                  </Form.Item>
                </Col>
             </Row>

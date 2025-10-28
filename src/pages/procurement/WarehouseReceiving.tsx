@@ -839,7 +839,7 @@ const WarehouseReceiving: React.FC = () => {
               </Col>
               <Col span={8}>
                 <Form.Item name="totalAmountRange" label="总金额范围">
-                  <Input.Group compact>
+<Space.Compact>
                     <Input
                       style={{ width: '45%' }}
                       placeholder="最小金额"
@@ -855,7 +855,7 @@ const WarehouseReceiving: React.FC = () => {
                       placeholder="最大金额"
                       type="number"
                     />
-                  </Input.Group>
+</Space.Compact>
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -905,7 +905,7 @@ const WarehouseReceiving: React.FC = () => {
         onOk={handleOk}
         onCancel={handleCancel}
         width={800}
-        destroyOnClose
+destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>
@@ -1111,7 +1111,7 @@ const WarehouseReceiving: React.FC = () => {
         onOk={handleReceivingSubmit}
         onCancel={() => setIsReceivingModalVisible(false)}
         width={1200}
-        destroyOnClose
+destroyOnHidden
         okText="确认入库"
         cancelText="取消"
       >
@@ -1288,7 +1288,7 @@ const WarehouseReceiving: React.FC = () => {
         onCancel={() => setIsCreateModalVisible(false)}
         footer={null}
         width={1200}
-        destroyOnClose
+destroyOnHidden
       >
         <div className="mb-4">
           <p className="text-gray-600">请从以下已接收的到货单中选择一个来创建入库单：</p>

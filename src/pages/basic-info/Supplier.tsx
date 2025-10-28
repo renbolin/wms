@@ -1,0 +1,465 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  Table,
+  Button,
+  Form,
+  Input,
+  Select,
+  Modal,
+  Space,
+  Tag,
+  message,
+  Descriptions,
+  Row,
+  Col,
+} from 'antd';
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  EyeOutlined,
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+
+const { Option } = Select;
+const { TextArea } = Input;
+
+// 供应商信息接口
+interface SupplierInfo {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  contact: string;
+  phone: string;
+  email: string;
+  address: string;
+  status: 'active' | 'inactive' | 'blacklist';
+  statusText: string;
+  description: string;
+  createUser: string;
+  createDate: string;
+  updateUser: string;
+  updateDate: string;
+}
+
+const Supplier: React.FC = () => {
+  const [loading, setLoading] = useState(false);
+  const [supplierData, setSupplierData] = useState<SupplierInfo[]>([]);
+  const [filteredData, setFilteredData] = useState<SupplierInfo[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<SupplierInfo | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<SupplierInfo | null>(null);
+
+  const [searchForm] = Form.useForm();
+  const [supplierForm] = Form.useForm();
+
+  // 初始化供应商数据
+  useEffect(() => {
+    loadSupplierData();
+  }, []);
+
+  // 加载供应商数据
+  const loadSupplierData = () => {
+    setLoading(true);
+    
+    // 模拟供应商数据
+    const mockSupplierData: SupplierInfo[] = [
+      {
+        id: '1',
+        code: 'SP001',
+        name: '上海电子设备有限公司',
+        type: '电子设备',
+        contact: '张三',
+        phone: '13800138001',
+        email: 'zhangsan@example.com',
+        address: '上海市浦东新区XX路XX号',
+        status: 'active',
+        statusText: '正常',
+        description: '主要电子设备供应商',
+        createUser: '管理员',
+        createDate: '2023-01-15 10:30:00',
+        updateUser: '张三',
+        updateDate: '2023-06-20 14:20:00',
+      },
+      {
+        id: '2',
+        code: 'SP002',
+        name: '北京办公用品有限公司',
+        type: '办公用品',
+        contact: '李四',
+        phone: '13800138002',
+        email: 'lisi@example.com',
+        address: '北京市朝阳区XX街XX号',
+        status: 'active',
+        statusText: '正常',
+        description: '办公用品供应商',
+        createUser: '管理员',
+        createDate: '2023-02-20 09:15:00',
+        updateUser: '李四',
+        updateDate: '2023-06-25 16:30:00',
+      },
+      // ... 其他供应商数据
+    ];
+
+    setSupplierData(mockSupplierData);
+    setFilteredData(mockSupplierData);
+    setLoading(false);
+  };
+
+  // 表格列配置
+  const columns: ColumnsType<SupplierInfo> = [
+    {
+      title: '供应商编码',
+      dataIndex: 'code',
+      key: 'code',
+      width: 120,
+    },
+    {
+      title: '供应商名称',
+      dataIndex: 'name',
+      key: 'name',
+      width: 200,
+    },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      key: 'type',
+      width: 120,
+    },
+    {
+      title: '联系人',
+      dataIndex: 'contact',
+      key: 'contact',
+      width: 100,
+    },
+    {
+      title: '联系电话',
+      dataIndex: 'phone',
+      key: 'phone',
+      width: 120,
+    },
+    {
+      title: '邮箱',
+      dataIndex: 'email',
+      key: 'email',
+      width: 180,
+    },
+    {
+      title: '地址',
+      dataIndex: 'address',
+      key: 'address',
+      width: 250,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (status: string) => {
+        const statusMap = {
+          active: { color: 'success', text: '正常' },
+          inactive: { color: 'default', text: '停用' },
+          blacklist: { color: 'error', text: '黑名单' },
+        };
+        const { color, text } = statusMap[status as keyof typeof statusMap] || { color: 'default', text: status };
+        return <Tag color={color}>{text}</Tag>;
+      },
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 200,
+      render: (_, record) => (
+        <Space size="middle">
+          <Button
+            type="text"
+            icon={<EyeOutlined />}
+            onClick={() => handleView(record)}
+          >
+            查看
+          </Button>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
+            编辑
+          </Button>
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record)}
+          >
+            删除
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  // 处理查看操作
+  const handleView = (record: SupplierInfo) => {
+    setSelectedSupplier(record);
+    setIsDetailModalVisible(true);
+  };
+
+  // 处理编辑操作
+  const handleEdit = (record: SupplierInfo) => {
+    setEditingSupplier(record);
+    supplierForm.setFieldsValue(record);
+    setIsModalVisible(true);
+  };
+
+  // 处理删除操作
+  const handleDelete = (record: SupplierInfo) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除供应商 "${record.name}" 吗？`,
+      onOk() {
+        // 实现删除逻辑
+        message.success('删除成功');
+      },
+    });
+  };
+
+  // 处理搜索操作
+  const handleSearch = (values: any) => {
+    const filtered = supplierData.filter((item) => {
+      return (
+        (!values.code || item.code.toLowerCase().includes(values.code.toLowerCase())) &&
+        (!values.name || item.name.toLowerCase().includes(values.name.toLowerCase())) &&
+        (!values.type || item.type === values.type) &&
+        (!values.status || item.status === values.status)
+      );
+    });
+    setFilteredData(filtered);
+  };
+
+  return (
+    <div>
+      <Card title="供应商管理">
+        {/* 搜索表单 */}
+        <Form
+          form={searchForm}
+          layout="inline"
+          onFinish={handleSearch}
+          style={{ marginBottom: 16 }}
+        >
+          <Form.Item name="code" label="供应商编码">
+            <Input placeholder="请输入供应商编码" />
+          </Form.Item>
+          <Form.Item name="name" label="供应商名称">
+            <Input placeholder="请输入供应商名称" />
+          </Form.Item>
+          <Form.Item name="type" label="类型">
+            <Select placeholder="请选择类型" style={{ width: 120 }}>
+              <Option value="电子设备">电子设备</Option>
+              <Option value="办公用品">办公用品</Option>
+              <Option value="原材料">原材料</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="status" label="状态">
+            <Select placeholder="请选择状态" style={{ width: 120 }}>
+              <Option value="active">正常</Option>
+              <Option value="inactive">停用</Option>
+              <Option value="blacklist">黑名单</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
+                查询
+              </Button>
+              <Button onClick={() => {
+                searchForm.resetFields();
+                setFilteredData(supplierData);
+              }}>
+                重置
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingSupplier(null);
+                  supplierForm.resetFields();
+                  setIsModalVisible(true);
+                }}
+              >
+                新增供应商
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+
+        {/* 供应商数据表格 */}
+        <Table
+          columns={columns}
+          dataSource={filteredData}
+          loading={loading}
+          rowKey="id"
+          scroll={{ x: 1500 }}
+          pagination={{
+            total: filteredData.length,
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`,
+          }}
+        />
+
+        {/* 供应商详情模态框 */}
+        <Modal
+          title="供应商详情"
+          open={isDetailModalVisible}
+          onCancel={() => setIsDetailModalVisible(false)}
+          footer={[
+            <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
+              关闭
+            </Button>,
+          ]}
+          width={800}
+          destroyOnHidden
+        >
+          {selectedSupplier && (
+            <Descriptions column={2} bordered>
+              <Descriptions.Item label="供应商编码">{selectedSupplier.code}</Descriptions.Item>
+              <Descriptions.Item label="供应商名称">{selectedSupplier.name}</Descriptions.Item>
+              <Descriptions.Item label="类型">{selectedSupplier.type}</Descriptions.Item>
+              <Descriptions.Item label="状态">{selectedSupplier.statusText}</Descriptions.Item>
+              <Descriptions.Item label="联系人">{selectedSupplier.contact}</Descriptions.Item>
+              <Descriptions.Item label="联系电话">{selectedSupplier.phone}</Descriptions.Item>
+              <Descriptions.Item label="邮箱">{selectedSupplier.email}</Descriptions.Item>
+              <Descriptions.Item label="地址" span={2}>{selectedSupplier.address}</Descriptions.Item>
+              <Descriptions.Item label="描述" span={2}>{selectedSupplier.description}</Descriptions.Item>
+              <Descriptions.Item label="创建人">{selectedSupplier.createUser}</Descriptions.Item>
+              <Descriptions.Item label="创建时间">{selectedSupplier.createDate}</Descriptions.Item>
+              <Descriptions.Item label="更新人">{selectedSupplier.updateUser}</Descriptions.Item>
+              <Descriptions.Item label="更新时间">{selectedSupplier.updateDate}</Descriptions.Item>
+            </Descriptions>
+          )}
+        </Modal>
+
+        {/* 供应商编辑模态框 */}
+        <Modal
+          title={editingSupplier ? '编辑供应商' : '新增供应商'}
+          open={isModalVisible}
+          onOk={() => {
+            supplierForm.validateFields().then((values) => {
+              // 实现保存逻辑
+              message.success(editingSupplier ? '更新成功' : '添加成功');
+              setIsModalVisible(false);
+              loadSupplierData();
+            });
+          }}
+          onCancel={() => setIsModalVisible(false)}
+          width={800}
+          destroyOnHidden
+        >
+          <Form
+            form={supplierForm}
+            layout="vertical"
+          >
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="code"
+                  label="供应商编码"
+                  rules={[{ required: true, message: '请输入供应商编码' }]}
+                >
+                  <Input placeholder="请输入供应商编码" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="name"
+                  label="供应商名称"
+                  rules={[{ required: true, message: '请输入供应商名称' }]}
+                >
+                  <Input placeholder="请输入供应商名称" />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="type"
+                  label="类型"
+                  rules={[{ required: true, message: '请选择类型' }]}
+                >
+                  <Select placeholder="请选择类型">
+                    <Option value="电子设备">电子设备</Option>
+                    <Option value="办公用品">办公用品</Option>
+                    <Option value="原材料">原材料</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="status"
+                  label="状态"
+                  rules={[{ required: true, message: '请选择状态' }]}
+                >
+                  <Select placeholder="请选择状态">
+                    <Option value="active">正常</Option>
+                    <Option value="inactive">停用</Option>
+                    <Option value="blacklist">黑名单</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="contact"
+                  label="联系人"
+                  rules={[{ required: true, message: '请输入联系人' }]}
+                >
+                  <Input placeholder="请输入联系人" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="phone"
+                  label="联系电话"
+                  rules={[{ required: true, message: '请输入联系电话' }]}
+                >
+                  <Input placeholder="请输入联系电话" />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item
+              name="email"
+              label="邮箱"
+              rules={[
+                { required: true, message: '请输入邮箱' },
+                { type: 'email', message: '请输入有效的邮箱地址' },
+              ]}
+            >
+              <Input placeholder="请输入邮箱" />
+            </Form.Item>
+            <Form.Item
+              name="address"
+              label="地址"
+              rules={[{ required: true, message: '请输入地址' }]}
+            >
+              <Input placeholder="请输入地址" />
+            </Form.Item>
+            <Form.Item
+              name="description"
+              label="描述"
+            >
+              <TextArea rows={4} placeholder="请输入描述" />
+            </Form.Item>
+          </Form>
+        </Modal>
+      </Card>
+    </div>
+  );
+};
+
+export default Supplier;

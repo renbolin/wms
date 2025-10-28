@@ -80,7 +80,10 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
 
   // 采购趋势图配置
   const trendConfig = {
-    data: procurementTrendData,
+    data: procurementTrendData.map(item => ({
+      ...item,
+      amount: item.amount || 0
+    })),
     xField: 'date',
     yField: 'amount',
     smooth: true,
@@ -93,20 +96,23 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
       formatter: (datum: any) => {
         return {
           name: '采购金额',
-          value: `￥${(datum.amount / 10000).toFixed(1)}万`
+          value: `￥${((datum.amount || 0) / 10000).toFixed(1)}万`
         };
       }
     },
     yAxis: {
       label: {
-        formatter: (v: string) => `￥${(parseInt(v) / 10000).toFixed(0)}万`
+        formatter: (v: string) => `￥${(parseInt(v || '0') / 10000).toFixed(0)}万`
       }
     }
   };
 
   // 订单数量柱状图配置
   const orderConfig = {
-    data: procurementTrendData,
+    data: procurementTrendData.map(item => ({
+      ...item,
+      orders: item.orders || 0
+    })),
     xField: 'date',
     yField: 'orders',
     color: '#52c41a',
@@ -115,7 +121,7 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
       formatter: (datum: any) => {
         return {
           name: '订单数量',
-          value: `${datum.orders}个`
+          value: `${datum.orders || 0}个`
         };
       }
     }
@@ -123,14 +129,18 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
 
   // 分类饼图配置
   const pieConfig = {
-    data: categoryData,
+    data: categoryData.map(item => ({
+      ...item,
+      value: item.value || 0,
+      percentage: item.percentage || 0
+    })),
     angleField: 'value',
     colorField: 'category',
     radius: 0.8,
     innerRadius: 0.4,
     label: {
       offset: '-30%',
-      content: ({ percentage }: any) => `${(percentage * 100).toFixed(1)}%`,
+      content: ({ percentage }: any) => `${((percentage || 0) * 100).toFixed(1)}%`,
       style: {
         fontSize: 12,
         textAlign: 'center',
@@ -143,7 +153,7 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
       formatter: (datum: any) => {
         return {
           name: datum.category,
-          value: `￥${(datum.value / 10000).toFixed(1)}万`
+          value: `￥${((datum.value || 0) / 10000).toFixed(1)}万`
         };
       }
     },
@@ -153,9 +163,9 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
   // 供应商对比图配置
   const supplierConfig = {
     data: supplierData.flatMap(item => [
-      { supplier: item.supplier, period: '本月', value: item.thisMonth },
-      { supplier: item.supplier, period: '上月', value: item.lastMonth }
-    ]),
+      { supplier: item.supplier, period: '本月', value: item.thisMonth || 0 },
+      { supplier: item.supplier, period: '上月', value: item.lastMonth || 0 }
+    ]).filter(item => item.supplier && item.value !== undefined && !isNaN(item.value)),
     xField: 'supplier',
     yField: 'value',
     seriesField: 'period',
@@ -166,13 +176,13 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
       formatter: (datum: any) => {
         return {
           name: datum.period,
-          value: `￥${(datum.value / 10000).toFixed(1)}万`
+          value: `￥${((datum.value || 0) / 10000).toFixed(1)}万`
         };
       }
     },
     yAxis: {
       label: {
-        formatter: (v: string) => `￥${(parseInt(v) / 10000).toFixed(0)}万`
+        formatter: (v: string) => `￥${(parseInt(v || '0') / 10000).toFixed(0)}万`
       }
     }
   };
@@ -180,9 +190,9 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
   // 库存周转率趋势图配置
   const inventoryConfig = {
     data: inventoryData.flatMap(item => [
-      { month: item.month, type: '实际值', value: item.turnover },
-      { month: item.month, type: '目标值', value: item.target }
-    ]),
+      { month: item.month, type: '实际值', value: item.turnover || 0 },
+      { month: item.month, type: '目标值', value: item.target || 0 }
+    ]).filter(item => item.month && item.value !== undefined && !isNaN(item.value)),
     xField: 'month',
     yField: 'value',
     seriesField: 'type',
@@ -196,7 +206,7 @@ const TrendCharts: React.FC<TrendChartsProps> = ({ timeRange }) => {
       formatter: (datum: any) => {
         return {
           name: datum.type,
-          value: `${datum.value}次/年`
+          value: `${(datum.value || 0).toFixed(1)}次/年`
         };
       }
     }

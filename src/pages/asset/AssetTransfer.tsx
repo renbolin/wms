@@ -1119,7 +1119,7 @@ const AssetTransfer: React.FC = () => {
           setSelectedRecord(null);
         }}
         width={800}
-        destroyOnClose
+destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>

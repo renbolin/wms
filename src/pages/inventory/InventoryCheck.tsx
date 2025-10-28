@@ -884,7 +884,7 @@ const InventoryCheck: React.FC = () => {
         onCancel={() => setIsModalVisible(false)}
         onOk={handleSave}
         width={800}
-        destroyOnClose
+destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>

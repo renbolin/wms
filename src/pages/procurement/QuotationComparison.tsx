@@ -99,7 +99,7 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
         </Col>
         <Col span={8}>
           <Form.Item name="totalAmountRange" label="总金额范围">
-            <Input.Group compact>
+            <Space.Compact>
               <Input
                 style={{ width: '45%' }}
                 placeholder="最小金额"
@@ -115,12 +115,12 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
                 placeholder="最大金额"
                 type="number"
               />
-            </Input.Group>
+            </Space.Compact>
           </Form.Item>
         </Col>
         <Col span={4}>
           <Form.Item name="quotationCountRange" label="报价数量">
-            <Input.Group compact>
+            <Space.Compact>
               <Input
                 style={{ width: '45%' }}
                 placeholder="最少"
@@ -136,7 +136,7 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
                 placeholder="最多"
                 type="number"
               />
-            </Input.Group>
+            </Space.Compact>
           </Form.Item>
         </Col>
         <Col span={12}>

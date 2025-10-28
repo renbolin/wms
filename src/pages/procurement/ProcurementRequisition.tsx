@@ -122,11 +122,11 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
         </Col>
         <Col span={6}>
           <Form.Item name="totalAmountRange" label="总金额范围">
-            <Input.Group compact>
+            <Space.Compact>
               <Input style={{ width: '45%' }} placeholder="最小金额" />
               <Input style={{ width: '10%', textAlign: 'center', pointerEvents: 'none' }} placeholder="~" disabled />
               <Input style={{ width: '45%' }} placeholder="最大金额" />
-            </Input.Group>
+            </Space.Compact>
           </Form.Item>
         </Col>
         <Col span={24} style={{ textAlign: 'right' }}>

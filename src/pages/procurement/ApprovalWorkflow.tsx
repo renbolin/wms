@@ -510,14 +510,14 @@ const ApprovalWorkflowManagement: React.FC = () => {
             </Col>
             <Col span={6}>
               <Form.Item label="步骤数量">
-                <Input.Group compact>
+<Space.Compact>
                   <Form.Item name={['stepCountRange', 0]} noStyle>
                     <InputNumber placeholder="最小" style={{ width: '50%' }} min={0} />
                   </Form.Item>
                   <Form.Item name={['stepCountRange', 1]} noStyle>
                     <InputNumber placeholder="最大" style={{ width: '50%' }} min={0} />
                   </Form.Item>
-                </Input.Group>
+</Space.Compact>
               </Form.Item>
             </Col>
             <Col span={6}>
@@ -559,7 +559,7 @@ const ApprovalWorkflowManagement: React.FC = () => {
         onOk={handleOk}
         onCancel={handleCancel}
         width={1000}
-        destroyOnClose
+destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>
@@ -631,7 +631,7 @@ const ApprovalWorkflowManagement: React.FC = () => {
         open={isStepModalVisible}
         onOk={handleStepOk}
         onCancel={handleCancel}
-        destroyOnClose
+destroyOnHidden
       >
         <Form form={stepForm} layout="vertical">
           <Form.Item

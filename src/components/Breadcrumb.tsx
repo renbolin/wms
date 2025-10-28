@@ -6,22 +6,26 @@ import {
   ShoppingOutlined, InboxOutlined, AppstoreOutlined, FileTextOutlined,
   ShoppingCartOutlined, TeamOutlined, ImportOutlined,
   ExportOutlined, DatabaseOutlined, CheckSquareOutlined, FormOutlined,
-  SwapOutlined, ToolOutlined, DeleteOutlined, AuditOutlined
+  SwapOutlined, ToolOutlined, DeleteOutlined, AuditOutlined,
+  TagOutlined, EnvironmentOutlined
 } from '@ant-design/icons';
 
 const routeConfig: Record<string, { title: string; icon?: React.ReactNode }> = {
   '/': { title: '首页', icon: <HomeOutlined /> },
   
+  // 基础信息管理
+  '/basic-info': { title: '基础信息管理', icon: <DatabaseOutlined /> },
+  '/basic-info/warehouse': { title: '仓库管理', icon: <DatabaseOutlined /> },
+  '/basic-info/supplier': { title: '供应商管理', icon: <TeamOutlined /> },
+  '/basic-info/equipment-type': { title: '设备类型管理', icon: <AppstoreOutlined /> },
+  
   // 采购管理
   '/procurement': { title: '采购管理', icon: <ShoppingOutlined /> },
-  
   '/procurement/requisition': { title: '采购申请', icon: <FormOutlined /> },
   '/procurement/order': { title: '采购订单', icon: <ShoppingCartOutlined /> },
   '/procurement/delivery-notes': { title: '到货单管理', icon: <InboxOutlined /> },
   '/procurement/receiving': { title: '入库处理', icon: <ImportOutlined /> },
-  '/procurement/supplier': { title: '供应商管理', icon: <TeamOutlined /> },
   '/procurement/approval-workflow': { title: '审批流程配置', icon: <AuditOutlined /> },
-
   
   // 库存管理
   '/inventory': { title: '库存管理', icon: <InboxOutlined /> },
@@ -33,7 +37,6 @@ const routeConfig: Record<string, { title: string; icon?: React.ReactNode }> = {
   // 固定资产管理
   '/asset': { title: '固定资产', icon: <AppstoreOutlined /> },
   '/asset/register': { title: '资产登记', icon: <FormOutlined /> },
-  '/asset/warehouse': { title: '仓库管理', icon: <DatabaseOutlined /> },
   '/asset/transfer': { title: '资产调拨', icon: <SwapOutlined /> },
   '/asset/maintenance': { title: '资产维护', icon: <ToolOutlined /> },
   '/asset/retirement': { title: '资产报废', icon: <DeleteOutlined /> },

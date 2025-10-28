@@ -321,50 +321,85 @@ const AssetReport: React.FC = () => {
     },
   ];
 
-  // 柱状图配置
+  // 图表配置
+  // 将趋势数据转换为图表所需的扁平结构
+  const assetTrendData = trendData.flatMap(d => [
+    { month: d.month, type: '新增资产', value: d.newAssets },
+    { month: d.month, type: '报废资产', value: d.scrapAssets },
+    { month: d.month, type: '资产总价值', value: d.totalValue },
+  ]);
+
+  // 分布数据直接复用现有数据结构
+  const assetDistributionData = distributionData;
+
   const columnConfig = {
-    data: summaryData,
-    xField: 'category',
-    yField: 'totalValue',
+    data: assetTrendData,
+    xField: 'month',
+    yField: 'value',
+    seriesField: 'type',
+    isGroup: true,
+    columnStyle: {
+      radius: [4, 4, 0, 0],
+    },
     label: {
-      position: 'middle' as const,
-      style: {
-        fill: '#FFFFFF',
-        opacity: 0.6,
+      position: 'top' as const,
+      formatter: (v: any) => {
+        if (typeof v.value === 'number') {
+          return `¥${v.value.toLocaleString()}`;
+        }
+        return '';
       },
     },
     meta: {
-      category: { alias: '资产类别' },
-      totalValue: { alias: '总价值' },
+      month: { alias: '月份' },
+      value: {
+        alias: '金额',
+        formatter: (v: number) => `¥${v.toLocaleString()}`,
+      },
     },
   };
 
-  // 饼图配置
   const pieConfig = {
-    data: distributionData,
-    angleField: 'count',
+    data: assetDistributionData,
+    angleField: 'value',
     colorField: 'department',
     radius: 0.8,
     label: {
       type: 'outer' as const,
-      content: '{name} {percentage}',
+      content: '{name} {percentage}%',
+      formatter: (v: any) => {
+        if (typeof v.percent === 'number') {
+          return `${(v.percent * 100).toFixed(1)}%`;
+        }
+        return '';
+      },
     },
     interactions: [{ type: 'element-active' }],
   };
 
-  // 折线图配置
   const lineConfig = {
-    data: trendData,
+    data: maintenanceData,
     xField: 'month',
-    yField: 'totalAssets',
+    yField: 'count',
+    seriesField: 'type',
     point: {
       size: 5,
       shape: 'diamond',
     },
-    label: {},
+    label: {
+      style: {
+        fill: '#aaa',
+      },
+      formatter: (v: any) => {
+        if (typeof v.count === 'number') {
+          return v.count.toString();
+        }
+        return '';
+      },
+    },
     meta: {
       month: { alias: '月份' },
-      totalAssets: { alias: '资产总数' },
+      count: { alias: '次数' },
     },
   };
 

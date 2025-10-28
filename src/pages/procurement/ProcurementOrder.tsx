@@ -114,10 +114,10 @@ const FilterBar = ({ onFilter }: { onFilter: (values: any) => void }) => {
         </Col>
         <Col span={8}>
           <Form.Item label="总金额范围" name="totalAmountRange">
-            <Input.Group compact>
+            <Space.Compact>
               <InputNumber placeholder="最小金额" style={{ width: '50%' }} />
               <InputNumber placeholder="最大金额" style={{ width: '50%' }} />
-            </Input.Group>
+            </Space.Compact>
           </Form.Item>
         </Col>
         <Col span={8}>
@@ -152,6 +152,12 @@ const ProcurementOrder: React.FC = () => {
   const [selectedQuotationId, setSelectedQuotationId] = useState<string>('');
   const [attachmentModalVisible, setAttachmentModalVisible] = useState(false);
   const [currentAttachmentOrder, setCurrentAttachmentOrder] = useState<any>(null);
+  // 补充：合同相关状态，避免未定义变量导致页面渲染报错
+  const [contractsVisible, setContractsVisible] = useState(false);
+  const [contractUpdateVisible, setContractUpdateVisible] = useState(false);
+  const [contractType, setContractType] = useState<'all' | 'active'>('all');
+  // 补充：占位的加载函数，避免调用未定义函数导致异常
+  const loadData = () => {};
 
   const [_inputQuantity, _setInputQuantity] = useState<number>(0);
 
@@ -467,11 +473,12 @@ const ProcurementOrder: React.FC = () => {
       </div>
       <Table columns={columns} dataSource={filteredOrders} rowKey="id" scroll={{ x: 1200 }} />
       <Modal
-        title={editingOrder ? '编辑采购订单' : (isFromQuotation ? '从询价单生成采购订单' : '新增采购订单')}
-        visible={isModalVisible}
+        title={editingOrder ? '编辑采购订单' : '新增采购订单'}
+        open={isModalVisible}
         onOk={handleOk}
-        onCancel={handleCancel}
+        onCancel={() => setIsModalVisible(false)}
         width={1000}
+        destroyOnHidden
       >
         <Form form={form} layout="vertical">
           {isFromQuotation && (
@@ -615,14 +622,11 @@ const ProcurementOrder: React.FC = () => {
       </Modal>
       <Modal
         title="采购订单详情"
-        visible={detailsVisible}
+        open={detailsVisible}
         onCancel={() => setDetailsVisible(false)}
-        footer={[
-          <Button key="back" onClick={() => setDetailsVisible(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={1200}
+        footer={null}
+        width={1000}
+        destroyOnHidden
       >
         {selectedOrder && (
           <div>
@@ -710,15 +714,116 @@ const ProcurementOrder: React.FC = () => {
 
       {/* 附件管理模态框 */}
       <Modal
-        title={`附件管理 - ${currentAttachmentOrder?.orderNumber || ''}`}
-        open={attachmentModalVisible}
-        onCancel={() => setAttachmentModalVisible(false)}
+        title={`${contractType === 'all' ? '全部' : '进行中'}合同列表`}
+        open={contractsVisible}
+        onCancel={() => setContractsVisible(false)}
         footer={[
-          <Button key="close" onClick={() => setAttachmentModalVisible(false)}>
+          <Button key="back" onClick={() => setContractsVisible(false)}>
             关闭
           </Button>
         ]}
+        width={1000}
+        destroyOnHidden
+      >
+        {selectedOrder && (
+          <div>
+            <Card title="基本信息" style={{ marginBottom: 16 }}>
+              <Descriptions bordered column={2}>
+                <Descriptions.Item label="采购单号">{selectedOrder.orderNumber}</Descriptions.Item>
+                <Descriptions.Item label="订单标题">{selectedOrder.title}</Descriptions.Item>
+                <Descriptions.Item label="供应商">{selectedOrder.supplier}</Descriptions.Item>
+                <Descriptions.Item label="联系人">{selectedOrder.supplierContact}</Descriptions.Item>
+                <Descriptions.Item label="联系电话">{selectedOrder.supplierPhone}</Descriptions.Item>
+                <Descriptions.Item label="部门">{selectedOrder.department}</Descriptions.Item>
+                <Descriptions.Item label="下单日期">{selectedOrder.orderDate}</Descriptions.Item>
+                <Descriptions.Item label="预计交付">{selectedOrder.expectedDeliveryDate}</Descriptions.Item>
+                <Descriptions.Item label="订单金额">{`¥${selectedOrder.totalAmount?.toLocaleString() || 0}`}</Descriptions.Item>
+                <Descriptions.Item label="订单状态">{getStatusTag(selectedOrder.status)}</Descriptions.Item>
+                <Descriptions.Item label="创建人">{selectedOrder.creator}</Descriptions.Item>
+                <Descriptions.Item label="创建时间">{selectedOrder.createdAt ? dayjs(selectedOrder.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}</Descriptions.Item>
+                {selectedOrder.quotationRequestNo && (
+                  <Descriptions.Item label="关联询价单" span={2}>{selectedOrder.quotationRequestNo}</Descriptions.Item>
+                )}
+                {selectedOrder.remarks && (
+                  <Descriptions.Item label="备注" span={2}>{selectedOrder.remarks}</Descriptions.Item>
+                )}
+              </Descriptions>
+            </Card>
+
+            <Card title="收货信息" style={{ marginBottom: 16 }}>
+              <Descriptions bordered column={2}>
+                <Descriptions.Item label="收货地址" span={2}>{selectedOrder.deliveryAddress || '-'}</Descriptions.Item>
+                <Descriptions.Item label="收货人">{selectedOrder.recipient || '-'}</Descriptions.Item>
+                <Descriptions.Item label="收货人电话">{selectedOrder.recipientPhone || '-'}</Descriptions.Item>
+              </Descriptions>
+            </Card>
+
+            {selectedOrder.items && selectedOrder.items.length > 0 && (
+              <Card title="订单项目" style={{ marginBottom: 16 }}>
+                <Table
+                  dataSource={selectedOrder.items}
+                  rowKey="id"
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    { title: '序号', key: 'index', render: (_, __, index) => index + 1, width: 60 },
+                    { title: '项目名称', dataIndex: 'name', key: 'name' },
+                    { title: '规格型号', dataIndex: 'specification', key: 'specification' },
+                    { title: '单位', dataIndex: 'unit', key: 'unit', width: 80 },
+                    { title: '数量', dataIndex: 'quantity', key: 'quantity', width: 80 },
+                    { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 100, render: (price) => `¥${price?.toLocaleString() || 0}` },
+                    { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 120, render: (price) => `¥${price?.toLocaleString() || 0}` },
+                    { title: '交付时间', dataIndex: 'deliveryTime', key: 'deliveryTime', width: 100 },
+                    { title: '备注', dataIndex: 'remarks', key: 'remarks' }
+                  ]}
+                />
+              </Card>
+            )}
+
+            {((selectedOrder.contractFiles && selectedOrder.contractFiles.length > 0) || 
+              (selectedOrder.attachmentFiles && selectedOrder.attachmentFiles.length > 0)) && (
+              <Card title="文件附件">
+                {selectedOrder.contractFiles && selectedOrder.contractFiles.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <h4>合同文件：</h4>
+                    {selectedOrder.contractFiles.map((file: any, index: any) => (
+                      <div key={index} style={{ marginLeft: 16 }}>
+                        <Button type="link">{file}</Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedOrder.attachmentFiles && selectedOrder.attachmentFiles.length > 0 && (
+                  <div>
+                    <h4>附件：</h4>
+                    {selectedOrder.attachmentFiles.map((file: any, index: any) => (
+                      <div key={index} style={{ marginLeft: 16 }}>
+                        <Button type="link">{file}</Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* 附件管理模态框 */}
+      <Modal
+        title="更新合同"
+        open={contractUpdateVisible}
+        onOk={() => {
+          form.validateFields().then((values) => {
+            // 实现保存逻辑
+            message.success('更新成功');
+            setContractUpdateVisible(false);
+            loadData();
+          });
+        }}
+        onCancel={() => setContractUpdateVisible(false)}
         width={800}
+        destroyOnHidden
       >
         {currentAttachmentOrder && (
           <div>

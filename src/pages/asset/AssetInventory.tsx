@@ -1040,26 +1040,26 @@ const AssetInventory: React.FC = () => {
             </Col>
             <Col span={6}>
               <Form.Item name="totalAssetsRange" label="预计资产数量">
-                <Input.Group compact>
+<Space.Compact>
                   <Form.Item name={['totalAssetsRange', 'min']} noStyle>
                     <InputNumber placeholder="最小值" style={{ width: '50%' }} />
                   </Form.Item>
                   <Form.Item name={['totalAssetsRange', 'max']} noStyle>
                     <InputNumber placeholder="最大值" style={{ width: '50%' }} />
                   </Form.Item>
-                </Input.Group>
+</Space.Compact>
               </Form.Item>
             </Col>
             <Col span={6}>
               <Form.Item name="progressRange" label="盘点进度">
-                <Input.Group compact>
+<Space.Compact>
                   <Form.Item name={['progressRange', 'min']} noStyle>
                     <InputNumber placeholder="最小%" style={{ width: '50%' }} min={0} max={100} />
                   </Form.Item>
                   <Form.Item name={['progressRange', 'max']} noStyle>
                     <InputNumber placeholder="最大%" style={{ width: '50%' }} min={0} max={100} />
                   </Form.Item>
-                </Input.Group>
+</Space.Compact>
               </Form.Item>
             </Col>
             <Col span={6}>
@@ -1142,7 +1142,7 @@ const AssetInventory: React.FC = () => {
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
         width={800}
-        destroyOnClose
+destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Row gutter={16}>

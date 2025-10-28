@@ -10,7 +10,8 @@ import {
   BellOutlined,
   ShoppingOutlined,
   InboxOutlined,
-  AppstoreOutlined
+  AppstoreOutlined,
+  DatabaseOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -31,41 +32,55 @@ const MainLayout: React.FC = () => {
       label: '仪表盘',
     },
     {
-          key: '/procurement',
-          icon: <ShoppingOutlined />,
-          label: '采购管理',
-          children: [
-            
-            {
-              key: '/procurement/requisition',
-              label: '采购申请',
-            },
-            {
-              key: '/procurement/quotation',
-              label: '询价台账',
-            },
-            {
-              key: '/procurement/order',
-              label: '采购订单',
-            },
-            {
-              key: '/procurement/delivery-notes',
-              label: '到货单管理',
-            },
-            {
-              key: '/procurement/receiving',
-              label: '入库处理',
-            },
-            {
-              key: '/procurement/supplier',
-              label: '供应商管理',
-            },
-            {
-              key: '/procurement/approval-workflow',
-              label: '审批流程配置',
-            },
-          ],
+      key: '/basic-info',
+      icon: <DatabaseOutlined />,
+      label: '基础信息管理',
+      children: [
+        {
+          key: '/basic-info/warehouse',
+          label: '仓库管理',
         },
+        {
+          key: '/basic-info/supplier',
+          label: '供应商管理',
+        },
+        {
+          key: '/basic-info/equipment-type',
+          label: '设备类型管理',
+        },
+      ],
+    },
+    {
+      key: '/procurement',
+      icon: <ShoppingOutlined />,
+      label: '采购管理',
+      children: [
+        {
+          key: '/procurement/requisition',
+          label: '采购申请',
+        },
+        {
+          key: '/procurement/quotation',
+          label: '询价台账',
+        },
+        {
+          key: '/procurement/order',
+          label: '采购订单',
+        },
+        {
+          key: '/procurement/delivery-notes',
+          label: '到货单管理',
+        },
+        {
+          key: '/procurement/receiving',
+          label: '入库处理',
+        },
+        {
+          key: '/procurement/approval-workflow',
+          label: '审批流程配置',
+        },
+      ],
+    },
     {
           key: '/inventory',
           icon: <InboxOutlined />,
@@ -125,10 +140,6 @@ const MainLayout: React.FC = () => {
         {
           key: '/asset/register',
           label: '资产建档',
-        },
-        {
-          key: '/asset/warehouse',
-          label: '仓库管理',
         },
         {
           key: '/asset/borrow',

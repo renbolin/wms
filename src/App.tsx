@@ -9,10 +9,8 @@ import PermissionManagement from '@/pages/system/PermissionManagement';
 import NotFound from '@/pages/NotFound';
 
 // 采购管理模块
-
 import ProcurementRequisition from '@/pages/procurement/ProcurementRequisition';
 import ProcurementOrder from '@/pages/procurement/ProcurementOrder';
-import SupplierManagement from '@/pages/procurement/SupplierManagement';
 import ApprovalWorkflow from '@/pages/procurement/ApprovalWorkflow';
 import QuotationComparison from '@/pages/procurement/QuotationComparison';
 import WarehouseReceiving from '@/pages/procurement/WarehouseReceiving';
@@ -39,7 +37,11 @@ import AssetRetirement from '@/pages/asset/AssetRetirement';
 import AssetBorrow from '@/pages/asset/AssetBorrow';
 import AssetInventory from '@/pages/asset/AssetInventory';
 import AssetReport from '@/pages/asset/AssetReport';
-import WarehouseManagement from '@/pages/asset/WarehouseManagement';
+
+// 基础信息管理模块
+import WarehouseManagement from './pages/basic-info/Warehouse';
+import SupplierManagement from './pages/basic-info/Supplier';
+import EquipmentType from './pages/basic-info/EquipmentType';
 
 function App() {
   return (
@@ -57,10 +59,8 @@ function App() {
           
           {/* 采购管理路由 */}
           <Route path="procurement">
-            
             <Route path="requisition" element={<ProcurementRequisition />} />
             <Route path="order" element={<ProcurementOrder />} />
-            <Route path="supplier" element={<SupplierManagement />} />
             <Route path="approval-workflow" element={<ApprovalWorkflow />} />
             <Route path="quotation" element={<QuotationComparison />} />
             <Route path="delivery-notes" element={<DeliveryNotes />} />
@@ -85,7 +85,6 @@ function App() {
           {/* 固定资产管理路由 */}
           <Route path="asset">
             <Route path="register" element={<AssetRegister />} />
-            <Route path="warehouse" element={<WarehouseManagement />} />
             <Route path="transfer" element={<AssetTransfer />} />
             <Route path="maintenance" element={<AssetMaintenance />} />
             <Route path="retirement" element={<AssetRetirement />} />
@@ -93,6 +92,11 @@ function App() {
             <Route path="inventory" element={<AssetInventory />} />
             <Route path="report" element={<AssetReport />} />
           </Route>
+
+          {/* 基础信息管理路由 */}
+          <Route path="/basic-info/warehouse" element={<WarehouseManagement />} />
+          <Route path="/basic-info/supplier" element={<SupplierManagement />} />
+          <Route path="/basic-info/equipment-type" element={<EquipmentType />} />
           
           {/* 系统管理路由 */}
           <Route path="system">

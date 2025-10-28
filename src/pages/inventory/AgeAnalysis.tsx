@@ -267,10 +267,19 @@ const AgeAnalysis: React.FC = () => {
         fill: '#FFFFFF',
         opacity: 0.6,
       },
+      formatter: (v: any) => {
+        if (typeof v.totalValue === 'number') {
+          return `¥${v.totalValue.toLocaleString()}`;
+        }
+        return '';
+      },
     },
     meta: {
       ageRange: { alias: '库龄范围' },
-      totalValue: { alias: '库存金额' },
+      totalValue: {
+        alias: '库存金额',
+        formatter: (v: number) => `¥${v.toLocaleString()}`,
+      },
     },
   };
 

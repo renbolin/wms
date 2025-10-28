@@ -860,14 +860,14 @@ const DeliveryNotes: React.FC = () => {
               </Col>
               <Col span={6}>
                 <Form.Item label="总金额范围">
-                  <Input.Group compact>
+            <Space.Compact>
                     <Form.Item name={['totalAmountRange', 0]} noStyle>
                       <InputNumber placeholder="最小金额" style={{ width: '50%' }} min={0} />
                     </Form.Item>
                     <Form.Item name={['totalAmountRange', 1]} noStyle>
                       <InputNumber placeholder="最大金额" style={{ width: '50%' }} min={0} />
                     </Form.Item>
-                  </Input.Group>
+            </Space.Compact>
                 </Form.Item>
               </Col>
               <Col span={6}>
@@ -1010,7 +1010,7 @@ const DeliveryNotes: React.FC = () => {
         onOk={handleReceiveConfirm}
         onCancel={() => setIsReceiveModalVisible(false)}
         width={1300}
-        destroyOnClose
+        destroyOnHidden
       >
         {selectedRecord && (
           <>

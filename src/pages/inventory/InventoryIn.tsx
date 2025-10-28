@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, InputNumber, Tabs, Upload, Progress, Statistic, Divider } from 'antd';
-import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, CloseOutlined, UploadOutlined, DownloadOutlined, PrinterOutlined, FileExcelOutlined } from '@ant-design/icons';
+import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, CloseOutlined, UploadOutlined, DownloadOutlined, PrinterOutlined, FileExcelOutlined, FireOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 
@@ -65,6 +65,9 @@ const InventoryIn: React.FC = () => {
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isItemModalVisible, setIsItemModalVisible] = useState(false);
   const [isBatchModalVisible, setIsBatchModalVisible] = useState(false);
+  const [isWarehouseAssetsModalVisible, setIsWarehouseAssetsModalVisible] = useState(false);
+  const [recentInboundCodes, setRecentInboundCodes] = useState<string[]>([]);
+  const [recentInboundKeys, setRecentInboundKeys] = useState<string[]>([]);
   const [editingRecord, setEditingRecord] = useState<InboundOrder | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<InboundOrder | null>(null);
   const [selectedItems, setSelectedItems] = useState<InboundItem[]>([]);
@@ -73,6 +76,21 @@ const InventoryIn: React.FC = () => {
   const [searchForm] = Form.useForm();
   const [itemForm] = Form.useForm();
   const [activeTab, setActiveTab] = useState('all');
+
+  // 目标仓库现有资产结构（来自设备类型资产缓存）
+  type WarehouseAsset = {
+    id?: string;
+    code: string;
+    name: string;
+    specification?: string;
+    unit?: string;
+    warehouse?: string;
+    location?: string;
+    brand?: string;
+    supplier?: string;
+    unitPrice?: number;
+  };
+  const [warehouseAssets, setWarehouseAssets] = useState<WarehouseAsset[]>([]);
 
   // 模拟数据
   const mockData: InboundOrder[] = [
@@ -318,6 +336,9 @@ const InventoryIn: React.FC = () => {
         setData(newData);
         setFilteredData(newData);
         message.success('入库完成');
+        // 仅提示本次入库的物料明细
+        setSelectedItems(record.items);
+        setIsItemModalVisible(true);
       },
     });
   };
@@ -338,6 +359,43 @@ const InventoryIn: React.FC = () => {
     setSelectedRecord(record);
     setSelectedItems(record.items);
     setIsItemModalVisible(true);
+  };
+
+  // 根据目标仓库名称，加载本地设备类型资产并筛选该仓库现有资产
+  const loadWarehouseAssets = (warehouseName: string): WarehouseAsset[] => {
+    const synonyms: Record<string, string[]> = {
+      '主仓库': ['主仓库', '总仓'],
+      '分仓库A': ['分仓库A', '分仓A'],
+      '分仓库B': ['分仓库B', '分仓B'],
+    };
+    const targets = synonyms[warehouseName] || [warehouseName];
+    try {
+      const saved = localStorage.getItem('equipment_type_assets');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved) as Record<string, any[]>;
+      const all: WarehouseAsset[] = Object.values(parsed)
+        .reduce<WarehouseAsset[]>((acc, arr) => acc.concat((arr || []).map(a => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          specification: a.specification,
+          unit: a.unit,
+          warehouse: a.warehouse,
+          location: a.location,
+          brand: a.brand,
+          supplier: a.supplier,
+          unitPrice: a.unitPrice,
+        }))), []);
+      const filtered = all.filter(a => targets.some(t => (a.warehouse || '').includes(t)));
+      // 若无匹配，取单价最高的前10条作为附近资产参考
+      const fallback = all
+        .slice()
+        .sort((x, y) => (Number(y.unitPrice || 0) - Number(x.unitPrice || 0)))
+        .slice(0, 10);
+      return filtered.length ? filtered : fallback;
+    } catch {
+      return [];
+    }
   };
 
   const handleBatchUpload = (info: any) => {
@@ -450,6 +508,22 @@ const InventoryIn: React.FC = () => {
       width: 120,
     },
     {
+      title: '资产平衡',
+      key: 'warehouseBalance',
+      width: 180,
+      render: (_, record: InboundOrder) => {
+        const assets = loadWarehouseAssets(record.warehouseName);
+        const count = assets.length;
+        const amount = assets.reduce((sum, a) => sum + Number(a.unitPrice || 0), 0);
+        return (
+          <div>
+            <div>数量：{count}</div>
+            <div>金额：¥{amount.toFixed(2)}</div>
+          </div>
+        );
+      },
+    },
+    {
       title: '申请人',
       dataIndex: 'applicant',
       key: 'applicant',
@@ -539,28 +613,7 @@ const InventoryIn: React.FC = () => {
               编辑
             </Button>
           )}
-          {record.status === 'pending' && (
-            <>
-              <Button
-                type="link"
-                size="small"
-                icon={<CheckOutlined />}
-                onClick={() => handleApprove(record)}
-              >
-                审批
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => handleReject(record)}
-              >
-                驳回
-              </Button>
-            </>
-          )}
-          {record.status === 'approved' && (
+          {record.status !== 'completed' && (
             <Button
               type="link"
               size="small"
@@ -654,6 +707,38 @@ const InventoryIn: React.FC = () => {
       key: 'remarks',
       width: 150,
     },
+  ];
+
+  const warehouseAssetColumns: ColumnsType<WarehouseAsset> = [
+    {
+      title: '标记',
+      key: 'flag',
+      width: 90,
+      render: (_, r, index) => {
+        const key = `${(r.name || '').replace(/\s+/g, '').toLowerCase()}|${(r.specification || '').replace(/\s+/g, '').toLowerCase()}`;
+        const isNew = recentInboundCodes.includes(r.code) || recentInboundKeys.includes(key);
+        if (!isNew) return null;
+        const isTopTwo = index < 2; // 前两行更强对比
+        return (
+          <Tag
+            color={isTopTwo ? 'geekblue' : 'blue'}
+            style={isTopTwo ? { borderColor: '#1d39c4', fontWeight: 600 } : undefined}
+          >
+            {isTopTwo ? <FireOutlined style={{ marginRight: 4, color: '#1d39c4' }} /> : null}
+            新入库
+          </Tag>
+        );
+      },
+    },
+    { title: '资产编码', dataIndex: 'code', key: 'code', width: 120 },
+    { title: '资产名称', dataIndex: 'name', key: 'name', width: 150 },
+    { title: '规格型号', dataIndex: 'specification', key: 'specification', width: 150 },
+    { title: '品牌', dataIndex: 'brand', key: 'brand', width: 120 },
+    { title: '供应商', dataIndex: 'supplier', key: 'supplier', width: 150 },
+    { title: '单位', dataIndex: 'unit', key: 'unit', width: 80 },
+    { title: '所在仓库', dataIndex: 'warehouse', key: 'warehouse', width: 120 },
+    { title: '库位', dataIndex: 'location', key: 'location', width: 120 },
+    { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 100, render: (price: number) => `¥${Number(price || 0).toFixed(2)}` },
   ];
 
   const getTabData = () => {
@@ -985,6 +1070,31 @@ const InventoryIn: React.FC = () => {
           rowKey="id"
           pagination={false}
           scroll={{ x: 1000 }}
+        />
+      </Modal>
+
+      {/* 入库完成后弹窗：目标仓库现有资产列表 */}
+      <Modal
+        title="目标仓库现有资产"
+        open={isWarehouseAssetsModalVisible}
+        onCancel={() => setIsWarehouseAssetsModalVisible(false)}
+        footer={[
+          <Button key="ok" type="primary" onClick={() => setIsWarehouseAssetsModalVisible(false)}>我知道了</Button>,
+        ]}
+        width={1000}
+      >
+        <Table
+          columns={warehouseAssetColumns}
+          dataSource={warehouseAssets}
+          rowKey={(r) => r.code}
+          size="small"
+          pagination={{ pageSize: 8 }}
+          scroll={{ x: 900 }}
+          rowClassName={(r) => {
+            const key = `${(r.name || '').replace(/\s+/g, '').toLowerCase()}|${(r.specification || '').replace(/\s+/g, '').toLowerCase()}`;
+            const isNew = recentInboundCodes.includes(r.code) || recentInboundKeys.includes(key);
+            return isNew ? 'highlight-row highlight-row-anim' : '';
+          }}
         />
       </Modal>
 
