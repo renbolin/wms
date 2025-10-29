@@ -114,7 +114,7 @@ const ContractManagement: React.FC = () => {
   // 根据结束日期自动计算状态与“即将到期”标识（30天内）
   const recomputeStatuses = (list: Contract[]): Contract[] => {
     const today = new Date();
-    return list.map(c => {
+    return list.map((c): Contract => {
       try {
         const end = new Date(c.endDate);
         if (c.status !== 'terminated') {
