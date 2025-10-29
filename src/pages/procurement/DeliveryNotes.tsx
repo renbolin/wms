@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, Statistic, Typography, Divider, InputNumber, Radio } from 'antd';
+import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, Statistic, Typography, Divider, InputNumber, Radio, Tabs } from 'antd';
 import { EyeOutlined, CheckOutlined, InboxOutlined, SearchOutlined, ReloadOutlined, FileDoneOutlined, DatabaseOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -1218,202 +1218,230 @@ const DeliveryNotes: React.FC = () => {
       >
         {selectedRecord && (
           <div>
-            <Descriptions title="基本信息" bordered size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="到货单号">{selectedRecord.deliveryNo}</Descriptions.Item>
-              <Descriptions.Item label="采购订单号">{selectedRecord.purchaseOrderNo}</Descriptions.Item>
-              <Descriptions.Item label="采购订单ID">{selectedRecord.purchaseOrderId || '未关联'}</Descriptions.Item>
-              <Descriptions.Item label="供应商">{selectedRecord.supplierName}</Descriptions.Item>
-              <Descriptions.Item label="供应商ID">{selectedRecord.supplierId || '未关联'}</Descriptions.Item>
-              <Descriptions.Item label="联系人">{selectedRecord.supplierContact}</Descriptions.Item>
-              <Descriptions.Item label="联系电话">{selectedRecord.supplierPhone}</Descriptions.Item>
-              <Descriptions.Item label="到货日期">{selectedRecord.deliveryDate}</Descriptions.Item>
-              <Descriptions.Item label="接收日期">{selectedRecord.receivedDate || '未接收'}</Descriptions.Item>
-              <Descriptions.Item label="接收人">{selectedRecord.receiver || '未接收'}</Descriptions.Item>
-              <Descriptions.Item label="状态">
-                <Tag color={getStatusColor(selectedRecord.status)}>{selectedRecord.statusText}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="质量检查">
-                {selectedRecord.qualityCheckRequired ? (
-                  <Tag color={
-                    selectedRecord.qualityCheckStatus === 'passed' ? 'success' :
-                    selectedRecord.qualityCheckStatus === 'failed' ? 'error' :
-                    selectedRecord.qualityCheckStatus === 'waived' ? 'warning' : 'processing'
-                  }>
-                    {selectedRecord.qualityCheckStatus === 'passed' ? '已通过' :
-                     selectedRecord.qualityCheckStatus === 'failed' ? '未通过' :
-                     selectedRecord.qualityCheckStatus === 'waived' ? '已免检' : '待检查'}
-                  </Tag>
+            <Tabs defaultActiveKey="basic" destroyInactiveTabPane>
+              <Tabs.TabPane tab="基本信息" key="basic">
+                <Descriptions bordered size="small" style={{ marginBottom: 16 }}>
+                  <Descriptions.Item label="到货单号">{selectedRecord.deliveryNo}</Descriptions.Item>
+                  <Descriptions.Item label="采购订单号">{selectedRecord.purchaseOrderNo}</Descriptions.Item>
+                  <Descriptions.Item label="采购订单ID">{selectedRecord.purchaseOrderId || '未关联'}</Descriptions.Item>
+                  <Descriptions.Item label="供应商">{selectedRecord.supplierName}</Descriptions.Item>
+                  <Descriptions.Item label="供应商ID">{selectedRecord.supplierId || '未关联'}</Descriptions.Item>
+                  <Descriptions.Item label="联系人">{selectedRecord.supplierContact}</Descriptions.Item>
+                  <Descriptions.Item label="联系电话">{selectedRecord.supplierPhone}</Descriptions.Item>
+                  <Descriptions.Item label="到货日期">{selectedRecord.deliveryDate}</Descriptions.Item>
+                  <Descriptions.Item label="接收日期">{selectedRecord.receivedDate || '未接收'}</Descriptions.Item>
+                  <Descriptions.Item label="接收人">{selectedRecord.receiver || '未接收'}</Descriptions.Item>
+                  <Descriptions.Item label="状态">
+                    <Tag color={getStatusColor(selectedRecord.status)}>{selectedRecord.statusText}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="质量检查">
+                    {selectedRecord.qualityCheckRequired ? (
+                      <Tag color={
+                        selectedRecord.qualityCheckStatus === 'passed' ? 'success' :
+                        selectedRecord.qualityCheckStatus === 'failed' ? 'error' :
+                        selectedRecord.qualityCheckStatus === 'waived' ? 'warning' : 'processing'
+                      }>
+                        {selectedRecord.qualityCheckStatus === 'passed' ? '已通过' :
+                         selectedRecord.qualityCheckStatus === 'failed' ? '未通过' :
+                         selectedRecord.qualityCheckStatus === 'waived' ? '已免检' : '待检查'}
+                      </Tag>
+                    ) : (
+                      <Tag color="default">无需检查</Tag>
+                    )}
+                  </Descriptions.Item>
+                </Descriptions>
+
+                {selectedRecord.transportInfo ? (
+                  <Descriptions title="运输信息" bordered size="small">
+                    <Descriptions.Item label="承运商">{selectedRecord.transportInfo.carrier}</Descriptions.Item>
+                    <Descriptions.Item label="运单号">{selectedRecord.transportInfo.trackingNo}</Descriptions.Item>
+                    <Descriptions.Item label="车牌号">{selectedRecord.transportInfo.vehicleNo}</Descriptions.Item>
+                    <Descriptions.Item label="司机">{selectedRecord.transportInfo.driverName}</Descriptions.Item>
+                    <Descriptions.Item label="司机电话">{selectedRecord.transportInfo.driverPhone}</Descriptions.Item>
+                    <Descriptions.Item label="预计到达">{selectedRecord.transportInfo.estimatedArrival}</Descriptions.Item>
+                    <Descriptions.Item label="实际到达">{selectedRecord.transportInfo.actualArrival || '未到达'}</Descriptions.Item>
+                  </Descriptions>
                 ) : (
-                  <Tag color="default">无需检查</Tag>
+                  <Card size="small" style={{ marginTop: 8 }}><Text>暂无运输信息</Text></Card>
                 )}
-              </Descriptions.Item>
-            </Descriptions>
+              </Tabs.TabPane>
 
-            {selectedRecord.transportInfo && (
-              <Descriptions title="运输信息" bordered size="small" style={{ marginBottom: 16 }}>
-                <Descriptions.Item label="承运商">{selectedRecord.transportInfo.carrier}</Descriptions.Item>
-                <Descriptions.Item label="运单号">{selectedRecord.transportInfo.trackingNo}</Descriptions.Item>
-                <Descriptions.Item label="车牌号">{selectedRecord.transportInfo.vehicleNo}</Descriptions.Item>
-                <Descriptions.Item label="司机">{selectedRecord.transportInfo.driverName}</Descriptions.Item>
-                <Descriptions.Item label="司机电话">{selectedRecord.transportInfo.driverPhone}</Descriptions.Item>
-                <Descriptions.Item label="预计到达">{selectedRecord.transportInfo.estimatedArrival}</Descriptions.Item>
-                <Descriptions.Item label="实际到达">{selectedRecord.transportInfo.actualArrival || '未到达'}</Descriptions.Item>
-              </Descriptions>
-            )}
+              <Tabs.TabPane tab="货物明细" key="items">
+                <Table
+                  size="small"
+                  dataSource={selectedRecord.items}
+                  rowKey="id"
+                  pagination={false}
+                  columns={[
+                    { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
+                    { title: '规格', dataIndex: 'specification', key: 'specification' },
+                    { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
+                    { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80 },
+                    { title: '到货数量', dataIndex: 'deliveredQuantity', key: 'deliveredQuantity', width: 80 },
+                    { title: '接收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80 },
+                    { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, render: (price: number) => `¥${price}` },
+                    { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (price: number) => `¥${price.toLocaleString()}` },
+                    { title: '批次号', dataIndex: 'batchNo', key: 'batchNo', width: 100 },
+                    { title: '备注', dataIndex: 'remarks', key: 'remarks' },
+                    { title: '验收结果', key: 'inspectionStatus', width: 100, render: (_, it) => (it.inspectionStatus === 'passed' ? '合格' : it.inspectionStatus === 'failed' ? '不合格' : '-') },
+                    { title: '处理方式', dataIndex: 'inspectionHandling', key: 'inspectionHandling', width: 120, render: (val) => (val === 'return' ? '退回' : val === 'destroy' ? '销毁' : val === 'repair' ? '返修' : '-') }
+                  ]}
+                />
+              </Tabs.TabPane>
 
-            {/* 建档信息展示 */}
-            {(selectedRecord.equipmentCode || selectedRecord.equipmentArchive) && (
-              <Card size="small" title="建档信息" style={{ marginBottom: 16 }}>
-                <Descriptions bordered size="small">
-                  <Descriptions.Item label="设备编号">{selectedRecord.equipmentCode || '未生成'}</Descriptions.Item>
-                  <Descriptions.Item label="设备名称">{selectedRecord.equipmentArchive?.technical?.name || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="型号规格">{selectedRecord.equipmentArchive?.technical?.modelSpec || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="品牌">{selectedRecord.equipmentArchive?.technical?.brand || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="序列号">{selectedRecord.equipmentArchive?.technical?.serialNo || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="使用部门">{selectedRecord.equipmentArchive?.technical?.useDepartment || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="安装日期">{selectedRecord.equipmentArchive?.technical?.installationDate || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="资产编号">{selectedRecord.equipmentArchive?.asset?.assetCode || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="购置金额">{selectedRecord.equipmentArchive?.asset?.purchaseAmount != null ? `¥${selectedRecord.equipmentArchive?.asset?.purchaseAmount}` : '-'}</Descriptions.Item>
-                  <Descriptions.Item label="折旧年限">{selectedRecord.equipmentArchive?.asset?.depreciationYears ?? '-'}</Descriptions.Item>
-                  <Descriptions.Item label="残值率(%)">{selectedRecord.equipmentArchive?.asset?.residualRate ?? '-'}</Descriptions.Item>
-                  <Descriptions.Item label="建档备注" span={2}>{selectedRecord.archiveRemarks || '-'}</Descriptions.Item>
-                </Descriptions>
-              </Card>
-            )}
+              <Tabs.TabPane tab="验收汇总" key="inspection">
+                {(() => {
+                  const items = selectedRecord.items || [];
+                  const acceptedTotal = items.reduce((sum, it) => {
+                    if (it.acceptedQuantity != null) return sum + it.acceptedQuantity;
+                    if (it.inspectionStatus === 'passed') return sum + (it.receivedQuantity || 0);
+                    if (!it.inspectionStatus && selectedRecord.qualityCheckStatus === 'passed') {
+                      return sum + (it.receivedQuantity || 0);
+                    }
+                    return sum;
+                  }, 0);
+                  const rejectedTotal = items.reduce((sum, it) => {
+                    if (it.rejectedQuantity != null) return sum + it.rejectedQuantity;
+                    return sum + (it.inspectionStatus === 'failed' ? (it.receivedQuantity || 0) : 0);
+                  }, 0);
+                  const passedItems = items.filter(i => i.inspectionStatus === 'passed' || (!i.inspectionStatus && selectedRecord.qualityCheckStatus === 'passed'));
+                  const failedItems = items.filter(i => i.inspectionStatus === 'failed');
 
-            <Title level={5}>货物明细</Title>
-            <Table
-              size="small"
-              dataSource={selectedRecord.items}
-              rowKey="id"
-              pagination={false}
-              columns={[
-                { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
-                { title: '规格', dataIndex: 'specification', key: 'specification' },
-                { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
-                { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80 },
-                { title: '到货数量', dataIndex: 'deliveredQuantity', key: 'deliveredQuantity', width: 80 },
-                { title: '接收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80 },
-                { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, render: (price: number) => `¥${price}` },
-                { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (price: number) => `¥${price.toLocaleString()}` },
-                { title: '批次号', dataIndex: 'batchNo', key: 'batchNo', width: 100 },
-                { title: '备注', dataIndex: 'remarks', key: 'remarks' },
-                { title: '验收结果', key: 'inspectionStatus', width: 100, render: (_, it) => (it.inspectionStatus === 'passed' ? '合格' : it.inspectionStatus === 'failed' ? '不合格' : '-') },
-                { title: '处理方式', dataIndex: 'inspectionHandling', key: 'inspectionHandling', width: 120, render: (val) => (val === 'return' ? '退回' : val === 'destroy' ? '销毁' : val === 'repair' ? '返修' : '-') }
-              ]}
-            />
-
-            {/* 验收结果展示 */}
-            {selectedRecord.items?.some(i => i.inspectionStatus) && (
-              <>
-                <Divider style={{ marginTop: 16, marginBottom: 16 }} />
-                <Title level={5}>验收结果汇总</Title>
-                <Descriptions bordered size="small" style={{ marginBottom: 12 }}>
-                  <Descriptions.Item label="合格数量合计">
-                    {selectedRecord.items.reduce((sum, it) => sum + (it.acceptedQuantity || 0), 0)}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="不合格数量合计">
-                    {selectedRecord.items.reduce((sum, it) => sum + (it.rejectedQuantity || 0), 0)}
-                  </Descriptions.Item>
-                </Descriptions>
-                <Card size="small" title="合格货物" style={{ marginBottom: 12 }}>
-                  <Table
-                    size="small"
-                    dataSource={selectedRecord.items.filter(i => i.inspectionStatus === 'passed')}
-                    rowKey="id"
-                    pagination={false}
-                    columns={[
-                      { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
-                      { title: '规格', dataIndex: 'specification', key: 'specification' },
-                      { title: '合格数量', dataIndex: 'acceptedQuantity', key: 'acceptedQuantity', width: 100 },
-                      { title: '备注', dataIndex: 'inspectionRemarks', key: 'inspectionRemarks' },
-                    ]}
-                  />
-                </Card>
-                <Card size="small" title="不合格货物">
-                  <Table
-                    size="small"
-                    dataSource={selectedRecord.items.filter(i => i.inspectionStatus === 'failed')}
-                    rowKey="id"
-                    pagination={false}
-                    columns={[
-                      { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
-                      { title: '规格', dataIndex: 'specification', key: 'specification' },
-                      { title: '不合格数量', dataIndex: 'rejectedQuantity', key: 'rejectedQuantity', width: 110 },
-                      { title: '处理方式', dataIndex: 'inspectionHandling', key: 'inspectionHandling', width: 120, render: (val) => (val === 'return' ? '退回' : val === 'destroy' ? '销毁' : val === 'repair' ? '返修' : '-') },
-                      { title: '备注', dataIndex: 'inspectionRemarks', key: 'inspectionRemarks' },
-                    ]}
-                  />
-              </Card>
-            </>
-          )}
-
-          {/* 入库记录展示 */}
-          {(() => {
-            try {
-              const receiving = JSON.parse(localStorage.getItem('warehouseReceivingData') || '[]');
-              const related = (receiving || []).filter((r: any) => r.deliveryNo === selectedRecord.deliveryNo);
-              if (!related || related.length === 0) {
-                return null;
-              }
-              return (
-                <Card size="small" title="入库记录" style={{ marginTop: 16 }}>
-                  {related.map((rec: any) => (
-                    <div key={rec.id} style={{ marginBottom: 12 }}>
-                      <Descriptions bordered size="small" column={4}>
-                        <Descriptions.Item label="入库单号">{rec.receivingNo || rec.id}</Descriptions.Item>
-                        <Descriptions.Item label="到货单号">{rec.deliveryNo}</Descriptions.Item>
-                        <Descriptions.Item label="状态">{rec.statusText || '待处理'}</Descriptions.Item>
-                        <Descriptions.Item label="仓库">{rec.warehouseName || '-'}</Descriptions.Item>
-                        <Descriptions.Item label="入库日期">{rec.receivingDate || '-'}</Descriptions.Item>
-                        <Descriptions.Item label="入库员">{rec.receiver || '-'}</Descriptions.Item>
-                        <Descriptions.Item label="设备编号">{rec.equipmentCode || selectedRecord.equipmentCode || '-'}</Descriptions.Item>
-                        <Descriptions.Item label="备注" span={2}>{rec.remarks || '-'}</Descriptions.Item>
+                  return (
+                    <>
+                      <Descriptions bordered size="small" style={{ marginBottom: 12 }}>
+                        <Descriptions.Item label="合格数量合计">{acceptedTotal}</Descriptions.Item>
+                        <Descriptions.Item label="不合格数量合计">{rejectedTotal}</Descriptions.Item>
                       </Descriptions>
-                      <Table
-                        style={{ marginTop: 8 }}
-                        size="small"
-                        dataSource={rec.items || []}
-                        rowKey={(it: any) => it.id || `${rec.id}_${Math.random()}`}
-                        pagination={false}
-                        columns={[
-                          { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
-                          { title: '规格', dataIndex: 'specification', key: 'specification' },
-                          { title: '入库数量', dataIndex: 'inboundQuantity', key: 'inboundQuantity', width: 100 },
-                          { title: '入库仓库', dataIndex: 'inboundWarehouseName', key: 'inboundWarehouseName', width: 120 },
-                          { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, render: (p: number) => `¥${p}` },
-                          { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (p: number) => `¥${p?.toLocaleString?.() || p}` },
-                        ]}
-                      />
-                      <Divider style={{ margin: '12px 0' }} />
-                    </div>
-                  ))}
+                      {passedItems.length > 0 ? (
+                        <Card size="small" title="合格货物" style={{ marginBottom: 12 }}>
+                          <Table
+                            size="small"
+                            dataSource={passedItems}
+                            rowKey="id"
+                            pagination={false}
+                            columns={[
+                              { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
+                              { title: '规格', dataIndex: 'specification', key: 'specification' },
+                              { title: '合格数量', dataIndex: 'acceptedQuantity', key: 'acceptedQuantity', width: 100, render: (v, it) => v ?? it.receivedQuantity ?? 0 },
+                              { title: '备注', dataIndex: 'inspectionRemarks', key: 'inspectionRemarks' },
+                            ]}
+                          />
+                        </Card>
+                      ) : (
+                        <Card size="small"><Text>暂无合格明细</Text></Card>
+                      )}
+                      {failedItems.length > 0 ? (
+                        <Card size="small" title="不合格货物">
+                          <Table
+                            size="small"
+                            dataSource={failedItems}
+                            rowKey="id"
+                            pagination={false}
+                            columns={[
+                              { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
+                              { title: '规格', dataIndex: 'specification', key: 'specification' },
+                              { title: '不合格数量', dataIndex: 'rejectedQuantity', key: 'rejectedQuantity', width: 110, render: (v, it) => v ?? it.receivedQuantity ?? 0 },
+                              { title: '处理方式', dataIndex: 'inspectionHandling', key: 'inspectionHandling', width: 120, render: (val) => (val === 'return' ? '退回' : val === 'destroy' ? '销毁' : val === 'repair' ? '返修' : '-') },
+                              { title: '备注', dataIndex: 'inspectionRemarks', key: 'inspectionRemarks' },
+                            ]}
+                          />
+                        </Card>
+                      ) : (
+                        <Card size="small" style={{ marginTop: 12 }}><Text>暂无不合格明细</Text></Card>
+                      )}
+                    </>
+                  );
+                })()}
+              </Tabs.TabPane>
+
+              <Tabs.TabPane tab="建档信息" key="archive">
+                <Card size="small" title="设备建档">
+                  <Descriptions bordered size="small">
+                    <Descriptions.Item label="设备编号">{selectedRecord.equipmentCode || '未生成'}</Descriptions.Item>
+                    <Descriptions.Item label="设备名称">{selectedRecord.equipmentArchive?.technical?.name || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="型号规格">{selectedRecord.equipmentArchive?.technical?.modelSpec || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="品牌">{selectedRecord.equipmentArchive?.technical?.brand || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="序列号">{selectedRecord.equipmentArchive?.technical?.serialNo || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="使用部门">{selectedRecord.equipmentArchive?.technical?.useDepartment || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="安装日期">{selectedRecord.equipmentArchive?.technical?.installationDate || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="资产编号">{selectedRecord.equipmentArchive?.asset?.assetCode || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="购置金额">{selectedRecord.equipmentArchive?.asset?.purchaseAmount != null ? `¥${selectedRecord.equipmentArchive?.asset?.purchaseAmount}` : '-'}</Descriptions.Item>
+                    <Descriptions.Item label="折旧年限">{selectedRecord.equipmentArchive?.asset?.depreciationYears ?? '-'}</Descriptions.Item>
+                    <Descriptions.Item label="残值率(%)">{selectedRecord.equipmentArchive?.asset?.residualRate ?? '-'}</Descriptions.Item>
+                    <Descriptions.Item label="建档备注" span={2}>{selectedRecord.archiveRemarks || '-'}</Descriptions.Item>
+                  </Descriptions>
                 </Card>
-              );
-            } catch (e) {
-              return null;
-            }
-          })()}
+              </Tabs.TabPane>
 
-          {/* 分配/启用记录展示 */}
-          {selectedRecord.enablementRecord && (
-            <Card size="small" title="分配/启用记录" style={{ marginTop: 16 }}>
-              <Descriptions bordered size="small">
-                <Descriptions.Item label="启用日期">{selectedRecord.enablementRecord.date}</Descriptions.Item>
-                <Descriptions.Item label="设备编号">{selectedRecord.enablementRecord.equipmentCode || selectedRecord.equipmentCode || '-'}</Descriptions.Item>
-                <Descriptions.Item label="分配部门">{selectedRecord.enablementRecord.department}</Descriptions.Item>
-                <Descriptions.Item label="领用人">{selectedRecord.enablementRecord.assignee}</Descriptions.Item>
-                <Descriptions.Item label="备注" span={2}>{selectedRecord.enablementRecord.remarks || '-'}</Descriptions.Item>
-              </Descriptions>
-            </Card>
-          )}
+              <Tabs.TabPane tab="入库信息" key="warehouse">
+                {(() => {
+                  try {
+                    const receiving = JSON.parse(localStorage.getItem('warehouseReceivingData') || '[]');
+                    const related = (receiving || []).filter((r: any) => r.deliveryNo === selectedRecord.deliveryNo);
+                    if (!related || related.length === 0) {
+                      return <Card size="small"><Text>暂无入库记录</Text></Card>;
+                    }
+                    return (
+                      <Card size="small" title="入库记录">
+                        {related.map((rec: any) => (
+                          <div key={rec.id} style={{ marginBottom: 12 }}>
+                            <Descriptions bordered size="small" column={4}>
+                              <Descriptions.Item label="入库单号">{rec.receivingNo || rec.id}</Descriptions.Item>
+                              <Descriptions.Item label="到货单号">{rec.deliveryNo}</Descriptions.Item>
+                              <Descriptions.Item label="状态">{rec.statusText || '待处理'}</Descriptions.Item>
+                              <Descriptions.Item label="仓库">{rec.warehouseName || '-'}</Descriptions.Item>
+                              <Descriptions.Item label="入库日期">{rec.receivingDate || '-'}</Descriptions.Item>
+                              <Descriptions.Item label="入库员">{rec.receiver || '-'}</Descriptions.Item>
+                              <Descriptions.Item label="设备编号">{rec.equipmentCode || selectedRecord.equipmentCode || '-'}</Descriptions.Item>
+                              <Descriptions.Item label="备注" span={2}>{rec.remarks || '-'}</Descriptions.Item>
+                            </Descriptions>
+                            <Table
+                              style={{ marginTop: 8 }}
+                              size="small"
+                              dataSource={rec.items || []}
+                              rowKey={(it: any) => it.id || `${rec.id}_${Math.random()}`}
+                              pagination={false}
+                              columns={[
+                                { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
+                                { title: '规格', dataIndex: 'specification', key: 'specification' },
+                                { title: '入库数量', dataIndex: 'inboundQuantity', key: 'inboundQuantity', width: 100 },
+                                { title: '入库仓库', dataIndex: 'inboundWarehouseName', key: 'inboundWarehouseName', width: 120 },
+                                { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, render: (p: number) => `¥${p}` },
+                                { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (p: number) => `¥${p?.toLocaleString?.() || p}` },
+                              ]}
+                            />
+                            <Divider style={{ margin: '12px 0' }} />
+                          </div>
+                        ))}
+                      </Card>
+                    );
+                  } catch (e) {
+                    return <Card size="small"><Text>暂无入库记录</Text></Card>;
+                  }
+                })()}
+              </Tabs.TabPane>
 
-            {selectedRecord.remarks && (
-              <div style={{ marginTop: 16 }}>
-                <Text strong>备注：</Text>
-                <Text>{selectedRecord.remarks}</Text>
-              </div>
-            )}
+              {selectedRecord.enablementRecord && (
+                <Tabs.TabPane tab="分配/启用记录" key="enablement">
+                  <Card size="small" title="分配/启用记录">
+                    <Descriptions bordered size="small">
+                      <Descriptions.Item label="启用日期">{selectedRecord.enablementRecord.date}</Descriptions.Item>
+                      <Descriptions.Item label="设备编号">{selectedRecord.enablementRecord.equipmentCode || selectedRecord.equipmentCode || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="分配部门">{selectedRecord.enablementRecord.department}</Descriptions.Item>
+                      <Descriptions.Item label="领用人">{selectedRecord.enablementRecord.assignee}</Descriptions.Item>
+                      <Descriptions.Item label="备注" span={2}>{selectedRecord.enablementRecord.remarks || '-'}</Descriptions.Item>
+                    </Descriptions>
+                  </Card>
+                </Tabs.TabPane>
+              )}
+
+              {selectedRecord.remarks && (
+                <Tabs.TabPane tab="备注" key="remarks">
+                  <Card size="small"><Text>{selectedRecord.remarks}</Text></Card>
+                </Tabs.TabPane>
+              )}
+            </Tabs>
           </div>
         )}
       </Modal>
