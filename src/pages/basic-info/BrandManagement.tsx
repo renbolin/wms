@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, Row, Col, Switch, Tree } from 'antd';
+﻿import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, Row, Col, Switch } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -7,6 +7,7 @@ interface BrandRecord {
   id: string;
   brandCode: string;
   brandName: string;
+  logo?: string;
   manufacturer?: string;
   deviceType?: string;
   status: 'enabled' | 'disabled';
@@ -61,30 +62,34 @@ const BrandManagement: React.FC = () => {
   const [editForm] = Form.useForm();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<BrandRecord | null>(null);
-  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
 
-  // 设备类型树数据源（来自 localStorage，缺省为四类）
-  const equipmentTypes = useMemo(() => {
+  const [relationModalOpen, setRelationModalOpen] = useState(false);
+  const [relationTarget, setRelationTarget] = useState<BrandRecord | null>(null);
+  const [relationTypeIds, setRelationTypeIds] = useState<string[]>([]);
+
+  const deviceTypeOptions = useMemo(() => {
     try {
       const raw = localStorage.getItem('equipment_types');
-      if (raw) {
-        const arr = JSON.parse(raw) as { id: string; name: string; children?: any[] }[];
-        return arr;
-      }
-    } catch {}
-    return [
-      { id: '1', name: '主设备' },
-      { id: '2', name: '附属设备' },
-      { id: '3', name: '特种设备' },
-      { id: '4', name: '非特种设备' },
-    ];
+      if (!raw) return [];
+      const arr = JSON.parse(raw) as { id: string; name: string }[];
+      return arr.map(t => ({ label: t.name, value: t.id }));
+    } catch {
+      return [];
+    }
   }, []);
 
-  const typeIdToNameMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    equipmentTypes.forEach(t => { m[t.id] = t.name; });
-    return m;
-  }, [equipmentTypes]);
+  const [brandTypeMap, setBrandTypeMap] = useState<Record<string, { id: string; name: string }[]>>({});
+
+  const supplierOptions = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('basic_supplier_dict');
+      if (!raw) return [];
+      const arr = JSON.parse(raw) as { supplierName: string }[];
+      return arr.map(s => ({ label: s.supplierName, value: s.supplierName }));
+    } catch {
+      return [];
+    }
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -108,7 +113,32 @@ const BrandManagement: React.FC = () => {
     }, 200);
   }, []);
 
+  const refreshBrandTypeMap = () => {
+    try {
+      const types = deviceTypeOptions.reduce<Record<string, string>>((m, t) => { m[t.value] = t.label as string; return m; }, {});
+      const relations = JSON.parse(localStorage.getItem('brand_device_type_relations') || '[]') as { brandId: string; typeId: string }[];
+      const grouped: Record<string, { id: string; name: string }[]> = {};
+      relations.forEach(r => {
+        const name = types[r.typeId];
+        if (!name) return;
+        grouped[r.brandId] = grouped[r.brandId] || [];
+        grouped[r.brandId].push({ id: r.typeId, name });
+      });
+      setBrandTypeMap(grouped);
+    } catch {}
+  };
+
+  useEffect(() => {
+    refreshBrandTypeMap();
+  }, [deviceTypeOptions]);
+
   const columns: ColumnsType<BrandRecord> = [
+    {
+      title: 'Logo', dataIndex: 'logo', key: 'logo', width: 80,
+      render: (url?: string) => url ? (
+        <img src={url} alt="logo" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+      ) : '-'
+    },
     { title: '品牌编码', dataIndex: 'brandCode', key: 'brandCode', width: 140 },
     { title: '品牌名称', dataIndex: 'brandName', key: 'brandName', width: 160 },
     { title: '制造商/厂商', dataIndex: 'manufacturer', key: 'manufacturer', width: 180 },
@@ -121,11 +151,22 @@ const BrandManagement: React.FC = () => {
       title: '关联供应商', dataIndex: 'suppliers', key: 'suppliers',
       render: (arr: string[]) => arr?.length ? arr.map(s => <Tag key={s}>{s}</Tag>) : '-'
     },
+    {
+      title: '设备类型关联', key: 'typeRelations', width: 280,
+      render: (_, record) => (
+        <Space size={4} wrap>
+          {(brandTypeMap[record.id] ?? []).map(t => (
+            <Tag key={t.id}>{t.name}</Tag>
+          ))}
+        </Space>
+      )
+    },
     { title: '备注', dataIndex: 'description', key: 'description' },
     {
-      title: '操作', key: 'action', width: 160,
+      title: '操作', key: 'action', width: 220,
       render: (_, record) => (
         <Space>
+          <Button type="link" onClick={() => onOpenRelation(record)}>关联设备类型</Button>
           <Button icon={<EditOutlined />} type="link" onClick={() => onEdit(record)}>编辑</Button>
           <Button icon={<DeleteOutlined />} type="link" danger onClick={() => onDelete(record)}>删除</Button>
         </Space>
@@ -173,23 +214,13 @@ const BrandManagement: React.FC = () => {
     message.success('删除成功');
   };
 
-  const supplierOptions = useMemo(() => {
-    try {
-      const raw = localStorage.getItem('basic_supplier_dict');
-      if (!raw) return [];
-      const arr = JSON.parse(raw) as { supplierName: string }[];
-      return arr.map(s => ({ label: s.supplierName, value: s.supplierName }));
-    } catch {
-      return [];
-    }
-  }, []);
-
   const onSubmit = async () => {
     const values = await editForm.validateFields();
     const payload: BrandRecord = {
       id: editing?.id ?? String(Date.now()),
       brandCode: values.brandCode,
       brandName: values.brandName,
+      logo: values.logo,
       manufacturer: values.manufacturer,
       deviceType: values.deviceType,
       suppliers: values.suppliers ?? [],
@@ -219,29 +250,31 @@ const BrandManagement: React.FC = () => {
     setModalOpen(false);
   };
 
+  const onOpenRelation = (r: BrandRecord) => {
+    setRelationTarget(r);
+    const current = brandTypeMap[r.id] ?? [];
+    setRelationTypeIds(current.map(t => t.id));
+    setRelationModalOpen(true);
+  };
+
+  const onSaveRelations = () => {
+    if (!relationTarget) return;
+    try {
+      const others = (JSON.parse(localStorage.getItem('brand_device_type_relations') || '[]') as { brandId: string; typeId: string }[])
+        .filter(r => r.brandId !== relationTarget.id);
+      const added = relationTypeIds.map(tid => ({ brandId: relationTarget.id, typeId: tid }));
+      localStorage.setItem('brand_device_type_relations', JSON.stringify([...others, ...added]));
+      message.success('设备类型关联已更新');
+      setRelationModalOpen(false);
+      refreshBrandTypeMap();
+    } catch {
+      message.error('保存关联失败');
+    }
+  };
+
   return (
     <Row gutter={16}>
-      <Col span={6}>
-        <Card title="设备类型目录" size="small">
-          <Tree
-            defaultExpandAll
-            selectedKeys={selectedTypeId ? [selectedTypeId] : []}
-            onSelect={(keys) => {
-              const k = (keys as React.Key[])[0] as string;
-              setSelectedTypeId(k === 'root' ? null : k);
-            }}
-            treeData={[
-              {
-                title: '设备类型目录', key: 'root', children: equipmentTypes.map(t => ({
-                  title: t.name,
-                  key: t.id,
-                }))
-              }
-            ]}
-          />
-        </Card>
-      </Col>
-      <Col span={18}>
+      <Col span={24}>
         <Card title="品牌管理" extra={
           <Space>
             <Button icon={<PlusOutlined />} type="primary" onClick={onAdd}>新增品牌</Button>
@@ -270,9 +303,7 @@ const BrandManagement: React.FC = () => {
         rowKey="id"
         loading={loading}
         columns={columns}
-        dataSource={
-          selectedTypeId ? filtered.filter(b => (b.deviceType || '') === typeIdToNameMap[selectedTypeId!]) : filtered
-        }
+        dataSource={filtered}
         pagination={{ pageSize: 8 }}
       />
 
@@ -284,11 +315,14 @@ const BrandManagement: React.FC = () => {
         destroyOnClose
       >
         <Form form={editForm} labelCol={{ span: 6 }} wrapperCol={{ span: 16 }}>
-          <Form.Item name="brandCode" label="品牌编码" rules={[{ required: true, message: '请输入品牌编码' }]}>
+          <Form.Item name="brandCode" label="品牌编码" rules={[{ required: true, message: '请输入品牌编码' }]}> 
             <Input placeholder="唯一编码" />
           </Form.Item>
-          <Form.Item name="brandName" label="品牌名称" rules={[{ required: true, message: '请输入品牌名称' }]}>
+          <Form.Item name="brandName" label="品牌名称" rules={[{ required: true, message: '请输入品牌名称' }]}> 
             <Input placeholder="品牌中文/英文" />
+          </Form.Item>
+          <Form.Item name="logo" label="Logo URL">
+            <Input placeholder="图片链接（选填）" />
           </Form.Item>
           <Form.Item name="manufacturer" label="制造商/厂商">
             <Input placeholder="公司名称" />
@@ -304,6 +338,26 @@ const BrandManagement: React.FC = () => {
           </Form.Item>
           <Form.Item name="description" label="备注">
             <Input.TextArea rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`关联设备类型：${relationTarget?.brandName ?? ''}`}
+        open={relationModalOpen}
+        onOk={onSaveRelations}
+        onCancel={() => setRelationModalOpen(false)}
+        destroyOnClose
+      >
+        <Form layout="vertical">
+          <Form.Item label="选择设备类型">
+            <Select
+              mode="multiple"
+              value={relationTypeIds}
+              onChange={setRelationTypeIds}
+              options={deviceTypeOptions}
+              placeholder="可多选设备类型"
+            />
           </Form.Item>
         </Form>
       </Modal>
