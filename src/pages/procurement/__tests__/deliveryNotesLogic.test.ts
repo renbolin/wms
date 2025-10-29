@@ -8,7 +8,7 @@ import {
   validateAmountRange,
   filterDeliveryNotes,
   canReceive,
-  canWarehouse,
+  canWarehouseOrAllocate,
   computeStats,
 } from '../deliveryNotesLogic';
 
@@ -43,7 +43,7 @@ function makeNote(partial?: Partial<DeliveryNote>): DeliveryNote {
     receivedDate: partial?.receivedDate,
     receiver: partial?.receiver,
     department: partial?.department,
-    status: partial?.status || 'pending',
+    status: partial?.status || 'pending_receive',
     statusText: partial?.statusText || '待接收',
     totalAmount: partial?.totalAmount ?? 10000,
     items: partial?.items || [makeItem()],
@@ -58,9 +58,10 @@ function makeNote(partial?: Partial<DeliveryNote>): DeliveryNote {
 
 describe('getStatusColor', () => {
   it('maps statuses to expected colors', () => {
-    expect(getStatusColor('pending')).toBe('orange');
-    expect(getStatusColor('received')).toBe('blue');
-    expect(getStatusColor('partial')).toBe('yellow');
+    expect(getStatusColor('pending_receive')).toBe('orange');
+    expect(getStatusColor('pending_inspection')).toBe('cyan');
+    expect(getStatusColor('pending_archive')).toBe('purple');
+    expect(getStatusColor('pending_warehouse')).toBe('blue');
     expect(getStatusColor('completed')).toBe('green');
     expect(getStatusColor('rejected')).toBe('red');
   });
@@ -133,8 +134,8 @@ describe('validateAmountRange', () => {
 
 describe('filterDeliveryNotes', () => {
   const notes: DeliveryNote[] = [
-    makeNote({ id: '1', supplierName: '北京科技有限公司', status: 'received', statusText: '已接收', totalAmount: 1000, receivedDate: '2024-01-26' }),
-    makeNote({ id: '2', supplierName: '上海制造厂', status: 'pending', statusText: '待接收', totalAmount: 5000 }),
+    makeNote({ id: '1', supplierName: '北京科技有限公司', status: 'pending_warehouse', statusText: '待入库', totalAmount: 1000, receivedDate: '2024-01-26' }),
+    makeNote({ id: '2', supplierName: '上海制造厂', status: 'pending_receive', statusText: '待接收', totalAmount: 5000 }),
     makeNote({ id: '3', supplierName: '广州电子', status: 'completed', statusText: '已完成', totalAmount: 12000, receivedDate: '2024-02-01' }),
   ];
 
@@ -144,7 +145,7 @@ describe('filterDeliveryNotes', () => {
   });
 
   it('filters by status', () => {
-    const res = filterDeliveryNotes(notes, { status: 'pending' });
+    const res = filterDeliveryNotes(notes, { status: 'pending_receive' });
     expect(res.map(n => n.id)).toEqual(['2']);
   });
 
@@ -160,26 +161,25 @@ describe('filterDeliveryNotes', () => {
 });
 
 describe('action guards', () => {
-  it('canReceive only for pending/partial', () => {
-    expect(canReceive(makeNote({ status: 'pending' }))).toBe(true);
-    expect(canReceive(makeNote({ status: 'partial' }))).toBe(true);
-    expect(canReceive(makeNote({ status: 'received' }))).toBe(false);
+  it('canReceive only for pending_receive', () => {
+    expect(canReceive(makeNote({ status: 'pending_receive' }))).toBe(true);
+    expect(canReceive(makeNote({ status: 'pending_warehouse' }))).toBe(false);
   });
 
-  it('canWarehouse only for received', () => {
-    expect(canWarehouse(makeNote({ status: 'received' }))).toBe(true);
-    expect(canWarehouse(makeNote({ status: 'pending' }))).toBe(false);
+  it('canWarehouseOrAllocate only for pending_warehouse', () => {
+    expect(canWarehouseOrAllocate(makeNote({ status: 'pending_warehouse' }))).toBe(true);
+    expect(canWarehouseOrAllocate(makeNote({ status: 'pending_receive' }))).toBe(false);
   });
 });
 
 describe('computeStats', () => {
   it('computes basic stats', () => {
     const res = computeStats([
-      makeNote({ status: 'pending', totalAmount: 100 }),
+      makeNote({ status: 'pending_receive', totalAmount: 100 }),
       makeNote({ status: 'completed', totalAmount: 200 }),
     ]);
     expect(res.total).toBe(2);
-    expect(res.pending).toBe(1);
+    expect(res.pending_receive).toBe(1);
     expect(res.completed).toBe(1);
     expect(res.totalAmount).toBe(300);
   });

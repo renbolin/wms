@@ -19,7 +19,7 @@ function makeItem(i: number): DeliveryItem {
 
 function makeNote(i: number): DeliveryNote {
   const suppliers = ['北京科技有限公司', '上海制造厂', '广州电子'];
-  const statuses: DeliveryNote['status'][] = ['pending', 'received', 'completed'];
+  const statuses: DeliveryNote['status'][] = ['pending_receive', 'pending_warehouse', 'completed'];
   return {
     id: `dn-${i}`,
     deliveryNo: `DN${String(i).padStart(6, '0')}`,

@@ -113,8 +113,8 @@ const WarehouseReceiving: React.FC = () => {
       receivedDate: '2024-01-25',
       receiver: '李收货',
       department: '采购部',
-      status: 'received',
-      statusText: '已接收',
+  status: 'pending_warehouse',
+  statusText: '待入库',
       totalAmount: 43000,
       items: [
         {
@@ -169,8 +169,8 @@ const WarehouseReceiving: React.FC = () => {
       receivedDate: '2024-01-30',
       receiver: '王收货',
       department: '采购部',
-      status: 'received',
-      statusText: '已接收',
+  status: 'pending_warehouse',
+  statusText: '待入库',
       totalAmount: 12000,
       items: [
         {

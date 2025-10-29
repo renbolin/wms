@@ -466,7 +466,7 @@ const DeliveryNotes: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: string, record: DeliveryNote) => (
+      render: (status: DeliveryNote['status'], record: DeliveryNote) => (
         <Tag color={getStatusColor(status)}>{record.statusText}</Tag>
       )
     },
