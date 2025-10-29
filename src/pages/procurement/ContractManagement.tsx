@@ -112,21 +112,21 @@ const ContractManagement: React.FC = () => {
   }, []);
 
   // 根据结束日期自动计算状态与“即将到期”标识（30天内）
-  const recomputeStatuses = (list: Contract[]) => {
+  const recomputeStatuses = (list: Contract[]): Contract[] => {
     const today = new Date();
     return list.map(c => {
       try {
         const end = new Date(c.endDate);
         if (c.status !== 'terminated') {
           if (end < today) {
-            return { ...c, status: 'expired', statusText: '已到期', dueSoon: false };
+            return { ...c, status: 'expired' as Contract['status'], statusText: '已到期', dueSoon: false } as Contract;
           }
           const diffDays = Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
           const dueSoon = diffDays >= 0 && diffDays <= 30;
-          return { ...c, dueSoon };
+          return { ...c, dueSoon } as Contract;
         }
       } catch {}
-      return c;
+      return c as Contract;
     });
   };
 
