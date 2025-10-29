@@ -38,6 +38,24 @@ export default tseslint.config([
   },
 ])
 ```
+## Testing & Benchmarks
+
+- 单元测试：`npm run test`
+- 观看模式：`npm run test:watch`
+- 覆盖率：`npm run coverage`
+- 基准测试：`npm run bench -- --run`
+
+测试覆盖的核心模块位于 `src/pages/procurement/deliveryNotesLogic.ts`，对应测试在 `src/pages/procurement/__tests__/deliveryNotesLogic.test.ts`，基准测试在 `src/pages/procurement/__bench__/filterDeliveryNotes.bench.ts`。
+
+## 迁移指南（到货单页面）
+
+- 状态颜色映射：改为在 `deliveryNotesLogic.ts` 中使用 `getStatusColor`，页面中通过 `Tag` 引用，无需重复定义。
+- 操作按钮逻辑：使用 `canReceive` 与 `canWarehouse` 控制“接收/入库”按钮的显示，确保状态一致性。
+- 接收流程校验：`handleReceiveConfirm` 已改为调用 `validateHeaderForm` 与 `validateReceiveItems`，实现严格校验与错误提示。
+- 接收数量输入：将接收数量输入框从 `Input` 替换为 `InputNumber`，并设置 `min=0` 与 `max=deliveredQuantity` 边界。
+- 接收模态框属性：将 `destroyOnHidden` 统一为 `destroyOnClose`，与 Ant Design 行为保持一致。
+
+如需扩展筛选条件或引入真实数据源，可在 `deliveryNotesLogic.ts` 中追加纯函数并在页面中调用。
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 

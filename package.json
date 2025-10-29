@@ -11,6 +11,10 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "bench": "vitest bench",
     "deploy:vercel": "npm run build:fast && vercel --prod",
     "deploy:netlify": "npm run build:fast && netlify deploy --prod --dir=dist",
     "clean": "rm -rf dist node_modules/.vite",
@@ -39,12 +43,14 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
+    "@vitest/coverage-v8": "^4.0.4",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
-    "vite": "^7.1.2"
+    "vite": "^7.1.2",
+    "vitest": "^4.0.4"
   }
 }

@@ -1100,7 +1100,7 @@ const QuotationComparison: React.FC = () => {
         onOk={handleOk}
         onCancel={handleCancel}
         width={1000}
-        destroyOnClose
+        destroyOnHidden
         okText={editingRecord ? '保存' : '创建询价单'}
         cancelText="取消"
       >

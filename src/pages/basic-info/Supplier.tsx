@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Card,
   Table,
@@ -33,6 +33,10 @@ interface SupplierInfo {
   code: string;
   name: string;
   type: string;
+  // 新增字段：产品类型、合作关系等级、供应商资质（用于表单）
+  productType?: string;
+  relationshipLevel?: string;
+  qualification?: string;
   deviceTypeCategory?: string; // 左侧设备类型树关联（主设备/附属设备/特种设备/非特种设备）
   contact: string;
   phone: string;
@@ -152,12 +156,6 @@ const Supplier: React.FC = () => {
       width: 200,
     },
     {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-      width: 120,
-    },
-    {
       title: '联系人',
       dataIndex: 'contact',
       key: 'contact',
@@ -260,7 +258,6 @@ const Supplier: React.FC = () => {
       return (
         (!values.code || item.code.toLowerCase().includes(values.code.toLowerCase())) &&
         (!values.name || item.name.toLowerCase().includes(values.name.toLowerCase())) &&
-        (!values.type || item.type === values.type) &&
         (!values.status || item.status === values.status)
       );
     });
@@ -299,13 +296,6 @@ const Supplier: React.FC = () => {
           </Form.Item>
           <Form.Item name="name" label="供应商名称">
             <Input placeholder="请输入供应商名称" />
-          </Form.Item>
-          <Form.Item name="type" label="类型">
-            <Select placeholder="请选择类型" style={{ width: 120 }}>
-              <Option value="电子设备">电子设备</Option>
-              <Option value="办公用品">办公用品</Option>
-              <Option value="原材料">原材料</Option>
-            </Select>
           </Form.Item>
           <Form.Item name="status" label="状态">
             <Select placeholder="请选择状态" style={{ width: 120 }}>
@@ -373,7 +363,6 @@ const Supplier: React.FC = () => {
             <Descriptions column={2} bordered>
               <Descriptions.Item label="供应商编码">{selectedSupplier.code}</Descriptions.Item>
               <Descriptions.Item label="供应商名称">{selectedSupplier.name}</Descriptions.Item>
-              <Descriptions.Item label="类型">{selectedSupplier.type}</Descriptions.Item>
               <Descriptions.Item label="状态">{selectedSupplier.statusText}</Descriptions.Item>
               <Descriptions.Item label="联系人">{selectedSupplier.contact}</Descriptions.Item>
               <Descriptions.Item label="联系电话">{selectedSupplier.phone}</Descriptions.Item>
@@ -431,14 +420,43 @@ const Supplier: React.FC = () => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
-                  name="type"
-                  label="类型"
-                  rules={[{ required: true, message: '请选择类型' }]}
+                  name="productType"
+                  label="产品类型"
+                  rules={[{ required: true, message: '请选择产品类型' }]}
                 >
-                  <Select placeholder="请选择类型">
-                    <Option value="电子设备">电子设备</Option>
-                    <Option value="办公用品">办公用品</Option>
-                    <Option value="原材料">原材料</Option>
+                  <Select placeholder="请选择产品类型">
+                    <Option value="生产设备类">生产设备类</Option>
+                    <Option value="办公类器械">办公类器械</Option>
+                    <Option value="配件耗材类">配件耗材类</Option>
+                    <Option value="设备服务类">设备服务类</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="relationshipLevel"
+                  label="合作关系等级"
+                  rules={[{ required: true, message: '请选择合作关系等级' }]}
+                >
+                  <Select placeholder="请选择合作关系等级">
+                    <Option value="战略供应商">战略供应商</Option>
+                    <Option value="优选供应商">优选供应商</Option>
+                    <Option value="普通供应商">普通供应商</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="qualification"
+                  label="供应商资质"
+                  rules={[{ required: true, message: '请选择供应商资质' }]}
+                >
+                  <Select placeholder="请选择供应商资质">
+                    <Option value="原厂">原厂</Option>
+                    <Option value="授权">授权</Option>
+                    <Option value="合规">合规</Option>
                   </Select>
                 </Form.Item>
               </Col>

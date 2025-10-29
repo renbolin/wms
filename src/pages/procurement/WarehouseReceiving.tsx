@@ -20,6 +20,7 @@ interface ReceivingRecord {
   deliveryNoteId?: string; // 到货单ID
   supplierName: string;
   supplierId?: string; // 供应商ID
+  equipmentCode?: string; // 设备档案编号（来自到货建档）
   receivingDate: string | null;
   receiver: string | null;
   department: string | null;
@@ -360,6 +361,7 @@ const WarehouseReceiving: React.FC = () => {
       deliveryNoteId: deliveryNote.id,
       supplierName: deliveryNote.supplierName,
       supplierId: deliveryNote.supplierId,
+      equipmentCode: deliveryNote.equipmentCode,
       receivingDate: null,
       receiver: null,
       department: null,
@@ -396,6 +398,12 @@ const WarehouseReceiving: React.FC = () => {
     const updatedData = [...data, newReceivingRecord];
     setData(updatedData);
     setFilteredData(updatedData);
+    // 持久化到本地存储，便于在到货单详情中关联查看
+    try {
+      localStorage.setItem('warehouseReceivingData', JSON.stringify(updatedData));
+    } catch (e) {
+      // 忽略本地存储异常
+    }
     message.success('已基于到货单创建入库单');
   };
 
@@ -1358,7 +1366,7 @@ destroyOnHidden
               ),
             },
           ]}
-          dataSource={deliveryNotes.filter(note => note.status === 'received')}
+          dataSource={deliveryNotes.filter(note => note.status === 'pending_warehouse')}
           rowKey="id"
           pagination={{
             pageSize: 5,

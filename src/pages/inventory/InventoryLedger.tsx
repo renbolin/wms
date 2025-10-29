@@ -833,6 +833,104 @@ const InventoryLedger: React.FC = () => {
                 <Tag color={getStatusColor(selectedRecord.status)}>{selectedRecord.statusText}</Tag>
               </Descriptions.Item>
             </Descriptions>
+
+            {/* 关联建档信息 */}
+            {(() => {
+              try {
+                const raw = localStorage.getItem('deliveryNotesData');
+                const notes = raw ? JSON.parse(raw) : [];
+                const relatedArchives = (notes || []).filter((n: any) =>
+                  (n.items || []).some((it: any) => it.itemName === selectedRecord.itemName && it.specification === selectedRecord.specification)
+                );
+                if (relatedArchives.length === 0) return null;
+                return (
+                  <Card size="small" title="建档信息" style={{ marginTop: 16 }}>
+                    {relatedArchives.map((n: any) => (
+                      <Descriptions key={n.id} bordered size="small" column={4} style={{ marginBottom: 12 }}>
+                        <Descriptions.Item label="到货单号">{n.deliveryNo}</Descriptions.Item>
+                        <Descriptions.Item label="品质验收">{n.qualityCheckStatus === 'passed' ? '通过' : (n.qualityCheckStatus === 'failed' ? '不通过' : '未验收')}</Descriptions.Item>
+                        <Descriptions.Item label="档案编号">{n.equipmentArchive?.asset?.assetCode || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="设备编号">{n.equipmentCode || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="安装日期">{n.equipmentArchive?.technical?.installationDate || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="资产状态">{n.equipmentArchive?.asset?.assetStatus || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="购置金额">{n.equipmentArchive?.asset?.purchaseAmount != null ? `¥${n.equipmentArchive?.asset?.purchaseAmount}` : '-'}</Descriptions.Item>
+                        <Descriptions.Item label="建档备注" span={2}>{n.archiveRemarks || '-'}</Descriptions.Item>
+                      </Descriptions>
+                    ))}
+                  </Card>
+                );
+              } catch { return null; }
+            })()}
+
+            {/* 关联入库记录 */}
+            {(() => {
+              try {
+                const raw = localStorage.getItem('warehouseReceivingData');
+                const recs = raw ? JSON.parse(raw) : [];
+                const related = (recs || []).filter((r: any) =>
+                  (r.items || []).some((it: any) => it.itemName === selectedRecord.itemName && it.specification === selectedRecord.specification)
+                );
+                if (related.length === 0) return null;
+                return (
+                  <Card size="small" title="入库记录" style={{ marginTop: 16 }}>
+                    {related.map((rec: any) => (
+                      <div key={rec.id} style={{ marginBottom: 12 }}>
+                        <Descriptions bordered size="small" column={4}>
+                          <Descriptions.Item label="入库单号">{rec.receivingNo || rec.id}</Descriptions.Item>
+                          <Descriptions.Item label="到货单号">{rec.deliveryNo || '-'}</Descriptions.Item>
+                          <Descriptions.Item label="状态">{rec.statusText || '待处理'}</Descriptions.Item>
+                          <Descriptions.Item label="仓库">{rec.warehouseName || '-'}</Descriptions.Item>
+                          <Descriptions.Item label="入库日期">{rec.receivingDate || '-'}</Descriptions.Item>
+                          <Descriptions.Item label="入库员">{rec.receiver || '-'}</Descriptions.Item>
+                          <Descriptions.Item label="设备编号">{rec.equipmentCode || '-'}</Descriptions.Item>
+                          <Descriptions.Item label="备注" span={2}>{rec.remarks || '-'}</Descriptions.Item>
+                        </Descriptions>
+                        <Table
+                          style={{ marginTop: 8 }}
+                          size="small"
+                          dataSource={rec.items || []}
+                          rowKey={(it: any) => it.id || `${rec.id}_${Math.random()}`}
+                          pagination={false}
+                          columns={[
+                            { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
+                            { title: '规格', dataIndex: 'specification', key: 'specification' },
+                            { title: '入库数量', dataIndex: 'inboundQuantity', key: 'inboundQuantity', width: 100 },
+                            { title: '入库仓库', dataIndex: 'inboundWarehouseName', key: 'inboundWarehouseName', width: 120 },
+                            { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, render: (p: number) => `¥${p}` },
+                            { title: '总价', dataIndex: 'totalPrice', key: 'totalPrice', width: 100, render: (p: number) => `¥${p?.toLocaleString?.() || p}` },
+                          ]}
+                        />
+                      </div>
+                    ))}
+                  </Card>
+                );
+              } catch { return null; }
+            })()}
+
+            {/* 分配/启用记录展示 */}
+            {(() => {
+              try {
+                const raw = localStorage.getItem('deliveryNotesData');
+                const notes = raw ? JSON.parse(raw) : [];
+                const relatedEnable = (notes || []).filter((n: any) =>
+                  n.enablementRecord && (n.items || []).some((it: any) => it.itemName === selectedRecord.itemName && it.specification === selectedRecord.specification)
+                );
+                if (relatedEnable.length === 0) return null;
+                return (
+                  <Card size="small" title="分配/启用记录" style={{ marginTop: 16 }}>
+                    {relatedEnable.map((n: any) => (
+                      <Descriptions key={n.id} bordered size="small" column={4} style={{ marginBottom: 12 }}>
+                        <Descriptions.Item label="分配部门">{n.enablementRecord?.department || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="使用人">{n.enablementRecord?.assignee || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="日期">{n.enablementRecord?.date || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="设备编号">{n.enablementRecord?.equipmentCode || '-'}</Descriptions.Item>
+                        <Descriptions.Item label="备注" span={2}>{n.enablementRecord?.remarks || '-'}</Descriptions.Item>
+                      </Descriptions>
+                    ))}
+                  </Card>
+                );
+              } catch { return null; }
+            })()}
           </div>
         )}
       </Modal>

@@ -77,6 +77,10 @@ const MainLayout: React.FC = () => {
           label: '采购订单',
         },
         {
+          key: '/procurement/contract',
+          label: '合同管理',
+        },
+        {
           key: '/procurement/delivery-notes',
           label: '到货单管理',
         },

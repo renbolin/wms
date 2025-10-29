@@ -184,6 +184,39 @@ const ProcurementOrder: React.FC = () => {
   const loadData = () => {};
 
   const [_inputQuantity, _setInputQuantity] = useState<number>(0);
+  // 合同数据与联动
+  const [contracts, setContracts] = useState<any[]>([]);
+  const [relatedContract, setRelatedContract] = useState<any | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('contractsData');
+      if (raw) {
+        setContracts(JSON.parse(raw));
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (selectedOrder?.contractId && contracts.length > 0) {
+      const found = contracts.find(c => c.id === selectedOrder.contractId);
+      setRelatedContract(found || null);
+    } else {
+      setRelatedContract(null);
+    }
+  }, [selectedOrder, contracts]);
+
+  // URL参数过滤：按合同ID或合同编号
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(location.search || '');
+      const contractId = sp.get('contractId') || undefined;
+      const contractNo = sp.get('contractNo') || undefined;
+      if (contractId || contractNo) {
+        setFilters(prev => ({ ...(prev || {}), byContractId: contractId, byContractNo: contractNo }));
+      }
+    } catch {}
+  }, [location.search]);
 
   const handleAdd = () => {
     setEditingOrder(null);
@@ -356,6 +389,24 @@ const ProcurementOrder: React.FC = () => {
     { title: '询价单号', dataIndex: 'quotationRequestNo', key: 'quotationRequestNo', render: (text) => text || '-' },
     { title: '订单标题', dataIndex: 'title', key: 'title' },
     { title: '供应商', dataIndex: 'supplier', key: 'supplier' },
+    // 新增：关联合同列，快速查看是否已关联
+    {
+      title: '关联合同',
+      key: 'contractAssoc',
+      dataIndex: 'contractNo',
+      render: (text, record) => (
+        text ? (
+          <Space>
+            <Tag color="green">已关联</Tag>
+            <Button type="link" onClick={() => navigate(`/procurement/contract?contractNo=${encodeURIComponent(text)}`)}>
+              {text}
+            </Button>
+          </Space>
+        ) : (
+          <Tag>未关联</Tag>
+        )
+      )
+    },
     { title: '下单日期', dataIndex: 'orderDate', key: 'orderDate' },
     { title: '预计交付', dataIndex: 'expectedDeliveryDate', key: 'expectedDeliveryDate' },
     { title: '订单金额', dataIndex: 'totalAmount', key: 'totalAmount', render: (amount) => `¥${amount?.toLocaleString() || 0}` },
@@ -407,6 +458,8 @@ const ProcurementOrder: React.FC = () => {
       createdAtRange, 
       updatedAtRange, 
       totalAmountRange, 
+      byContractId,
+      byContractNo,
       remarks 
     } = filters as any;
 
@@ -479,6 +532,13 @@ const ProcurementOrder: React.FC = () => {
     if (remarks && order.remarks && !order.remarks.includes(remarks)) {
       return false;
     }
+    // URL参数过滤：按合同ID或合同编号
+    if (byContractId && order.contractId !== byContractId) {
+      return false;
+    }
+    if (byContractNo && order.contractNo !== byContractNo) {
+      return false;
+    }
     return true;
   });
 
@@ -495,7 +555,7 @@ const ProcurementOrder: React.FC = () => {
           </Button>
         </Space>
       </div>
-      <Table columns={columns} dataSource={filteredOrders} rowKey="id" scroll={{ x: 1200 }} />
+  <Table columns={columns} dataSource={filteredOrders} rowKey="id" scroll={{ x: 1200 }} />
       <Modal
         title={editingOrder ? '编辑采购订单' : '新增采购订单'}
         open={isModalVisible}
@@ -594,7 +654,37 @@ const ProcurementOrder: React.FC = () => {
               </Form.Item>
             </Col>
           </Row>
-          
+
+          {/* 合同关联 */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="关联合同" name="contractId">
+                <Select
+                  placeholder="选择关联合同"
+                  allowClear
+                  onChange={(id) => {
+                    const c = contracts.find(item => item.id === id);
+                    form.setFieldsValue({ contractNo: c?.contractNo || undefined });
+                  }}
+                  showSearch
+                  filterOption={(input, option) => {
+                    const label = String(option?.children ?? option?.value ?? '');
+                    return label.toLowerCase().includes(input.toLowerCase());
+                  }}
+                >
+                  {contracts.map((c) => (
+                    <Option key={c.id} value={c.id}>{c.contractNo} - {c.title}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="合同编号" name="contractNo">
+                <Input placeholder="选合同后自动填充" disabled />
+              </Form.Item>
+            </Col>
+          </Row>
+
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="订单状态" name="status">
@@ -728,6 +818,33 @@ const ProcurementOrder: React.FC = () => {
                     { title: '备注', dataIndex: 'remarks', key: 'remarks' }
                   ]}
                 />
+              </Card>
+            )}
+
+            {/* 合同信息联动展示 */}
+            {selectedOrder?.contractId && relatedContract && (
+              <Card title="合同信息" style={{ marginBottom: 16 }}>
+                <Descriptions bordered column={2}>
+                  <Descriptions.Item label="合同编号">{relatedContract.contractNo}</Descriptions.Item>
+                  <Descriptions.Item label="合同名称">{relatedContract.title}</Descriptions.Item>
+                  <Descriptions.Item label="供应商">{relatedContract.supplierName}</Descriptions.Item>
+                  <Descriptions.Item label="状态">
+                    <Tag color={
+                      relatedContract.status === 'active' ? 'green' :
+                      relatedContract.status === 'expired' ? 'orange' :
+                      relatedContract.status === 'terminated' ? 'red' : 'blue'
+                    }>
+                      {relatedContract.statusText}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="开始日期">{relatedContract.startDate}</Descriptions.Item>
+                  <Descriptions.Item label="结束日期">{relatedContract.endDate}</Descriptions.Item>
+                  <Descriptions.Item label="金额">¥{Number(relatedContract.amount || 0).toLocaleString()}</Descriptions.Item>
+                  <Descriptions.Item label="备注" span={2}>{relatedContract.remarks || '-'}</Descriptions.Item>
+                </Descriptions>
+                <div style={{ marginTop: 12 }}>
+                  <Button type="link" onClick={() => navigate('/procurement/contract')}>查看合同列表</Button>
+                </div>
               </Card>
             )}
 

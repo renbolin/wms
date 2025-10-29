@@ -25,6 +25,8 @@ import {
   DeleteOutlined,
   SearchOutlined,
   UnorderedListOutlined,
+  UpOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 // 移除不兼容的类型导入，使用宽松类型以通过构建
@@ -35,7 +37,7 @@ interface EquipmentAttribute {
   unit: string;
   valueType: 'input' | 'select';
   remarks: string;
-  options?: { label: string; value: string }[];
+  options?: string[]; // 下拉选项改为单一文本数组
 }
 
 interface EquipmentType {
@@ -325,6 +327,9 @@ const EquipmentTypePage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<EquipmentType | null>(null);
   const [attributeDrawerVisible, setAttributeDrawerVisible] = useState(false);
   const [attrRefresh, setAttrRefresh] = useState(0); // 触发表格联动刷新
+  // 抽屉-属性列表行内编辑所需表单与状态
+  const [attrEditForm] = Form.useForm();
+  const [attrEditKey, setAttrEditKey] = useState<string | null>(null);
 
   // 初始化时从 localStorage 加载设备类型数据
   useEffect(() => {
@@ -436,32 +441,198 @@ const EquipmentTypePage: React.FC = () => {
     },
   ];
 
-  // 属性查看列定义（仅用于展示，不含表单）
+  // 保存属性到后端（若后端不可用则返回false）
+  const updateAttributeApi = async (typeId: string, attr: EquipmentAttribute) => {
+    try {
+      const res = await fetch(`/api/equipment-types/${typeId}/attributes/${attr.key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(attr),
+      });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // 抽屉-属性查看列定义（支持单行编辑）
   const attributeViewColumns: ColumnsType<EquipmentAttribute> = [
     {
       title: '属性名称',
       dataIndex: 'name',
       key: 'name',
-      width: '25%',
+      width: '20%',
+      render: (text: string, record) => (
+        attrEditKey === record.key ? (
+          <Form.Item name="name" rules={[{ required: true, message: '请输入属性名称' }]} style={{ margin: 0 }}>
+            <Input placeholder="请输入属性名称" />
+          </Form.Item>
+        ) : (
+          <span>{record.name}</span>
+        )
+      ),
     },
     {
       title: '属性单位',
       dataIndex: 'unit',
       key: 'unit',
-      width: '20%',
+      width: '18%',
+      render: (_: string, record) => (
+        attrEditKey === record.key ? (
+          <Form.Item name="unit" rules={[{ required: true, message: '请输入属性单位' }]} style={{ margin: 0 }}>
+            <Input placeholder="请输入属性单位" />
+          </Form.Item>
+        ) : (
+          <span>{record.unit}</span>
+        )
+      ),
     },
     {
       title: '属性值类型',
       dataIndex: 'valueType',
       key: 'valueType',
-      width: '20%',
-      render: (v: 'input' | 'select') => (v === 'input' ? '输入框' : '下拉选择框'),
+      width: '18%',
+      render: (v: 'input' | 'select', record) => (
+        attrEditKey === record.key ? (
+          <Form.Item name="valueType" rules={[{ required: true, message: '请选择属性值类型' }]} style={{ margin: 0 }}>
+            <Select
+              onChange={(val) => {
+                const vt = attrEditForm.getFieldValue('valueType');
+                const opts = attrEditForm.getFieldValue('options');
+                if (val === 'select' && (!opts || !Array.isArray(opts))) {
+                  attrEditForm.setFieldsValue({ options: [''] });
+                }
+                if (val === 'input') {
+                  attrEditForm.setFieldsValue({ options: undefined });
+                }
+              }}
+            >
+              <Select.Option value="input">输入框</Select.Option>
+              <Select.Option value="select">下拉选择框</Select.Option>
+            </Select>
+          </Form.Item>
+        ) : (
+          v === 'input' ? '输入框' : '下拉选择框'
+        )
+      ),
+    },
+    {
+      title: '下拉选项',
+      key: 'options',
+      width: '24%',
+      render: (_: any, record) => (
+        attrEditKey === record.key ? (
+          <Form.Item noStyle shouldUpdate>
+            {() => {
+              const vt = attrEditForm.getFieldValue('valueType');
+              if (vt !== 'select') return <span style={{ color: '#999' }}>仅下拉类型可编辑</span>;
+              const move = (from: number, to: number) => {
+                const opts: string[] = attrEditForm.getFieldValue('options') || [];
+                if (from < 0 || to < 0 || from >= opts.length || to >= opts.length) return;
+                const newOpts = [...opts];
+                const [m] = newOpts.splice(from, 1);
+                newOpts.splice(to, 0, m);
+                attrEditForm.setFieldsValue({ options: newOpts });
+              };
+              return (
+                <Form.List name="options">
+                  {(optFields, { add, remove }) => (
+                    <div>
+                      {optFields.map((field, i) => (
+                        <Space key={field.key} align="baseline" style={{ marginBottom: 8 }}>
+                          <Form.Item name={[field.name]} rules={[{ required: true, message: '请输入选项文本' }]} style={{ margin: 0 }}>
+                            <Input placeholder="选项文本" style={{ width: 200 }} />
+                          </Form.Item>
+                          <Button size="small" onClick={() => move(i, i - 1)} disabled={i === 0}>上移</Button>
+                          <Button size="small" onClick={() => move(i, i + 1)} disabled={i === optFields.length - 1}>下移</Button>
+                          <Button size="small" danger onClick={() => remove(field.name)}>删除</Button>
+                        </Space>
+                      ))}
+                      <Button type="dashed" size="small" onClick={() => add('')}>添加选项</Button>
+                    </div>
+                  )}
+                </Form.List>
+              );
+            }}
+          </Form.Item>
+        ) : (
+          record.valueType === 'select' ? (record.options?.join('、') || '-') : <span style={{ color: '#999' }}>—</span>
+        )
+      ),
     },
     {
       title: '备注',
       dataIndex: 'remarks',
       key: 'remarks',
-      width: '35%',
+      width: '12%',
+      render: (text: string, record) => (
+        attrEditKey === record.key ? (
+          <Form.Item name="remarks" style={{ margin: 0 }}>
+            <Input placeholder="请输入备注" />
+          </Form.Item>
+        ) : (
+          <span>{record.remarks}</span>
+        )
+      ),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: '8%',
+      render: (_: any, record) => (
+        attrEditKey === record.key ? (
+          <Button
+            type="link"
+            onClick={async () => {
+              try {
+                const vals = await attrEditForm.validateFields();
+                const updated: EquipmentAttribute = {
+                  key: record.key,
+                  name: vals.name,
+                  unit: vals.unit,
+                  valueType: vals.valueType,
+                  remarks: vals.remarks,
+                  options: vals.valueType === 'select' ? (vals.options || []).filter((s: string) => s && s.trim()) : undefined,
+                };
+                const ok = await updateAttributeApi(selectedType!.id, updated);
+                const newData = data.map(d => {
+                  if (d.id !== selectedType!.id) return d;
+                  const newAttrs = d.attributes.map(a => a.key === record.key ? updated : a);
+                  return { ...d, attributes: newAttrs };
+                });
+                setData(newData);
+                localStorage.setItem('equipment_types', JSON.stringify(newData));
+                const refreshed = newData.find(d => d.id === selectedType!.id) || null;
+                setSelectedType(refreshed);
+                setAttrEditKey(null);
+                window.dispatchEvent(new CustomEvent('equipmentTypesUpdated'));
+                message[ok ? 'success' : 'warning'](ok ? '保存成功' : '保存到后端失败，已本地更新');
+              } catch (e) {
+                message.error('请完善必填项');
+              }
+            }}
+          >
+            完成
+          </Button>
+        ) : (
+          <Button
+            type="link"
+            onClick={() => {
+              setAttrEditKey(record.key);
+              attrEditForm.setFieldsValue({
+                key: record.key,
+                name: record.name,
+                unit: record.unit,
+                valueType: record.valueType,
+                remarks: record.remarks,
+                options: record.options || [],
+              });
+            }}
+          >
+            编辑
+          </Button>
+        )
+      ),
     },
   ];
 
@@ -594,7 +765,7 @@ const EquipmentTypePage: React.FC = () => {
               const attrs = form.getFieldValue('attributes') || [];
               const curr = attrs[index] || {};
               if (val === 'select') {
-                const initOpts = curr.options && curr.options.length > 0 ? curr.options : [{ label: '', value: '' }];
+                const initOpts = curr.options && curr.options.length > 0 ? curr.options : [''];
                 attrs[index] = { ...curr, valueType: 'select', options: initOpts };
               } else {
                 if (curr.options) delete curr.options;
@@ -621,11 +792,11 @@ const EquipmentTypePage: React.FC = () => {
           {({ getFieldValue }) => {
             const vt = getFieldValue(['attributes', index, 'valueType']);
             if (vt !== 'select') {
-              return <span style={{ color: '#999' }}>仅下拉类型可编辑</span>;
+              return <Tag color="default">仅下拉类型可编辑</Tag>;
             }
             const move = (from: number, to: number) => {
               const attrs = getFieldValue('attributes') || [];
-              const opts = attrs[index]?.options || [];
+              const opts: string[] = attrs[index]?.options || [];
               if (from < 0 || to < 0 || from >= opts.length || to >= opts.length) return;
               const newOpts = [...opts];
               const [m] = newOpts.splice(from, 1);
@@ -638,27 +809,38 @@ const EquipmentTypePage: React.FC = () => {
                 {(optFields, { add, remove }) => (
                   <div>
                     {optFields.map((field, i) => (
-                      <Space key={field.key} align="baseline" style={{ marginBottom: 8 }}>
+                      <Space key={field.key} align="center" wrap style={{ marginBottom: 8 }}>
                         <Form.Item
-                          name={[field.name, 'label']}
-                          rules={[{ required: true, message: '请输入显示文本' }]}
+                          name={[field.name]}
+                          rules={[{ required: true, message: '请输入选项文本' }]}
                           style={{ margin: 0 }}
                         >
-                          <Input placeholder="显示文本" style={{ width: 120 }} />
+                          <Input placeholder="选项文本" allowClear size="small" style={{ width: 220 }} />
                         </Form.Item>
-                        <Form.Item
-                          name={[field.name, 'value']}
-                          rules={[{ required: true, message: '请输入对应值' }]}
-                          style={{ margin: 0 }}
-                        >
-                          <Input placeholder="对应值" style={{ width: 120 }} />
-                        </Form.Item>
-                        <Button size="small" onClick={() => move(i, i - 1)} disabled={i === 0}>上移</Button>
-                        <Button size="small" onClick={() => move(i, i + 1)} disabled={i === optFields.length - 1}>下移</Button>
-                        <Button size="small" danger onClick={() => remove(field.name)}>删除</Button>
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<UpOutlined />}
+                          onClick={() => move(i, i - 1)}
+                          disabled={i === 0}
+                        />
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<DownOutlined />}
+                          onClick={() => move(i, i + 1)}
+                          disabled={i === optFields.length - 1}
+                        />
+                        <Button
+                          size="small"
+                          type="text"
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => remove(field.name)}
+                        />
                       </Space>
                     ))}
-                    <Button type="dashed" size="small" onClick={() => add({ label: '', value: '' })}>添加选项</Button>
+                    <Button type="link" size="small" onClick={() => add('')} icon={<PlusOutlined />}>添加</Button>
                   </div>
                 )}
               </Form.List>
@@ -880,10 +1062,10 @@ const EquipmentTypePage: React.FC = () => {
                 label="设备类别"
                 rules={[{ required: true, message: '请选择设备类别' }]}
               >
-                <Radio.Group>
-                  <Radio value="设备">设备</Radio>
-                  <Radio value="低值易耗品">低值易耗品</Radio>
-                </Radio.Group>
+                <Select placeholder="请选择">
+                  <Select.Option value="设备">设备</Select.Option>
+                  <Select.Option value="低值易耗品">低值易耗品</Select.Option>
+                </Select>
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -892,10 +1074,10 @@ const EquipmentTypePage: React.FC = () => {
                 label="设备形态"
                 rules={[{ required: true, message: '请选择设备形态' }]}
               >
-                <Radio.Group>
-                  <Radio value="独立设备">独立设备</Radio>
-                  <Radio value="附属设备">附属设备</Radio>
-                </Radio.Group>
+                <Select placeholder="请选择">
+                  <Select.Option value="独立设备">独立设备</Select.Option>
+                  <Select.Option value="附属设备">附属设备</Select.Option>
+                </Select>
               </Form.Item>
             </Col>
           </Row>
@@ -912,19 +1094,16 @@ const EquipmentTypePage: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
-          </Row>
-          <Row>
-            <Col span={24}>
+            <Col span={8}>
               <Form.Item
                 name="isAsset"
                 label="是否资产"
-                valuePropName="checked"
                 rules={[{ required: true, message: '请选择是否为资产' }]}
               >
-                <Radio.Group>
-                  <Radio value={true}>是</Radio>
-                  <Radio value={false}>否</Radio>
-                </Radio.Group>
+                <Select placeholder="请选择">
+                  <Select.Option value={true}>是</Select.Option>
+                  <Select.Option value={false}>否</Select.Option>
+                </Select>
               </Form.Item>
             </Col>
           </Row>
@@ -939,6 +1118,7 @@ const EquipmentTypePage: React.FC = () => {
                   dataSource={fields as any}
                   pagination={false}
                   rowKey="key"
+                  size="small"
                 />
                 <Button
                   type="dashed"
@@ -980,12 +1160,14 @@ const EquipmentTypePage: React.FC = () => {
         onClose={() => setAttributeDrawerVisible(false)}
         open={attributeDrawerVisible}
       >
-        <Table
-          columns={attributeViewColumns}
-          dataSource={selectedType?.attributes || []}
-          rowKey={(row) => row.key}
-          pagination={false}
-        />
+        <Form form={attrEditForm} layout="vertical">
+          <Table
+            columns={attributeViewColumns}
+            dataSource={selectedType?.attributes || []}
+            rowKey={(row) => row.key}
+            pagination={false}
+          />
+        </Form>
       </Drawer>
       </div>
       </Col>

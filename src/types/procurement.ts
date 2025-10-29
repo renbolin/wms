@@ -203,7 +203,8 @@ export interface DeliveryNote {
   receivedDate?: string;
   receiver?: string;
   department?: string;
-  status: 'pending' | 'received' | 'partial' | 'completed' | 'rejected';
+  // 状态改造：接收 -> 验收 -> 建档 -> 入库/分配使用 -> 已完成
+  status: 'pending_receive' | 'pending_inspection' | 'pending_archive' | 'pending_warehouse' | 'completed' | 'rejected';
   statusText: string;
   totalAmount: number;
   items: DeliveryItem[];
@@ -213,6 +214,31 @@ export interface DeliveryNote {
   transportInfo?: TransportInfo;
   qualityCheckRequired?: boolean;  // 新增：是否需要质量检查
   qualityCheckStatus?: 'pending' | 'passed' | 'failed' | 'waived'; // 新增：质量检查状态
+  // 验收信息
+  inspectionDate?: string;
+  inspector?: string;
+  inspectionResult?: 'passed' | 'failed';
+  inspectionDiff?: string;
+  inspectionRemarks?: string;
+  // 建档信息
+  archiveDate?: string;
+  archivist?: string;
+  archiveNo?: string;
+  archiveRemarks?: string;
+  // 设备档案
+  equipmentCode?: string;
+  equipmentArchive?: EquipmentArchive;
+  // 入库/分配使用
+  warehouseOrAllocateAction?: 'warehouse' | 'allocate';
+  warehouseId?: string;
+  warehouseName?: string;
+  warehouseLocation?: string;
+  allocationDepartment?: string;
+  allocationAssignee?: string;
+  allocationDate?: string;
+  allocationRemarks?: string;
+  // 启用单记录（分配使用时）
+  enablementRecord?: EnablementRecord;
 }
 
 export interface DeliveryItem {
@@ -228,6 +254,12 @@ export interface DeliveryItem {
   remarks: string;
   batchNo?: string;
   expiryDate?: string;
+  // 验收扩展字段
+  inspectionStatus?: 'passed' | 'failed';
+  inspectionHandling?: 'return' | 'destroy' | 'repair';
+  inspectionRemarks?: string;
+  acceptedQuantity?: number; // 合格数量
+  rejectedQuantity?: number; // 不合格数量
 }
 
 export interface TransportInfo {
@@ -238,4 +270,61 @@ export interface TransportInfo {
   driverPhone: string;
   estimatedArrival: string;
   actualArrival?: string;
+}
+
+// 设备档案相关类型
+export interface EquipmentTechnicalInfo {
+  equipmentCode: string;
+  name: string;
+  modelSpec: string;
+  brand?: string;
+  serialNo?: string;
+  performanceParams?: string;
+  structureParams?: string;
+  supportingSystems?: string;
+  mediaRequirements?: string;
+  installationLocation?: string;
+  useDepartment?: string;
+  installationDate?: string;
+  firstUseDate?: string;
+  equipmentStatus?: string;
+}
+
+export interface EquipmentScrapInfo {
+  plannedScrapDate?: string;
+  scrapReportNo?: string;
+  disposalMethod?: string;
+}
+
+export interface EquipmentAssetInfo {
+  assetCode?: string;
+  assetCategory?: string;
+  purchaseAmount: number;
+  taxRate?: number;
+  depreciationYears?: number;
+  residualRate?: number; // 百分比形式，如5表示5%
+  monthlyDepreciation?: number;
+  accumulatedDepreciation?: number;
+  netValue?: number;
+  purchaseDate?: string;
+  supplierInfo?: string;
+  ownershipDepartment?: string;
+  contractNo?: string;
+  assetStatus?: string;
+  changeRecords?: string;
+  lastInventoryDate?: string;
+  scrapInfo?: EquipmentScrapInfo;
+}
+
+export interface EquipmentArchive {
+  technical: EquipmentTechnicalInfo;
+  asset: EquipmentAssetInfo;
+}
+
+export interface EnablementRecord {
+  department: string;
+  assignee: string;
+  date: string;
+  remarks?: string;
+  equipmentCode?: string;
 }

@@ -45,6 +45,10 @@ export interface ProcurementOrder {
   quotationRequestNo?: string;
   selectedQuotationId?: string;
   
+  // 关联的合同信息
+  contractId?: string;
+  contractNo?: string;
+  
   // 合同和附件
   contractFiles?: string[];
   attachmentFiles?: string[];
@@ -138,6 +142,9 @@ export const ProcurementOrderProvider: React.FC<ProcurementOrderProviderProps> =
       quotationRequestId: '1',
       quotationRequestNo: 'RFQ2024001',
       selectedQuotationId: 'q1',
+      // 关联合同（示例）
+      contractId: 'C-2024-001',
+      contractNo: 'HT-2024-001',
       contractFiles: [],
       attachmentFiles: [],
       remarks: '请按时交付，质量要求严格',
@@ -293,11 +300,138 @@ export const ProcurementOrderProvider: React.FC<ProcurementOrderProviderProps> =
       quotationRequestId: '5',
       quotationRequestNo: 'RFQ2024005',
       selectedQuotationId: 'q5',
+      // 关联合同（示例）
+      contractId: 'C-2024-001',
+      contractNo: 'HT-2024-001',
       contractFiles: [],
       attachmentFiles: [],
       remarks: '已完成验收，可关联入库处理',
       createdAt: '2024-01-08T08:30:00Z',
       updatedAt: '2024-01-20T17:00:00Z'
+    },
+    // 新增：与 HT-2024-001 合同关联的示例订单（供应商一致）
+    {
+      id: '8',
+      orderNumber: 'PO2024010',
+      title: '台式电脑及外设采购（合同HT-2024-001）',
+      supplier: '上海电子设备有限公司',
+      supplierContact: '刘经理',
+      supplierPhone: '13600000010',
+      orderDate: '2024-02-10',
+      expectedDeliveryDate: '2024-02-20',
+      totalAmount: 43000,
+      status: 'confirmed',
+      statusText: '已确认',
+      creator: '李采购',
+      department: '采购部',
+      deliveryAddress: '上海市浦东新区张江路88号',
+      recipient: '张收货',
+      recipientPhone: '13600000011',
+      items: [
+        { id: 'i-1', name: '台式电脑', specification: 'i5/16G/512G', unit: '台', quantity: 6, unitPrice: 3800, totalPrice: 22800, deliveryTime: '7个工作日' },
+        { id: 'i-2', name: '显示器', specification: '24寸IPS', unit: '台', quantity: 6, unitPrice: 1200, totalPrice: 7200, deliveryTime: '7个工作日' },
+        { id: 'i-3', name: '键鼠套装', specification: 'USB', unit: '套', quantity: 6, unitPrice: 200, totalPrice: 1200, deliveryTime: '7个工作日' },
+        { id: 'i-4', name: '打印机耗材', specification: '碳粉', unit: '盒', quantity: 10, unitPrice: 150, totalPrice: 1500, deliveryTime: '3个工作日' }
+      ],
+      quotationRequestId: '1',
+      quotationRequestNo: 'RFQ2024001',
+      selectedQuotationId: 'q1',
+      contractId: 'C-2024-001',
+      contractNo: 'HT-2024-001',
+      contractFiles: [],
+      attachmentFiles: [],
+      remarks: '根据年度框架合同下单',
+      createdAt: '2024-02-10T09:00:00Z',
+      updatedAt: '2024-02-10T09:00:00Z'
+    },
+    {
+      id: '9',
+      orderNumber: 'PO2024011',
+      title: '办公外设补充采购（合同HT-2024-001）',
+      supplier: '上海电子设备有限公司',
+      supplierContact: '刘经理',
+      supplierPhone: '13600000012',
+      orderDate: '2024-03-01',
+      expectedDeliveryDate: '2024-03-10',
+      totalAmount: 12000,
+      status: 'draft',
+      statusText: '草稿',
+      creator: '王采购',
+      department: '采购部',
+      deliveryAddress: '上海市浦东新区张江路88号',
+      recipient: '王收货',
+      recipientPhone: '13600000013',
+      items: [
+        { id: 'i-5', name: '键盘', specification: '机械键盘', unit: '把', quantity: 10, unitPrice: 300, totalPrice: 3000, deliveryTime: '5个工作日' },
+        { id: 'i-6', name: '鼠标', specification: '无线鼠标', unit: '个', quantity: 10, unitPrice: 200, totalPrice: 2000, deliveryTime: '5个工作日' },
+        { id: 'i-7', name: '显示器支架', specification: '可调节', unit: '个', quantity: 10, unitPrice: 400, totalPrice: 4000, deliveryTime: '7个工作日' },
+        { id: 'i-8', name: '网线', specification: 'Cat6 5米', unit: '根', quantity: 20, unitPrice: 50, totalPrice: 1000, deliveryTime: '3个工作日' }
+      ],
+      contractId: 'C-2024-001',
+      contractNo: 'HT-2024-001',
+      contractFiles: [],
+      attachmentFiles: [],
+      remarks: '年度框架合同补充下单',
+      createdAt: '2024-03-01T10:00:00Z',
+      updatedAt: '2024-03-01T10:00:00Z'
+    },
+    // 新增：与 HT-2024-005 合同关联的示例订单（供应商：北京办公用品有限公司）
+    {
+      id: '10',
+      orderNumber: 'PO2024012',
+      title: '办公椅采购订单（合同HT-2024-005）',
+      supplier: '北京办公用品有限公司',
+      supplierContact: '赵经理',
+      supplierPhone: '13700000012',
+      orderDate: '2024-02-15',
+      expectedDeliveryDate: '2024-02-28',
+      totalAmount: 15000,
+      status: 'confirmed',
+      statusText: '已确认',
+      creator: '赵采购',
+      department: '行政部',
+      deliveryAddress: '北京市海淀区中关村大街56号',
+      recipient: '赵收货',
+      recipientPhone: '13700000013',
+      items: [
+        { id: 'j-1', name: '办公椅', specification: '人体工学，可调节', unit: '把', quantity: 50, unitPrice: 300, totalPrice: 15000, deliveryTime: '10个工作日' }
+      ],
+      contractId: 'C-2024-002',
+      contractNo: 'HT-2024-005',
+      contractFiles: [],
+      attachmentFiles: [],
+      remarks: '根据一次性采购合同下单',
+      createdAt: '2024-02-15T09:00:00Z',
+      updatedAt: '2024-02-15T09:00:00Z'
+    },
+    {
+      id: '11',
+      orderNumber: 'PO2024013',
+      title: '办公桌及附件采购（合同HT-2024-005）',
+      supplier: '北京办公用品有限公司',
+      supplierContact: '赵经理',
+      supplierPhone: '13700000014',
+      orderDate: '2024-03-05',
+      expectedDeliveryDate: '2024-03-15',
+      totalAmount: 18000,
+      status: 'draft',
+      statusText: '草稿',
+      creator: '赵采购',
+      department: '行政部',
+      deliveryAddress: '北京市海淀区中关村大街56号',
+      recipient: '李收货',
+      recipientPhone: '13700000015',
+      items: [
+        { id: 'j-2', name: '办公桌', specification: '1.6m 颗粒板', unit: '张', quantity: 20, unitPrice: 600, totalPrice: 12000, deliveryTime: '7个工作日' },
+        { id: 'j-3', name: '桌面理线器', specification: '铝合金', unit: '个', quantity: 20, unitPrice: 300, totalPrice: 6000, deliveryTime: '7个工作日' }
+      ],
+      contractId: 'C-2024-002',
+      contractNo: 'HT-2024-005',
+      contractFiles: [],
+      attachmentFiles: [],
+      remarks: '同一合同的补充下单',
+      createdAt: '2024-03-05T10:00:00Z',
+      updatedAt: '2024-03-05T10:00:00Z'
     }
   ]);
 

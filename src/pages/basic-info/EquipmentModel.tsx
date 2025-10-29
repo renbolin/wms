@@ -263,7 +263,7 @@ const EquipmentModelPage: React.FC = () => {
         onCancel={() => setModalOpen(false)}
         onOk={saveEdit}
         okText={editing ? '保存' : '创建'}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={editForm} layout="vertical">
           <Form.Item label="型号编码" name="modelCode" rules={[{ required: true, message: '请输入型号编码' }] }>
