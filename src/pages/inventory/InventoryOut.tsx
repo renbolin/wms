@@ -52,6 +52,7 @@ interface OutboundItem {
   itemCode: string;
   itemName: string;
   specification: string;
+  brand?: string;
   unit: string;
   requestQuantity: number;
   approvedQuantity: number;
@@ -148,6 +149,7 @@ const InventoryOut: React.FC = () => {
           itemCode: 'M001',
           itemName: '钢材',
           specification: 'Q235 20*30mm',
+          brand: '宝钢Baosteel',
           unit: '根',
           requestQuantity: 50,
           approvedQuantity: 50,
@@ -1244,6 +1246,11 @@ const InventoryOut: React.FC = () => {
                 {
                   title: '规格型号',
                   dataIndex: 'specification',
+                  width: 120,
+                },
+                {
+                  title: '品牌',
+                  dataIndex: 'brand',
                   width: 120,
                 },
                 {

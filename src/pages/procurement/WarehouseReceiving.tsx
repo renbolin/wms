@@ -45,6 +45,7 @@ interface ReceivingItem {
   id: string;
   itemName: string;
   specification: string;
+  brand?: string;
   unit: string;
   orderedQuantity: number;
   receivedQuantity: number; // 实收数量，与订购数量保持一致
@@ -121,6 +122,7 @@ const WarehouseReceiving: React.FC = () => {
           id: '1',
           itemName: '台式电脑',
           specification: 'Intel i5-12400F, 16GB内存, 512GB SSD',
+          brand: 'Lenovo',
           unit: '台',
           orderedQuantity: 5,
           deliveredQuantity: 5,
@@ -134,6 +136,7 @@ const WarehouseReceiving: React.FC = () => {
           id: '2',
           itemName: '激光打印机',
           specification: 'HP LaserJet Pro M404dn',
+          brand: 'HP',
           unit: '台',
           orderedQuantity: 2,
           deliveredQuantity: 2,
@@ -177,6 +180,7 @@ const WarehouseReceiving: React.FC = () => {
           id: '5',
           itemName: '监控摄像头',
           specification: '4K高清网络摄像头',
+          brand: '海康威视',
           unit: '个',
           orderedQuantity: 15,
           deliveredQuantity: 15,
@@ -221,6 +225,7 @@ const WarehouseReceiving: React.FC = () => {
           id: '1',
           itemName: '台式电脑',
           specification: 'Intel i5, 8GB内存, 256GB SSD',
+          brand: 'Lenovo',
           unit: '台',
           orderedQuantity: 10,
           receivedQuantity: 10,
@@ -236,6 +241,7 @@ const WarehouseReceiving: React.FC = () => {
           id: '2',
           itemName: '激光打印机',
           specification: 'A4黑白激光打印机',
+          brand: 'HP',
           unit: '台',
           orderedQuantity: 2,
           receivedQuantity: 2,
@@ -269,6 +275,7 @@ const WarehouseReceiving: React.FC = () => {
           id: '3',
           itemName: '数控机床',
           specification: 'CNC加工中心',
+          brand: 'FANUC',
           unit: '台',
           orderedQuantity: 1,
           receivedQuantity: 0,
@@ -300,6 +307,7 @@ const WarehouseReceiving: React.FC = () => {
           id: '4',
           itemName: '监控摄像头',
           specification: '4K高清网络摄像头',
+          brand: '海康威视',
           unit: '个',
           orderedQuantity: 20,
           receivedQuantity: 0,
@@ -329,6 +337,7 @@ const WarehouseReceiving: React.FC = () => {
           id: '5',
           itemName: '办公椅',
           specification: '人体工学办公椅',
+          brand: 'Herman Miller',
           unit: '把',
           orderedQuantity: 20,
           receivedQuantity: 20,
@@ -378,6 +387,7 @@ const WarehouseReceiving: React.FC = () => {
             id: `item_${Date.now()}_${Math.random()}`,
             itemName: item.itemName,
             specification: item.specification,
+            brand: (item as any).brand,
             unit: item.unit,
             orderedQuantity: item.orderedQuantity,
             receivedQuantity: item.orderedQuantity, // 实收数量与订购数量保持一致
@@ -1076,6 +1086,7 @@ destroyOnHidden
                   columns={[
                     { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
                     { title: '规格型号', dataIndex: 'specification', key: 'specification' },
+                    { title: '品牌', dataIndex: 'brand', key: 'brand', width: 100 },
                     { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
                     { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80 },
                     { title: '实收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80 },
@@ -1168,6 +1179,7 @@ destroyOnHidden
                 columns={[
                   { title: '物品名称', dataIndex: 'itemName', key: 'itemName', width: 120 },
                   { title: '规格型号', dataIndex: 'specification', key: 'specification', width: 150 },
+                  { title: '品牌', dataIndex: 'brand', key: 'brand', width: 100 },
                   { title: '单位', dataIndex: 'unit', key: 'unit', width: 60, align: 'center' },
                   { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80, align: 'center' },
                   { title: '实收数量', dataIndex: 'receivedQuantity', key: 'receivedQuantity', width: 80, align: 'center' },

@@ -116,6 +116,8 @@ export interface FilterValues {
   carrier?: string;
   trackingNo?: string;
   remarks?: string;
+  // 新增：品牌筛选（基于明细 items 的 brand）
+  brand?: string;
 }
 
 export function validateAmountRange(min?: number, max?: number): string | null {
@@ -158,6 +160,12 @@ export function filterDeliveryNotes(data: DeliveryNote[], values: FilterValues):
   }
   if (values.status) {
     filtered = filtered.filter(item => item.status === values.status);
+  }
+
+  // 品牌筛选：到货单中任意明细包含匹配品牌
+  if (values.brand) {
+    const q = normalize(values.brand);
+    filtered = filtered.filter(note => (note.items || []).some(it => normalize(it.brand).includes(q)));
   }
 
   // 日期范围

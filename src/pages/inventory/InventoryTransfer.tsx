@@ -50,6 +50,7 @@ interface TransferItem {
   itemCode: string;
   itemName: string;
   specification: string;
+  brand?: string;
   unit: string;
   requestQuantity: number;
   transferQuantity: number;
@@ -140,6 +141,7 @@ const InventoryTransfer: React.FC = () => {
       itemCode: 'IT001',
       itemName: '台式电脑',
       specification: 'Intel i5, 8GB内存, 256GB SSD',
+      brand: '联想Lenovo',
       unit: '台',
       requestQuantity: 50,
       transferQuantity: 50,
@@ -683,6 +685,7 @@ const InventoryTransfer: React.FC = () => {
                 { title: '物料编码', dataIndex: 'itemCode', key: 'itemCode' },
                 { title: '物料名称', dataIndex: 'itemName', key: 'itemName' },
                 { title: '规格型号', dataIndex: 'specification', key: 'specification' },
+                { title: '品牌', dataIndex: 'brand', key: 'brand' },
                 { title: '单位', dataIndex: 'unit', key: 'unit' },
                 { title: '申请数量', dataIndex: 'requestQuantity', key: 'requestQuantity' },
                 { title: '调拨数量', dataIndex: 'transferQuantity', key: 'transferQuantity' },

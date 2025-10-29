@@ -100,6 +100,8 @@ export interface ProcurementItem {
   totalPrice: number;
   category: string;
   specifications?: string;
+  // 品牌维度
+  brand?: string;
 }
 
 export interface Supplier {
@@ -254,6 +256,8 @@ export interface DeliveryItem {
   remarks: string;
   batchNo?: string;
   expiryDate?: string;
+  // 品牌维度
+  brand?: string;
   // 验收扩展字段
   inspectionStatus?: 'passed' | 'failed';
   inspectionHandling?: 'return' | 'destroy' | 'repair';
@@ -279,6 +283,11 @@ export interface EquipmentTechnicalInfo {
   modelSpec: string;
   brand?: string;
   serialNo?: string;
+  // 新增：设备类型级联字段
+  category?: '设备' | '低值易耗品';
+  form?: '独立设备' | '附属设备';
+  typeName?: string; // 设备类型名称
+  specialCategory?: '普通设备' | '特种设备'; // 是否特种设备
   performanceParams?: string;
   structureParams?: string;
   supportingSystems?: string;

@@ -116,6 +116,10 @@ const Supplier: React.FC = () => {
 
     setSupplierData(mockSupplierData);
     setFilteredData(mockSupplierData);
+    try {
+      const names = mockSupplierData.map(s => s.name);
+      localStorage.setItem('supplierList', JSON.stringify(names));
+    } catch {}
     setLoading(false);
   };
 

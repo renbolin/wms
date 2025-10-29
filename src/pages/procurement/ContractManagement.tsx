@@ -4,6 +4,7 @@ import { EyeOutlined, SearchOutlined, PlusOutlined, UploadOutlined } from '@ant-
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useProcurementOrder } from '@/contexts/ProcurementOrderContext';
+import { mockSuppliers } from '@/data/procurementData';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const { Option } = Select;
@@ -35,14 +36,21 @@ const ContractManagement: React.FC = () => {
   const [isCreateVisible, setIsCreateVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<Contract | null>(null);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [supplierNames, setSupplierNames] = useState<string[]>([]);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [previewType, setPreviewType] = useState<'image' | 'pdf' | 'other'>('other');
   const [searchForm] = Form.useForm();
   const [contractForm] = Form.useForm();
-  const { orders } = useProcurementOrder();
+  const { orders, updateOrder } = useProcurementOrder();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isOrderSelectVisible, setIsOrderSelectVisible] = useState(false);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  // 附件列表弹窗与预览
+  const [isAttachmentsVisible, setIsAttachmentsVisible] = useState(false);
+  const [attachmentsForList, setAttachmentsForList] = useState<UploadFile[]>([]);
+  const [attachmentsTitle, setAttachmentsTitle] = useState<string>('附件列表');
   const associatedOrders = useMemo(() => {
     if (!selectedRecord) return [] as any[];
     return orders.filter(o => o.contractId === selectedRecord.id || o.contractNo === selectedRecord.contractNo);
@@ -85,7 +93,10 @@ const ContractManagement: React.FC = () => {
         currency: 'CNY',
         status: 'active',
         statusText: '执行中',
-        attachments: [],
+        attachments: [
+          { uid: 'att-2024-001-1', name: 'HT-2024-001-合同扫描件.pdf', status: 'done', url: 'https://file-examples.com/storage/fe9d1348c9a9e312fa8f8a5/2017/10/file-sample_150kB.pdf' } as UploadFile,
+          { uid: 'att-2024-001-2', name: 'HT-2024-001-签署页.png', status: 'done', url: 'https://via.placeholder.com/640x360.png?text=Contract+Signature' } as UploadFile,
+        ],
         remarks: '年度框架采购合同',
       },
       {
@@ -100,8 +111,45 @@ const ContractManagement: React.FC = () => {
         currency: 'CNY',
         status: 'expired',
         statusText: '已到期',
-        attachments: [],
+        attachments: [
+          { uid: 'att-2024-005-1', name: 'HT-2024-005-合同正文.pdf', status: 'done', url: 'https://file-examples.com/storage/fe9d1348c9a9e312fa8f8a5/2017/10/file-sample_150kB.pdf' } as UploadFile,
+        ],
         remarks: '一次性采购',
+      },
+      {
+        id: 'C-2024-003',
+        contractNo: 'HT-2024-010',
+        supplierId: '3',
+        supplierName: '深圳设备服务有限公司',
+        title: '设备维保服务合同',
+        startDate: '2024-03-01',
+        endDate: '2024-09-30',
+        amount: 65000,
+        currency: 'CNY',
+        status: 'terminated',
+        statusText: '已终止',
+        attachments: [
+          { uid: 'att-2024-010-1', name: 'HT-2024-010-终止说明.pdf', status: 'done', url: 'https://file-examples.com/storage/fe9d1348c9a9e312fa8f8a5/2017/10/file-sample_150kB.pdf' } as UploadFile,
+          { uid: 'att-2024-010-2', name: 'HT-2024-010-往来函件.png', status: 'done', url: 'https://via.placeholder.com/640x360.png?text=Letter' } as UploadFile,
+        ],
+        remarks: '违约终止，待重新签订',
+      },
+      {
+        id: 'C-2024-004',
+        contractNo: 'HT-2024-011',
+        supplierId: '4',
+        supplierName: '广州办公用品有限公司',
+        title: '办公耗材采购合同',
+        startDate: '2024-11-01',
+        endDate: '2025-10-31',
+        amount: 12000,
+        currency: 'CNY',
+        status: 'draft',
+        statusText: '草稿',
+        attachments: [
+          { uid: 'att-2024-011-1', name: 'HT-2024-011-草稿版.docx', status: 'done', url: 'https://via.placeholder.com/640x360.png?text=Draft+Doc' } as UploadFile,
+        ],
+        remarks: '草稿合同，待审批',
       },
     ];
     const recomputed = recomputeStatuses(mock);
@@ -109,6 +157,22 @@ const ContractManagement: React.FC = () => {
     setFilteredData(recomputed);
     try { localStorage.setItem('contractsData', JSON.stringify(recomputed)); } catch {}
     setLoading(false);
+  }, []);
+
+  // 读取供应商名称列表（来自 basic-info/supplier 页面）
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('supplierList');
+      let names: string[] = [];
+      if (raw) {
+        const arr = JSON.parse(raw) as string[];
+        names = Array.from(new Set(arr.filter(Boolean)));
+      }
+      if (!names || names.length === 0) {
+        names = Array.from(new Set((mockSuppliers || []).map(s => s.name).filter(Boolean)));
+      }
+      setSupplierNames(names);
+    } catch {}
   }, []);
 
   // 根据结束日期自动计算状态与“即将到期”标识（30天内）
@@ -155,7 +219,15 @@ const ContractManagement: React.FC = () => {
         )}
       </Space>
     ) },
-    { title: '附件数', key: 'attachments', width: 90, align: 'center', render: (_, r) => r.attachments?.length || 0 },
+    { title: '附件数', key: 'attachments', width: 90, align: 'center', render: (_, r) => (
+      <Button type="link" size="small" onClick={() => {
+        setAttachmentsForList(r.attachments || []);
+        setAttachmentsTitle(`附件列表 - ${r.contractNo}`);
+        setIsAttachmentsVisible(true);
+      }}>
+        {r.attachments?.length || 0}
+      </Button>
+    ) },
     {
       title: '操作', key: 'action', fixed: 'right', width: 130,
       render: (_, record) => (
@@ -200,6 +272,10 @@ const ContractManagement: React.FC = () => {
 
   const handleCreateSubmit = () => {
     contractForm.validateFields().then(values => {
+      if (!selectedOrderIds || selectedOrderIds.length === 0) {
+        message.error('请先关联采购订单后再保存');
+        return;
+      }
       const newItem: Contract = {
         id: `C-${Date.now()}`,
         contractNo: values.contractNo,
@@ -222,7 +298,16 @@ const ContractManagement: React.FC = () => {
       setData(next);
       setFilteredData(next);
       try { localStorage.setItem('contractsData', JSON.stringify(next)); } catch {}
+      try {
+        selectedOrderIds.forEach(id => {
+          const found = orders.find(o => o.id === id);
+          if (found) {
+            updateOrder({ ...found, contractId: newItem.id, contractNo: newItem.contractNo });
+          }
+        });
+      } catch {}
       setIsCreateVisible(false);
+      setSelectedOrderIds([]);
       message.success('合同已创建');
     }).catch(() => message.error('请完善合同表单'));
   };
@@ -232,11 +317,99 @@ const ContractManagement: React.FC = () => {
     try {
       const raw = localStorage.getItem('contractsData');
       if (raw) {
-        const list = JSON.parse(raw) as Contract[];
-        const recomputed = recomputeStatuses(list);
-        setData(recomputed);
-        setFilteredData(recomputed);
-        try { localStorage.setItem('contractsData', JSON.stringify(recomputed)); } catch {}
+        let list = JSON.parse(raw) as Contract[];
+        let recomputed = recomputeStatuses(list);
+
+        // 若本地存储缺少某些状态，补充示例数据以覆盖四种状态
+        const hasStatus = (s: Contract['status']) => recomputed.some(c => c.status === s);
+        const seedSamples: Contract[] = [
+          {
+            id: 'SEED-ACTIVE',
+            contractNo: 'SEED-HT-ACTIVE',
+            supplierName: '示例供应商A',
+            title: '执行中合同示例',
+            startDate: '2025-01-01',
+            endDate: '2026-01-01',
+            amount: 10000,
+            currency: 'CNY',
+            status: 'active',
+            statusText: '执行中',
+            attachments: [
+              { uid: 'seed-active-1', name: '执行中-合同扫描件.pdf', status: 'done', url: 'https://file-examples.com/storage/fe9d1348c9a9e312fa8f8a5/2017/10/file-sample_150kB.pdf' } as UploadFile,
+            ],
+            remarks: '用于展示执行中状态'
+          },
+          {
+            id: 'SEED-EXPIRED',
+            contractNo: 'SEED-HT-EXPIRED',
+            supplierName: '示例供应商B',
+            title: '已到期合同示例',
+            startDate: '2023-01-01',
+            endDate: '2023-12-31',
+            amount: 20000,
+            currency: 'CNY',
+            status: 'expired',
+            statusText: '已到期',
+            attachments: [
+              { uid: 'seed-expired-1', name: '到期-归档文件.pdf', status: 'done', url: 'https://file-examples.com/storage/fe9d1348c9a9e312fa8f8a5/2017/10/file-sample_150kB.pdf' } as UploadFile,
+              { uid: 'seed-expired-2', name: '到期-通知函.png', status: 'done', url: 'https://via.placeholder.com/640x360.png?text=Notice' } as UploadFile,
+            ],
+            remarks: '用于展示到期状态'
+          },
+          {
+            id: 'SEED-TERMINATED',
+            contractNo: 'SEED-HT-TERMINATED',
+            supplierName: '示例供应商C',
+            title: '已终止合同示例',
+            startDate: '2024-03-01',
+            endDate: '2024-09-30',
+            amount: 30000,
+            currency: 'CNY',
+            status: 'terminated',
+            statusText: '已终止',
+            attachments: [
+              { uid: 'seed-terminated-1', name: '终止-说明书.pdf', status: 'done', url: 'https://file-examples.com/storage/fe9d1348c9a9e312fa8f8a5/2017/10/file-sample_150kB.pdf' } as UploadFile,
+            ],
+            remarks: '用于展示终止状态'
+          },
+          {
+            id: 'SEED-DRAFT',
+            contractNo: 'SEED-HT-DRAFT',
+            supplierName: '示例供应商D',
+            title: '草稿合同示例',
+            startDate: '2025-11-01',
+            endDate: '2026-10-31',
+            amount: 12000,
+            currency: 'CNY',
+            status: 'draft',
+            statusText: '草稿',
+            attachments: [
+              { uid: 'seed-draft-1', name: '草稿-版本v1.docx', status: 'done', url: 'https://via.placeholder.com/640x360.png?text=Draft' } as UploadFile,
+            ],
+            remarks: '用于展示草稿状态'
+          },
+        ];
+        const allStatuses: Contract['status'][] = ['active', 'expired', 'terminated', 'draft'];
+        allStatuses.forEach(s => {
+          if (!hasStatus(s)) {
+            const sample = seedSamples.find(x => x.status === s)!;
+            recomputed = [sample, ...recomputed];
+          }
+        });
+
+        // 为没有附件的合同补充示例附件
+        const withAttachments = recomputed.map((c, idx) => {
+          if (c.attachments && c.attachments.length > 0) return c;
+          const base = c.contractNo || c.title || `合同-${idx + 1}`;
+          const sample: UploadFile[] = [
+            { uid: `${c.id}-auto-1`, name: `${base}-扫描件.pdf`, status: 'done', url: 'https://file-examples.com/storage/fe9d1348c9a9e312fa8f8a5/2017/10/file-sample_150kB.pdf' } as UploadFile,
+          ];
+          return { ...c, attachments: sample };
+        });
+
+        setData(withAttachments);
+        setFilteredData(withAttachments);
+        try { localStorage.setItem('contractsData', JSON.stringify(withAttachments)); } catch {}
       }
     } catch {}
   }, []);
@@ -256,6 +429,21 @@ const ContractManagement: React.FC = () => {
               <Alert type="info" message={`有 ${dueSoonCount} 条合同将在30天内到期`} showIcon />
             )}
           </div>
+        );
+      }, [data])}
+      {/* 状态总览 */}
+      {useMemo(() => {
+        const totalActive = data.filter(d => d.status === 'active').length;
+        const totalExpired = data.filter(d => d.status === 'expired').length;
+        const totalTerminated = data.filter(d => d.status === 'terminated').length;
+        const totalDraft = data.filter(d => d.status === 'draft').length;
+        return (
+          <Space className="mb-4">
+            <Tag color={statusColor('active')}>执行中：{totalActive}</Tag>
+            <Tag color={statusColor('expired')}>已到期：{totalExpired}</Tag>
+            <Tag color={statusColor('terminated')}>已终止：{totalTerminated}</Tag>
+            <Tag color={statusColor('draft')}>草稿：{totalDraft}</Tag>
+          </Space>
         );
       }, [data])}
       <Card>
@@ -381,6 +569,77 @@ const ContractManagement: React.FC = () => {
         )}
       </Modal>
 
+      {/* 附件列表弹窗 */}
+      <Modal
+        title={attachmentsTitle}
+        open={isAttachmentsVisible}
+        onCancel={() => setIsAttachmentsVisible(false)}
+        footer={null}
+        width={700}
+      >
+        <Table
+          size="small"
+          rowKey={(f) => (f as any).uid || (f as any).name}
+          pagination={false}
+          dataSource={attachmentsForList}
+          columns={[
+            {
+              title: '文件名',
+              dataIndex: 'name',
+              key: 'name',
+              render: (_: any, file: UploadFile) => (
+                <Button type="link" onClick={() => {
+                  const url = (file as any).url || (file as any).thumbUrl || (file as any).originFileObj ? URL.createObjectURL((file as any).originFileObj as Blob) : (file as any).url || '';
+                  const name = (file.name || '').toLowerCase();
+                  const type: 'image' | 'pdf' | 'other' = name.endsWith('.pdf') ? 'pdf' : (name.match(/\.png|\.jpg|\.jpeg|\.gif|\.bmp|\.webp/) ? 'image' : 'other');
+                  setPreviewUrl(url);
+                  setPreviewType(type);
+                  setPreviewVisible(true);
+                }}>
+                  {file.name}
+                </Button>
+              )
+            },
+            { title: '大小/状态', key: 'info', render: (_: any, file: UploadFile) => `${(file.size || 0) > 0 ? `${Math.round((file.size || 0)/1024)} KB` : ''} ${file.status || ''}` },
+          ]}
+        />
+      </Modal>
+
+      {/* 附件预览弹窗 */}
+      <Modal
+        title="附件预览"
+        open={previewVisible}
+        onCancel={() => {
+          // 清理临时URL
+          try { if (previewUrl && previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl); } catch {}
+          setPreviewVisible(false);
+        }}
+        footer={null}
+        width={900}
+      >
+        {previewType === 'image' && (
+          <img src={previewUrl} alt="预览" style={{ maxWidth: '100%' }} />
+        )}
+        {previewType === 'pdf' && (
+          <iframe src={previewUrl} style={{ width: '100%', height: 600, border: 0 }} title="PDF预览" />
+        )}
+        {previewType === 'other' && (
+          <div>
+            <Alert type="info" message="该文件类型无法内嵌预览，您可以下载查看。" />
+            <div style={{ marginTop: 12 }}>
+              <Button type="primary" onClick={() => {
+                if (previewUrl) {
+                  const a = document.createElement('a');
+                  a.href = previewUrl;
+                  a.download = '附件';
+                  a.click();
+                }
+              }}>下载附件</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* 新建合同 */}
       <Modal
         title="新建合同"
@@ -398,8 +657,20 @@ const ContractManagement: React.FC = () => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="supplierName" label="供应商" rules={[{ required: true, message: '请输入供应商名称' }]}>
-                <Input placeholder="供应商名称" />
+              <Form.Item name="supplierName" label="供应商" rules={[{ required: true, message: '请选择供应商' }]}>                
+                <Select
+                  placeholder="请选择供应商"
+                  allowClear
+                  showSearch
+                  filterOption={(input, option) => {
+                    const label = String(option?.children ?? option?.value ?? '');
+                    return label.toLowerCase().includes(input.toLowerCase());
+                  }}
+                >
+                  {supplierNames.map(name => (
+                    <Option key={name} value={name}>{name}</Option>
+                  ))}
+                </Select>
               </Form.Item>
             </Col>
           </Row>
@@ -444,6 +715,29 @@ const ContractManagement: React.FC = () => {
             <TextArea rows={3} placeholder="合同备注" />
           </Form.Item>
 
+          <Card size="small" title="关联采购订单" style={{ marginBottom: 16 }}>
+            <Space style={{ marginBottom: 8 }}>
+              <Tag color={selectedOrderIds.length > 0 ? 'green' : 'default'}>
+                已选择：{selectedOrderIds.length} 条订单
+              </Tag>
+              <Button type="primary" onClick={() => setIsOrderSelectVisible(true)}>关联采购订单</Button>
+            </Space>
+            {selectedOrderIds.length > 0 && (
+              <Table
+                size="small"
+                pagination={false}
+                rowKey="id"
+                dataSource={orders.filter(o => selectedOrderIds.includes(o.id))}
+                columns={[
+                  { title: '采购单号', dataIndex: 'orderNumber', key: 'orderNumber', width: 140 },
+                  { title: '订单标题', dataIndex: 'title', key: 'title' },
+                  { title: '供应商', dataIndex: 'supplier', key: 'supplier', width: 180 },
+                  { title: '状态', dataIndex: 'statusText', key: 'statusText', width: 100 },
+                ]}
+              />
+            )}
+          </Card>
+
           <Card size="small" title="附件">
             <Upload
               fileList={fileList}
@@ -473,6 +767,36 @@ const ContractManagement: React.FC = () => {
             </Upload>
           </Card>
         </Form>
+      </Modal>
+
+      {/* 选择关联采购订单 */}
+      <Modal
+        title="选择关联采购订单"
+        open={isOrderSelectVisible}
+        onCancel={() => setIsOrderSelectVisible(false)}
+        onOk={() => setIsOrderSelectVisible(false)}
+        okText="完成选择"
+        width={900}
+        destroyOnHidden
+      >
+        <Table
+          rowKey="id"
+          dataSource={orders}
+          pagination={{ pageSize: 8 }}
+          rowSelection={{
+            type: 'checkbox',
+            selectedRowKeys: selectedOrderIds,
+            onChange: (keys) => setSelectedOrderIds(keys as string[])
+          }}
+          columns={[
+            { title: '采购单号', dataIndex: 'orderNumber', key: 'orderNumber', width: 160 },
+            { title: '订单标题', dataIndex: 'title', key: 'title' },
+            { title: '供应商', dataIndex: 'supplier', key: 'supplier', width: 180 },
+            { title: '状态', dataIndex: 'statusText', key: 'statusText', width: 120 },
+            { title: '下单日期', dataIndex: 'orderDate', key: 'orderDate', width: 140 },
+            { title: '金额', dataIndex: 'totalAmount', key: 'totalAmount', width: 120, align: 'right', render: (v: number) => `¥${Number(v || 0).toLocaleString()}` },
+          ]}
+        />
       </Modal>
 
       {/* 附件预览 */}

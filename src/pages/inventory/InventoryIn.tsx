@@ -43,6 +43,7 @@ interface InboundItem {
   itemCode: string;
   itemName: string;
   specification: string;
+  brand?: string;
   unit: string;
   plannedQuantity: number;
   actualQuantity: number;
@@ -124,6 +125,7 @@ const InventoryIn: React.FC = () => {
           itemCode: 'M001',
           itemName: '钢材',
           specification: 'Q235 20*30mm',
+          brand: '宝钢Baosteel',
           unit: '根',
           plannedQuantity: 100,
           actualQuantity: 100,
@@ -656,6 +658,12 @@ const InventoryIn: React.FC = () => {
       dataIndex: 'specification',
       key: 'specification',
       width: 150,
+    },
+    {
+      title: '品牌',
+      dataIndex: 'brand',
+      key: 'brand',
+      width: 120,
     },
     {
       title: '单位',

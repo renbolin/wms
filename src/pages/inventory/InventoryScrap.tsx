@@ -35,6 +35,7 @@ interface ScrapItem {
   itemCode: string;
   itemName: string;
   specification: string;
+  brand?: string;
   unit: string;
   quantity: number;
   unitPrice: number;
@@ -146,6 +147,7 @@ const InventoryScrap: React.FC = () => {
       itemCode: 'OF001',
       itemName: '办公桌',
       specification: '1.2m*0.6m 钢木结构',
+      brand: '宜家IKEA',
       unit: '张',
       quantity: 2,
       unitPrice: 800,
@@ -158,6 +160,7 @@ const InventoryScrap: React.FC = () => {
       itemCode: 'OF002',
       itemName: '办公椅',
       specification: '人体工学设计，可调节高度',
+      brand: '西昊SIHOO',
       unit: '把',
       quantity: 1,
       unitPrice: 450,
@@ -555,6 +558,12 @@ const InventoryScrap: React.FC = () => {
       key: 'specification',
       width: 200,
       ellipsis: true,
+    },
+    {
+      title: '品牌',
+      dataIndex: 'brand',
+      key: 'brand',
+      width: 120,
     },
     {
       title: '单位',

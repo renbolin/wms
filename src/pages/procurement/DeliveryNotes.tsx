@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Card, Button, Modal, Form, Input, Select, DatePicker, Space, Tag, message, Descriptions, Row, Col, Statistic, Typography, Divider, InputNumber, Radio, Tabs } from 'antd';
 import { EyeOutlined, CheckOutlined, InboxOutlined, SearchOutlined, ReloadOutlined, FileDoneOutlined, DatabaseOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -39,6 +39,51 @@ const DeliveryNotes: React.FC = () => {
   const [warehouseForm] = Form.useForm();
   const [filterForm] = Form.useForm();
 
+  // 设备类型数据（来自 basic-info/EquipmentType 页面持久化的 localStorage）
+  const [equipmentTypes, setEquipmentTypes] = useState<any[]>([]);
+  // 监听建档表单中类别与形态的选择用于动态计算级联选项
+  const techCategory = Form.useWatch('tech_category', archiveForm);
+  const techForm = Form.useWatch('tech_form', archiveForm);
+
+  // 初始化加载设备类型数据
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('equipment_types');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setEquipmentTypes(parsed);
+        }
+      }
+    } catch (e) {
+      // ignore parse error
+    }
+  }, []);
+
+  // 级联选项：类别 -> 形态 -> 类型名称
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    (equipmentTypes || []).forEach((t: any) => { if (t?.category) set.add(t.category); });
+    const arr = Array.from(set);
+    return arr.length ? arr : ['设备', '低值易耗品'];
+  }, [equipmentTypes]);
+
+  const formOptions = useMemo(() => {
+    const filtered = (equipmentTypes || []).filter((t: any) => !techCategory || t?.category === techCategory);
+    const set = new Set<string>();
+    filtered.forEach((t: any) => { if (t?.form) set.add(t.form); });
+    const arr = Array.from(set);
+    return arr.length ? arr : ['独立设备', '附属设备'];
+  }, [equipmentTypes, techCategory]);
+
+  const typeNameOptions = useMemo(() => {
+    const filtered = (equipmentTypes || []).filter((t: any) =>
+      (!techCategory || t?.category === techCategory) && (!techForm || t?.form === techForm)
+    );
+    const names = filtered.map((t: any) => t?.name).filter(Boolean);
+    return names;
+  }, [equipmentTypes, techCategory, techForm]);
+
   const [itemReceiveQuantities, setItemReceiveQuantities] = useState<Record<string, number>>({});
   const [itemReceiveStatus, setItemReceiveStatus] = useState<Record<string, 'pending' | 'received' | 'rejected' | undefined>>({});
   const [itemInspectionStatus, setItemInspectionStatus] = useState<Record<string, 'passed' | 'failed' | undefined>>({});
@@ -68,11 +113,66 @@ const DeliveryNotes: React.FC = () => {
       totalAmount: 45800,
       qualityCheckRequired: true,
       qualityCheckStatus: 'passed',
+      // 构造完整的建档与启用信息，确保详情页各Tab有内容
+      archiveDate: '2024-01-26',
+      archivist: '王档案',
+      archiveNo: 'AR202401001',
+      archiveRemarks: '设备按期到达，完成基础信息建档。',
+      equipmentCode: 'EQ-2024-001',
+      equipmentArchive: {
+        technical: {
+          equipmentCode: 'EQ-2024-001',
+          name: '办公IT设备组合',
+          modelSpec: '多型号组合（电脑/打印机/显示器）',
+          brand: '多品牌',
+          serialNo: 'MIX-202401-0001',
+          performanceParams: '满足日常办公性能需求',
+          structureParams: '整机含桌面设备与配件',
+          supportingSystems: 'Windows 11 专业版；HP 打印驱动',
+          mediaRequirements: '220V电源，千兆以太网',
+          installationLocation: 'A区3楼办公区',
+          useDepartment: '综合管理部',
+          installationDate: '2024-01-26',
+          firstUseDate: '2024-01-26',
+          equipmentStatus: '在用'
+        },
+        asset: {
+          assetCode: 'FA-2024-0001',
+          assetCategory: '办公设备',
+          purchaseAmount: 45800,
+          taxRate: 13,
+          depreciationYears: 5,
+          residualRate: 5,
+          monthlyDepreciation: 726.5,
+          accumulatedDepreciation: 726.5,
+          netValue: 45073.5,
+          purchaseDate: '2024-01-25',
+          supplierInfo: '北京科技有限公司 张经理 13800138001',
+          ownershipDepartment: '综合管理部',
+          contractNo: 'CT-2024-0001',
+          assetStatus: '在用',
+          changeRecords: '2024-01-26 完成入库并启用',
+          lastInventoryDate: '2024-06-30',
+          scrapInfo: {
+            plannedScrapDate: '2029-01-25',
+            scrapReportNo: undefined,
+            disposalMethod: '待定'
+          }
+        }
+      },
+      enablementRecord: {
+        department: '综合管理部',
+        assignee: '王领用',
+        date: '2024-01-26',
+        remarks: '设备已分配至办公区并启用。',
+        equipmentCode: 'EQ-2024-001'
+      },
       items: [
         {
           id: '1',
           itemName: '台式电脑',
           specification: 'Intel i5-12400F 16GB内存 512GB SSD',
+          brand: 'Lenovo',
           unit: '台',
           orderedQuantity: 5,
           deliveredQuantity: 5,
@@ -86,6 +186,7 @@ const DeliveryNotes: React.FC = () => {
           id: '2',
           itemName: '激光打印机',
           specification: 'HP LaserJet Pro M404dn',
+          brand: 'HP',
           unit: '台',
           orderedQuantity: 2,
           deliveredQuantity: 2,
@@ -99,6 +200,7 @@ const DeliveryNotes: React.FC = () => {
           id: '3',
           itemName: '办公椅',
           specification: '人体工学办公椅',
+          brand: 'Herman Miller',
           unit: '把',
           orderedQuantity: 10,
           deliveredQuantity: 10,
@@ -112,6 +214,7 @@ const DeliveryNotes: React.FC = () => {
           id: '4',
           itemName: '显示器',
           specification: '27英寸 4K IPS显示器',
+          brand: 'Dell',
           unit: '台',
           orderedQuantity: 8,
           deliveredQuantity: 8,
@@ -179,6 +282,7 @@ const DeliveryNotes: React.FC = () => {
           id: '4',
           itemName: '数控机床',
           specification: 'CNC加工中心',
+          brand: 'FANUC',
           unit: '台',
           orderedQuantity: 1,
           deliveredQuantity: 1,
@@ -192,6 +296,7 @@ const DeliveryNotes: React.FC = () => {
           id: '7',
           itemName: '工业机器人',
           specification: '六轴工业机器人 负载20kg',
+          brand: 'ABB',
           unit: '台',
           orderedQuantity: 2,
           deliveredQuantity: 2,
@@ -205,6 +310,7 @@ const DeliveryNotes: React.FC = () => {
           id: '8',
           itemName: '激光切割机',
           specification: '光纤激光切割机 3000W',
+          brand: '大族激光',
           unit: '台',
           orderedQuantity: 1,
           deliveredQuantity: 1,
@@ -218,6 +324,7 @@ const DeliveryNotes: React.FC = () => {
           id: '9',
           itemName: '空压机',
           specification: '螺杆式空压机 15kW',
+          brand: '阿特拉斯·科普柯',
           unit: '台',
           orderedQuantity: 1,
           deliveredQuantity: 1,
@@ -271,6 +378,7 @@ const DeliveryNotes: React.FC = () => {
           id: '5',
           itemName: '监控摄像头',
           specification: '4K高清网络摄像头',
+          brand: '海康威视',
           unit: '个',
           orderedQuantity: 20,
           deliveredQuantity: 15,
@@ -284,6 +392,7 @@ const DeliveryNotes: React.FC = () => {
           id: '6',
           itemName: '网络交换机',
           specification: '24口千兆交换机',
+          brand: '华为',
           unit: '台',
           orderedQuantity: 5,
           deliveredQuantity: 0,
@@ -296,6 +405,7 @@ const DeliveryNotes: React.FC = () => {
           id: '11',
           itemName: '无线路由器',
           specification: 'WiFi6 企业级路由器',
+          brand: 'TP-Link',
           unit: '台',
           orderedQuantity: 8,
           deliveredQuantity: 8,
@@ -309,6 +419,7 @@ const DeliveryNotes: React.FC = () => {
           id: '12',
           itemName: '网线',
           specification: '超六类网线 305米/箱',
+          brand: '安普',
           unit: '箱',
           orderedQuantity: 10,
           deliveredQuantity: 10,
@@ -322,6 +433,7 @@ const DeliveryNotes: React.FC = () => {
           id: '13',
           itemName: '服务器机柜',
           specification: '42U标准机柜',
+          brand: 'DELL EMC',
           unit: '台',
           orderedQuantity: 2,
           deliveredQuantity: 2,
@@ -335,6 +447,7 @@ const DeliveryNotes: React.FC = () => {
           id: '14',
           itemName: 'UPS电源',
           specification: '3000VA在线式UPS',
+          brand: '山特',
           unit: '台',
           orderedQuantity: 3,
           deliveredQuantity: 3,
@@ -355,6 +468,106 @@ const DeliveryNotes: React.FC = () => {
         driverPhone: '13900139003',
         estimatedArrival: '2024-01-30 16:00',
         actualArrival: '2024-01-30 15:30'
+      }
+    },
+    {
+      id: '4',
+      deliveryNo: 'DN202401004',
+      purchaseOrderNo: 'PO202401104',
+      purchaseOrderId: 'po_004',
+      supplierName: '联想（北京）有限公司',
+      supplierId: 'supplier_004',
+      supplierContact: '李经理',
+      supplierPhone: '13800138004',
+      deliveryDate: '2024-01-20',
+      receivedDate: '2024-01-21',
+      receiver: '张雷',
+      department: '综合办公室',
+      status: 'completed',
+      statusText: '已完成',
+      totalAmount: 16800,
+      qualityCheckRequired: true,
+      qualityCheckStatus: 'passed',
+      // 该到货单用于展示“分配使用”操作，不生成入库记录
+      archiveDate: '2024-01-21',
+      archivist: '王楠',
+      archiveNo: 'AR202401004',
+      archiveRemarks: '办公设备建档完成，直接分配启用',
+      equipmentCode: 'ASSET-LX-2024-001',
+      equipmentArchive: {
+        technical: {
+          equipmentCode: 'ASSET-LX-2024-001',
+          name: '办公复印机',
+          modelSpec: 'Copier 520',
+          brand: 'Lenovo',
+          serialNo: 'LX-520-2024-0001',
+          performanceParams: '30页/分钟，双面打印',
+          structureParams: '塑料/金属外壳，抗指纹涂层',
+          supportingSystems: 'AC 220V；以太网',
+          mediaRequirements: 'A4纸张；碳粉盒 520',
+          installationLocation: '二楼打印区',
+          useDepartment: '综合办公室',
+          installationDate: '2024-01-21',
+          firstUseDate: '2024-01-22',
+          equipmentStatus: '在用'
+        },
+        asset: {
+          assetCode: 'ASSET-LX-2024-001',
+          assetCategory: '办公设备',
+          purchaseAmount: 16800,
+          taxRate: 13,
+          depreciationYears: 5,
+          residualRate: 5,
+          monthlyDepreciation: 267,
+          accumulatedDepreciation: 0,
+          netValue: 16800,
+          purchaseDate: '2024-01-18',
+          supplierInfo: '联想（北京）有限公司 李经理 13800138004',
+          ownershipDepartment: '综合办公室',
+          contractNo: 'PO202401104',
+          assetStatus: '在用',
+          changeRecords: '2024-01-22 启用',
+          lastInventoryDate: '2024-07-01',
+          scrapInfo: {
+            plannedScrapDate: '2029-01-18',
+            scrapReportNo: undefined,
+            disposalMethod: '待定'
+          }
+        }
+      },
+      enablementRecord: {
+        department: '综合办公室',
+        assignee: '李敏',
+        date: '2024-01-22',
+        remarks: '直接启用，放置于二楼打印区',
+        equipmentCode: 'ASSET-LX-2024-001'
+      },
+      items: [
+        {
+          id: 'lx-1',
+          itemName: '办公复印机',
+          specification: 'Copier 520（30页/分钟）',
+          brand: 'Lenovo',
+          unit: '台',
+          orderedQuantity: 1,
+          deliveredQuantity: 1,
+          receivedQuantity: 1,
+          unitPrice: 16800,
+          totalPrice: 16800,
+          remarks: '质检通过，直接分配使用',
+          batchNo: 'BATCH-LX-202401'
+        }
+      ],
+      attachments: ['采购合同.pdf', '到货照片.jpg'],
+      remarks: '复印机质检通过，已分配至综合办公室',
+      transportInfo: {
+        carrier: '顺丰速运',
+        trackingNo: 'SF2024019988',
+        vehicleNo: '京A520JS',
+        driverName: '刘强',
+        driverPhone: '13900139004',
+        estimatedArrival: '2024-01-20 11:00',
+        actualArrival: '2024-01-20 10:40'
       }
     }
   ];
@@ -392,6 +605,43 @@ const DeliveryNotes: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem('deliveryNotesData', JSON.stringify(data));
+    } catch (e) {
+      // 忽略本地存储异常
+    }
+  }, [data]);
+
+  // 若入库记录缺失，为 DN202401001 注入示例入库记录，保证详情页“入库信息”有内容
+  useEffect(() => {
+    try {
+      const dn = data.find(d => d.deliveryNo === 'DN202401001');
+      if (!dn) return;
+      const existing = JSON.parse(localStorage.getItem('warehouseReceivingData') || '[]');
+      const has = Array.isArray(existing) && existing.some((r: any) => r.deliveryNo === 'DN202401001');
+      if (has) return;
+      const receivingRecord = {
+        id: 'WR-DN202401001',
+        receivingNo: 'WR202401005',
+        deliveryNo: dn.deliveryNo,
+        purchaseOrderNo: dn.purchaseOrderNo,
+        supplierName: dn.supplierName,
+        status: 'completed',
+        statusText: '已完成',
+        warehouseName: '主仓库',
+        receivingDate: '2024-01-26',
+        receiver: '张三',
+        equipmentCode: dn.equipmentCode,
+        remarks: `由到货单 ${dn.deliveryNo} 自动生成示例入库记录`,
+        items: (dn.items || []).map(it => ({
+          id: it.id,
+          itemName: it.itemName,
+          specification: it.specification,
+          inboundQuantity: it.receivedQuantity,
+          inboundWarehouseName: '主仓库',
+          unitPrice: it.unitPrice,
+          totalPrice: it.totalPrice
+        }))
+      };
+      localStorage.setItem('warehouseReceivingData', JSON.stringify([...(Array.isArray(existing) ? existing : []), receivingRecord]));
     } catch (e) {
       // 忽略本地存储异常
     }
@@ -917,6 +1167,10 @@ const DeliveryNotes: React.FC = () => {
               equipmentCode,
               name: values.tech_equipmentName,
               modelSpec: values.tech_modelSpec,
+              category: values.tech_category,
+              form: values.tech_form,
+              typeName: values.tech_typeName,
+              specialCategory: values.tech_specialCategory,
               brand: values.tech_brand,
               serialNo: values.tech_serialNumber,
               performanceParams: values.tech_performanceParams,
@@ -1090,6 +1344,11 @@ const DeliveryNotes: React.FC = () => {
               <Col span={6}>
                 <Form.Item name="supplierName" label="供应商">
                   <Input placeholder="请输入供应商名称" allowClear />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="brand" label="品牌">
+                  <Input placeholder="请输入品牌名" allowClear />
                 </Form.Item>
               </Col>
               <Col span={6}>
@@ -1275,6 +1534,7 @@ const DeliveryNotes: React.FC = () => {
                   columns={[
                     { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
                     { title: '规格', dataIndex: 'specification', key: 'specification' },
+                    { title: '品牌', dataIndex: 'brand', key: 'brand', width: 100 },
                     { title: '单位', dataIndex: 'unit', key: 'unit', width: 60 },
                     { title: '订购数量', dataIndex: 'orderedQuantity', key: 'orderedQuantity', width: 80 },
                     { title: '到货数量', dataIndex: 'deliveredQuantity', key: 'deliveredQuantity', width: 80 },
@@ -1323,6 +1583,7 @@ const DeliveryNotes: React.FC = () => {
                             columns={[
                               { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
                               { title: '规格', dataIndex: 'specification', key: 'specification' },
+                              { title: '品牌', dataIndex: 'brand', key: 'brand', width: 100 },
                               { title: '合格数量', dataIndex: 'acceptedQuantity', key: 'acceptedQuantity', width: 100, render: (v, it) => v ?? it.receivedQuantity ?? 0 },
                               { title: '备注', dataIndex: 'inspectionRemarks', key: 'inspectionRemarks' },
                             ]}
@@ -1341,6 +1602,7 @@ const DeliveryNotes: React.FC = () => {
                             columns={[
                               { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
                               { title: '规格', dataIndex: 'specification', key: 'specification' },
+                              { title: '品牌', dataIndex: 'brand', key: 'brand', width: 100 },
                               { title: '不合格数量', dataIndex: 'rejectedQuantity', key: 'rejectedQuantity', width: 110, render: (v, it) => v ?? it.receivedQuantity ?? 0 },
                               { title: '处理方式', dataIndex: 'inspectionHandling', key: 'inspectionHandling', width: 120, render: (val) => (val === 'return' ? '退回' : val === 'destroy' ? '销毁' : val === 'repair' ? '返修' : '-') },
                               { title: '备注', dataIndex: 'inspectionRemarks', key: 'inspectionRemarks' },
@@ -1356,20 +1618,63 @@ const DeliveryNotes: React.FC = () => {
               </Tabs.TabPane>
 
               <Tabs.TabPane tab="建档信息" key="archive">
-                <Card size="small" title="设备建档">
-                  <Descriptions bordered size="small">
+                {/* 建档元信息 */}
+                <Card size="small" title="建档元信息" style={{ marginBottom: 12 }}>
+                  <Descriptions bordered size="small" column={4}>
                     <Descriptions.Item label="设备编号">{selectedRecord.equipmentCode || '未生成'}</Descriptions.Item>
+                    <Descriptions.Item label="建档编号">{selectedRecord.archiveNo || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="建档日期">{selectedRecord.archiveDate || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="建档人">{selectedRecord.archivist || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="建档备注" span={4}>{selectedRecord.archiveRemarks || '-'}</Descriptions.Item>
+                  </Descriptions>
+                </Card>
+
+                {/* 设备技术信息（技术维度） */}
+                <Card size="small" title="设备技术信息" style={{ marginBottom: 12 }}>
+                  <Descriptions bordered size="small" column={4}>
+                    <Descriptions.Item label="设备编号">{selectedRecord.equipmentArchive?.technical?.equipmentCode || selectedRecord.equipmentCode || '-'}</Descriptions.Item>
                     <Descriptions.Item label="设备名称">{selectedRecord.equipmentArchive?.technical?.name || '-'}</Descriptions.Item>
                     <Descriptions.Item label="型号规格">{selectedRecord.equipmentArchive?.technical?.modelSpec || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="设备类别">{selectedRecord.equipmentArchive?.technical?.category || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="设备形态">{selectedRecord.equipmentArchive?.technical?.form || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="设备类型名称">{selectedRecord.equipmentArchive?.technical?.typeName || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="是否特种设备">{selectedRecord.equipmentArchive?.technical?.specialCategory || '-'}</Descriptions.Item>
                     <Descriptions.Item label="品牌">{selectedRecord.equipmentArchive?.technical?.brand || '-'}</Descriptions.Item>
                     <Descriptions.Item label="序列号">{selectedRecord.equipmentArchive?.technical?.serialNo || '-'}</Descriptions.Item>
                     <Descriptions.Item label="使用部门">{selectedRecord.equipmentArchive?.technical?.useDepartment || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="安装位置">{selectedRecord.equipmentArchive?.technical?.installationLocation || '-'}</Descriptions.Item>
                     <Descriptions.Item label="安装日期">{selectedRecord.equipmentArchive?.technical?.installationDate || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="首次使用日期">{selectedRecord.equipmentArchive?.technical?.firstUseDate || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="设备状态">{selectedRecord.equipmentArchive?.technical?.equipmentStatus || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="支撑系统" span={4}>{selectedRecord.equipmentArchive?.technical?.supportingSystems || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="介质需求" span={4}>{selectedRecord.equipmentArchive?.technical?.mediaRequirements || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="性能参数" span={4}>{selectedRecord.equipmentArchive?.technical?.performanceParams || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="结构参数" span={4}>{selectedRecord.equipmentArchive?.technical?.structureParams || '-'}</Descriptions.Item>
+                  </Descriptions>
+                </Card>
+
+                {/* 设备资产信息（资产维度） */}
+                <Card size="small" title="设备资产信息">
+                  <Descriptions bordered size="small" column={4}>
                     <Descriptions.Item label="资产编号">{selectedRecord.equipmentArchive?.asset?.assetCode || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="资产分类">{selectedRecord.equipmentArchive?.asset?.assetCategory || '-'}</Descriptions.Item>
                     <Descriptions.Item label="购置金额">{selectedRecord.equipmentArchive?.asset?.purchaseAmount != null ? `¥${selectedRecord.equipmentArchive?.asset?.purchaseAmount}` : '-'}</Descriptions.Item>
+                    <Descriptions.Item label="税率(%)">{selectedRecord.equipmentArchive?.asset?.taxRate ?? '-'}</Descriptions.Item>
                     <Descriptions.Item label="折旧年限">{selectedRecord.equipmentArchive?.asset?.depreciationYears ?? '-'}</Descriptions.Item>
                     <Descriptions.Item label="残值率(%)">{selectedRecord.equipmentArchive?.asset?.residualRate ?? '-'}</Descriptions.Item>
-                    <Descriptions.Item label="建档备注" span={2}>{selectedRecord.archiveRemarks || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="月折旧">{selectedRecord.equipmentArchive?.asset?.monthlyDepreciation != null ? `¥${selectedRecord.equipmentArchive?.asset?.monthlyDepreciation}` : '-'}</Descriptions.Item>
+                    <Descriptions.Item label="累计折旧">{selectedRecord.equipmentArchive?.asset?.accumulatedDepreciation != null ? `¥${selectedRecord.equipmentArchive?.asset?.accumulatedDepreciation}` : '-'}</Descriptions.Item>
+                    <Descriptions.Item label="净值">{selectedRecord.equipmentArchive?.asset?.netValue != null ? `¥${selectedRecord.equipmentArchive?.asset?.netValue}` : '-'}</Descriptions.Item>
+                    <Descriptions.Item label="购置日期">{selectedRecord.equipmentArchive?.asset?.purchaseDate || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="归口部门">{selectedRecord.equipmentArchive?.asset?.ownershipDepartment || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="合同编号">{selectedRecord.equipmentArchive?.asset?.contractNo || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="资产状态">{selectedRecord.equipmentArchive?.asset?.assetStatus || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="供应商信息" span={4}>{selectedRecord.equipmentArchive?.asset?.supplierInfo || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="变更记录" span={4}>{selectedRecord.equipmentArchive?.asset?.changeRecords || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="最近盘点日期">{selectedRecord.equipmentArchive?.asset?.lastInventoryDate || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="计划报废日期">{selectedRecord.equipmentArchive?.asset?.scrapInfo?.plannedScrapDate || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="报废报告编号">{selectedRecord.equipmentArchive?.asset?.scrapInfo?.scrapReportNo || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="处置方式">{selectedRecord.equipmentArchive?.asset?.scrapInfo?.disposalMethod || '-'}</Descriptions.Item>
                   </Descriptions>
                 </Card>
               </Tabs.TabPane>
@@ -1405,6 +1710,7 @@ const DeliveryNotes: React.FC = () => {
                               columns={[
                                 { title: '物品名称', dataIndex: 'itemName', key: 'itemName' },
                                 { title: '规格', dataIndex: 'specification', key: 'specification' },
+                                { title: '品牌', dataIndex: 'brand', key: 'brand', width: 100 },
                                 { title: '入库数量', dataIndex: 'inboundQuantity', key: 'inboundQuantity', width: 100 },
                                 { title: '入库仓库', dataIndex: 'inboundWarehouseName', key: 'inboundWarehouseName', width: 120 },
                                 { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 80, render: (p: number) => `¥${p}` },
@@ -1622,177 +1928,244 @@ const DeliveryNotes: React.FC = () => {
               <Form.Item name="archiveRemarks" label="建档备注">
                 <TextArea rows={3} placeholder="请输入建档备注" />
               </Form.Item>
-              <Divider orientation="left">设备技术信息</Divider>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="tech_equipmentName" label="设备名称" rules={[{ required: true, message: '请输入设备名称' }]}>
-                    <Input placeholder="例如：激光打印机" />
+              <Tabs defaultActiveKey="tech" type="card" style={{ marginTop: 8 }}>
+                <Tabs.TabPane tab="设备技术信息" key="tech">
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="tech_equipmentName" label="设备名称" rules={[{ required: true, message: '请输入设备名称' }]}> 
+                        <Input placeholder="例如：激光打印机" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="tech_modelSpec" label="型号规格" rules={[{ required: true, message: '请输入型号规格' }]}> 
+                        <Input placeholder="例如：HP M404dn" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  {/* 型号规格-细化：设备类别/形态/类型名称/是否特种设备（级联） */}
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="tech_category" label="设备类别" rules={[{ required: true, message: '请选择设备类别' }]}> 
+                        <Select
+                          placeholder="请选择设备类别"
+                          allowClear
+                          onChange={() => {
+                            archiveForm.setFieldsValue({ tech_form: undefined, tech_typeName: undefined, tech_specialCategory: undefined });
+                          }}
+                        >
+                          {categoryOptions.map((c) => (
+                            <Option key={c} value={c}>{c}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="tech_form" label="设备形态" rules={[{ required: true, message: '请选择设备形态' }]}> 
+                        <Select
+                          placeholder="请选择设备形态"
+                          allowClear
+                          onChange={() => {
+                            archiveForm.setFieldsValue({ tech_typeName: undefined, tech_specialCategory: undefined });
+                          }}
+                        >
+                          {formOptions.map((f) => (
+                            <Option key={f} value={f}>{f}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="tech_typeName" label="设备类型名称" rules={[{ required: true, message: '请选择设备类型名称' }]}> 
+                        <Select
+                          placeholder="请选择设备类型名称"
+                          allowClear
+                          onChange={(val: string) => {
+                            // 选择类型名称后，自动联动是否特种设备
+                            const matched = (equipmentTypes || []).find((t: any) =>
+                              t?.name === val && (!techCategory || t?.category === techCategory) && (!techForm || t?.form === techForm)
+                            );
+                            const special = matched?.specialCategory;
+                            archiveForm.setFieldsValue({ tech_specialCategory: special });
+                          }}
+                        >
+                          {typeNameOptions.map((n) => (
+                            <Option key={n} value={n}>{n}</Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="tech_specialCategory" label="是否特种设备"> 
+                        <Select placeholder="请选择是否特种设备" allowClear>
+                          {/* 若设备类型未指定，则给出通用选项 */}
+                          <Option value="普通设备">普通设备</Option>
+                          <Option value="特种设备">特种设备</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="tech_brand" label="品牌">
+                        <Input placeholder="例如：HP" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="tech_serialNumber" label="序列号">
+                        <Input placeholder="设备序列号/出厂编号" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="tech_supportingSystems" label="配套系统">
+                        <Input placeholder="如驱动、管理系统等" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="tech_mediaRequirements" label="介质需求">
+                        <Input placeholder="如电源/网络/气源等" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="tech_installLocation" label="安装位置">
+                        <Input placeholder="如A区3楼打印室" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="tech_useDepartment" label="使用部门">
+                        <Input placeholder="如综合管理部" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="tech_installationDate" label="安装日期">
+                        <DatePicker style={{ width: '100%' }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="tech_firstUseDate" label="首次使用日期">
+                        <DatePicker style={{ width: '100%' }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Form.Item name="tech_equipmentStatus" label="设备状态">
+                    <Input placeholder="在库/在用/闲置/停用等" />
                   </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="tech_modelSpec" label="型号规格" rules={[{ required: true, message: '请输入型号规格' }]}>
-                    <Input placeholder="例如：HP M404dn" />
+                  <Form.Item name="tech_performanceParams" label="性能参数">
+                    <TextArea rows={2} placeholder="如打印速度、分辨率等" />
                   </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="tech_brand" label="品牌">
-                    <Input placeholder="例如：HP" />
+                  <Form.Item name="tech_structureParams" label="结构参数">
+                    <TextArea rows={2} placeholder="如尺寸、重量等" />
                   </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="tech_serialNumber" label="序列号">
-                    <Input placeholder="设备序列号/出厂编号" />
+                </Tabs.TabPane>
+                <Tabs.TabPane tab="资产信息" key="asset">
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="asset_assetCode" label="资产编号">
+                        <Input placeholder="固定资产编号" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="asset_assetCategory" label="资产分类">
+                        <Input placeholder="如：办公设备/IT设备" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="asset_purchaseAmount" label="购置金额" rules={[{ required: true, message: '请输入购置金额' }]}> 
+                        <InputNumber style={{ width: '100%' }} min={0} placeholder="¥" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="asset_taxRate" label="税率(%)">
+                        <InputNumber style={{ width: '100%' }} min={0} max={100} placeholder="%" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="asset_depreciationYears" label="折旧年限(年)">
+                        <InputNumber style={{ width: '100%' }} min={0} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="asset_residualRate" label="残值率(%)">
+                        <InputNumber style={{ width: '100%' }} min={0} max={100} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="asset_accumulatedDepreciation" label="累计折旧">
+                        <InputNumber style={{ width: '100%' }} min={0} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="asset_purchaseDate" label="购置日期">
+                        <DatePicker style={{ width: '100%' }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="asset_supplierInfo" label="供应商信息">
+                        <Input placeholder="如联系人、电话等" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="asset_ownershipDepartment" label="归口部门">
+                        <Input placeholder="资产归口管理部门" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="asset_contractNo" label="合同编号">
+                        <Input placeholder="合同编号" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="asset_assetStatus" label="资产状态">
+                        <Input placeholder="在用/闲置/报废等" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Form.Item name="asset_changeRecords" label="变更记录">
+                    <TextArea rows={2} placeholder="资产变更历史" />
                   </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="tech_supportingSystems" label="配套系统">
-                    <Input placeholder="如驱动、管理系统等" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="tech_mediaRequirements" label="介质需求">
-                    <Input placeholder="如电源/网络/气源等" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="tech_installLocation" label="安装位置">
-                    <Input placeholder="如A区3楼打印室" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="tech_useDepartment" label="使用部门">
-                    <Input placeholder="如综合管理部" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="tech_installationDate" label="安装日期">
-                    <DatePicker style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="tech_firstUseDate" label="首次使用日期">
-                    <DatePicker style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="tech_equipmentStatus" label="设备状态">
-                <Input placeholder="在库/在用/闲置/停用等" />
-              </Form.Item>
-              <Form.Item name="tech_performanceParams" label="性能参数">
-                <TextArea rows={2} placeholder="如打印速度、分辨率等" />
-              </Form.Item>
-              <Form.Item name="tech_structureParams" label="结构参数">
-                <TextArea rows={2} placeholder="如尺寸、重量等" />
-              </Form.Item>
-
-              <Divider orientation="left">资产信息</Divider>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="asset_assetCode" label="资产编号">
-                    <Input placeholder="固定资产编号" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="asset_assetCategory" label="资产分类">
-                    <Input placeholder="如：办公设备/IT设备" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="asset_purchaseAmount" label="购置金额" rules={[{ required: true, message: '请输入购置金额' }]}>
-                    <InputNumber style={{ width: '100%' }} min={0} placeholder="¥" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="asset_taxRate" label="税率(%)">
-                    <InputNumber style={{ width: '100%' }} min={0} max={100} placeholder="%" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="asset_depreciationYears" label="折旧年限(年)">
-                    <InputNumber style={{ width: '100%' }} min={0} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="asset_residualRate" label="残值率(%)">
-                    <InputNumber style={{ width: '100%' }} min={0} max={100} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="asset_accumulatedDepreciation" label="累计折旧">
-                    <InputNumber style={{ width: '100%' }} min={0} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="asset_purchaseDate" label="购置日期">
-                    <DatePicker style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="asset_supplierInfo" label="供应商信息">
-                    <Input placeholder="如联系人、电话等" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="asset_ownershipDepartment" label="归口部门">
-                    <Input placeholder="资产归口管理部门" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="asset_contractNo" label="合同编号">
-                    <Input placeholder="合同编号" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="asset_assetStatus" label="资产状态">
-                    <Input placeholder="在用/闲置/报废等" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Form.Item name="asset_changeRecords" label="变更记录">
-                <TextArea rows={2} placeholder="资产变更历史" />
-              </Form.Item>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="asset_lastInventoryDate" label="最近盘点日期">
-                    <DatePicker style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="asset_scrapPlannedDate" label="计划报废日期">
-                    <DatePicker style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="asset_scrapReportNo" label="报废报告编号">
-                    <Input placeholder="如有填写" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="asset_disposalMethod" label="处置方式">
-                    <Input placeholder="如：出售/拆解/销毁等" />
-                  </Form.Item>
-                </Col>
-              </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="asset_lastInventoryDate" label="最近盘点日期">
+                        <DatePicker style={{ width: '100%' }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="asset_scrapPlannedDate" label="计划报废日期">
+                        <DatePicker style={{ width: '100%' }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name="asset_scrapReportNo" label="报废报告编号">
+                        <Input placeholder="如有填写" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="asset_disposalMethod" label="处置方式">
+                        <Input placeholder="如：出售/拆解/销毁等" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </Tabs.TabPane>
+              </Tabs>
             </Form>
           </>
         )}
@@ -1937,6 +2310,13 @@ const DeliveryNotes: React.FC = () => {
                     dataIndex: 'specification',
                     key: 'specification',
                     width: 220,
+                    ellipsis: true,
+                  },
+                  {
+                    title: '品牌',
+                    dataIndex: 'brand',
+                    key: 'brand',
+                    width: 120,
                     ellipsis: true,
                   },
                   {
