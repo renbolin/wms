@@ -156,15 +156,15 @@ const MainLayout: React.FC = () => {
         },
         {
           key: '/asset/borrow',
-          label: '资产领用',
+          label: '资产领用-作废',
         },
         {
           key: '/asset/transfer',
-          label: '资产调拨',
+          label: '资产调拨-作废',
         },
         {
           key: '/asset/maintenance',
-          label: '资产维护',
+          label: '资产维护-作废',
         },
         {
           key: '/asset/inventory',

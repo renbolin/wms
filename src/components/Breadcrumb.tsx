@@ -40,8 +40,9 @@ const routeConfig: Record<string, { title: string; icon?: React.ReactNode }> = {
   // 固定资产管理
   '/asset': { title: '固定资产', icon: <AppstoreOutlined /> },
   '/asset/register': { title: '资产档案', icon: <FormOutlined /> },
-  '/asset/transfer': { title: '资产调拨', icon: <SwapOutlined /> },
-  '/asset/maintenance': { title: '资产维护', icon: <ToolOutlined /> },
+  '/asset/borrow': { title: '资产领用-作废', icon: <FormOutlined /> },
+  '/asset/transfer': { title: '资产调拨-作废', icon: <SwapOutlined /> },
+  '/asset/maintenance': { title: '资产维护-作废', icon: <ToolOutlined /> },
   '/asset/retirement': { title: '资产报废', icon: <DeleteOutlined /> },
   
   // 设备档案（顶级菜单）

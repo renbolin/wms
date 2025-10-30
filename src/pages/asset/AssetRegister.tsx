@@ -486,17 +486,28 @@ const AssetRegister: React.FC = () => {
     },
   ];
 
-  const renderTreeNodes = (nodes: DeviceTypeNode[]) =>
-    nodes.map(node => (
-      <Tree.TreeNode title={node.title} key={node.key}>
-        {node.children ? renderTreeNodes(node.children) : null}
-      </Tree.TreeNode>
-    ));
+  // 渲染“全部”为根节点，顶级设备类型为其子节点
+  const renderTreeWithAllRoot = (nodes: DeviceTypeNode[]) => (
+    <Tree.TreeNode title="全部" key="all">
+      {nodes.map(node => (
+        <Tree.TreeNode title={node.title} key={node.key} />
+      ))}
+    </Tree.TreeNode>
+  );
+
+  // 顶级节点 key 到资产 deviceType 的映射（用于表格筛选）
+  const topKeyToType: Record<string, AssetRecord['deviceType']> = {
+    main: 'main',
+    pump: 'auxiliary',
+    valve: 'spare',
+    special: 'special',
+    general: 'general',
+  };
 
   return (
     <Layout>
       <Sider width={260} style={{ background: '#fff', padding: 16 }}>
-        <div style={{ marginBottom: 12, fontWeight: 600 }}>设备目录</div>
+        <div style={{ marginBottom: 12, fontWeight: 600 }}>设备类型目录</div>
         <Input
           placeholder="搜索类型名称"
           value={typeSearchText}
@@ -507,7 +518,7 @@ const AssetRegister: React.FC = () => {
           defaultExpandAll
           onSelect={(keys) => setSelectedTypeKey((keys[0] as string) || 'all')}
         >
-          {renderTreeNodes(
+          {renderTreeWithAllRoot(
             deviceTypeTree.filter(n =>
               !typeSearchText || n.title.toLowerCase().includes(typeSearchText.toLowerCase())
             )
@@ -555,7 +566,11 @@ const AssetRegister: React.FC = () => {
         <Card style={{ marginTop: 12 }}>
           <Table
             columns={columns}
-            dataSource={filteredData.filter(item => selectedTypeKey === 'all' || item.deviceTypeKey === selectedTypeKey)}
+            dataSource={filteredData.filter(item =>
+              selectedTypeKey === 'all' ||
+              item.deviceTypeKey === selectedTypeKey ||
+              (topKeyToType[selectedTypeKey] && item.deviceType === topKeyToType[selectedTypeKey])
+            )}
             rowKey="id"
             loading={loading}
             scroll={{ x: 1200 }}
